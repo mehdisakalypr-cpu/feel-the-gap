@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import CountryPanel from './CountryPanel'
+import { getAnimatedIconHTML, CATEGORY_COLORS } from './AnimatedIcon'
 import type { CountryMapData } from '@/types/database'
 
 // Seed data — replaced by API once Supabase is populated
@@ -68,11 +69,6 @@ const SEED_COUNTRIES: CountryMapData[] = [
     top_import_category:'manufactured',opportunity_count:8,top_opportunity_score:69,data_year:2023 },
 ]
 
-function getMarkerColor(d: CountryMapData): string {
-  if (d.top_opportunity_score && d.top_opportunity_score >= 85) return '#C9A84C'
-  if (!d.trade_balance_usd) return '#4B5563'
-  return d.trade_balance_usd >= 0 ? '#22C55E' : '#EF4444'
-}
 
 function fmtUsd(v: number | null): string {
   if (v == null) return '—'
@@ -142,19 +138,22 @@ export default function WorldMap() {
     markersRef.current = []
 
     data.forEach(c => {
-      const color = getMarkerColor(c)
-      const radius = c.top_opportunity_score
-        ? 5 + Math.round(c.top_opportunity_score / 20)
-        : 5
+      const iconSize = c.top_opportunity_score && c.top_opportunity_score >= 80 ? 40 : 32
+      const iconHtml = getAnimatedIconHTML(
+        c.top_import_category ?? 'all',
+        undefined,
+        iconSize,
+        c.top_opportunity_score,
+      )
+      const icon = L.divIcon({
+        html: iconHtml,
+        className: 'ftg-div-marker',
+        iconSize: [iconSize, iconSize],
+        iconAnchor: [iconSize / 2, iconSize / 2],
+        popupAnchor: [0, -iconSize / 2 - 4],
+      })
 
-      const m = L.circleMarker([c.lat, c.lng], {
-        radius,
-        fillColor: color,
-        fillOpacity: 0.85,
-        color: '#07090F',
-        weight: 1.5,
-        className: 'ftg-marker',
-      }).addTo(map)
+      const m = L.marker([c.lat, c.lng], { icon }).addTo(map)
 
       // Hover popup
       let timer: ReturnType<typeof setTimeout> | null = null
@@ -222,7 +221,7 @@ export default function WorldMap() {
 }
 
 function buildPopupHtml(c: CountryMapData): string {
-  const color = getMarkerColor(c)
+  const color = CATEGORY_COLORS[c.top_import_category ?? 'all'] ?? '#C9A84C'
   const score = c.top_opportunity_score
   const balanceSign = (c.trade_balance_usd ?? 0) >= 0 ? '+' : ''
   return `

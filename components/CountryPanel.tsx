@@ -23,15 +23,44 @@ function fmtUsd(v: number | null): string {
   return sign + '$' + abs.toLocaleString()
 }
 
-// Placeholder opportunities — will be fetched from API
+// Placeholder opportunities — fetched from API once Supabase is populated
 const DEMO_OPPORTUNITIES = [
-  { product: 'Onions & Shallots', type: 'local_production', score: 91, gap: '$48M/yr',
-    summary: 'Imports 38,000 t/yr at $1,260/t. Domestic land available at $200/ha. Est. production cost $480/t.' },
-  { product: 'Wheat Flour',       type: 'local_production', score: 85, gap: '$120M/yr',
-    summary: 'Annual imports of 1.2M t. Growing middle class demands processed staples. Mill capex ~$4.2M.' },
-  { product: 'Crude Sunflower Oil',type: 'direct_trade',    score: 74, gap: '$31M/yr',
-    summary: 'Import from Ukraine/Russia at $900/t FOB. Retail margin potential 38%.' },
+  {
+    product: 'Onions & Shallots', score: 91, market_value: '$48M/yr',
+    volume: '38,000 t/yr', avg_price: '$1,260/t',
+    plans: {
+      trade:      { label: 'Import & Distribute', margin: '28%', capex: '$180K', time: '3 months' },
+      production: { label: 'Local Farm Unit',     margin: '61%', capex: '$1.2M', time: '18 months' },
+      training:   { label: 'Franchise to Locals', margin: '12%', capex: '$80K',  time: '6 months' },
+    },
+  },
+  {
+    product: 'Wheat Flour', score: 85, market_value: '$120M/yr',
+    volume: '1.2M t/yr', avg_price: '$320/t',
+    plans: {
+      trade:      { label: 'Bulk Import & Mill', margin: '22%', capex: '$4.2M', time: '6 months' },
+      production: { label: 'Local Mill',          margin: '44%', capex: '$8.5M', time: '24 months' },
+      training:   { label: 'Co-op Model',         margin: '8%',  capex: '$500K', time: '12 months' },
+    },
+  },
+  {
+    product: 'Crude Sunflower Oil', score: 74, market_value: '$31M/yr',
+    volume: '28,000 t/yr', avg_price: '$1,100/t',
+    plans: {
+      trade:      { label: 'FOB Trading',         margin: '38%', capex: '$220K', time: '2 months' },
+      production: { label: 'Sunflower Plantation', margin: '55%', capex: '$3.8M', time: '20 months' },
+      training:   { label: 'Farmer Network',       margin: '15%', capex: '$300K', time: '9 months' },
+    },
+  },
 ]
+
+type PlanKey = 'trade' | 'production' | 'training'
+
+const PLAN_META: Record<PlanKey, { icon: string; color: string; label: string }> = {
+  trade:      { icon: '🚢', color: '#60A5FA', label: 'Import & Sell' },
+  production: { icon: '🏭', color: '#22C55E', label: 'Produce Locally' },
+  training:   { icon: '🤝', color: '#C9A84C', label: 'Train Locals' },
+}
 
 export default function CountryPanel({ country, onClose }: Props) {
   const [tab, setTab] = useState<'overview' | 'opportunities' | 'reports'>('overview')
@@ -136,39 +165,19 @@ export default function CountryPanel({ country, onClose }: Props) {
 
         {tab === 'opportunities' && (
           <>
-            <p className="text-xs text-gray-500">Top opportunities identified by AI analysis</p>
+            <p className="text-xs text-gray-500">Market gaps identified by AI — choose your entry strategy</p>
             {DEMO_OPPORTUNITIES.map((opp, i) => (
-              <div key={i} className="bg-[#111827] rounded-xl p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-medium text-white">{opp.product}</p>
-                    <span className={`inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                      opp.type === 'local_production'
-                        ? 'bg-green-500/15 text-green-400'
-                        : 'bg-blue-500/15 text-blue-400'
-                    }`}>
-                      {opp.type === 'local_production' ? '🏭 Local Production' : '🚢 Direct Trade'}
-                    </span>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-[#C9A84C] font-bold text-sm">{opp.gap}</div>
-                    <div className="text-[10px] text-gray-500">gap/year</div>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">{opp.summary}</p>
-                <button className="w-full py-1.5 text-xs font-semibold text-[#07090F] bg-[#C9A84C] rounded-lg hover:bg-[#E8C97A] transition-colors">
-                  View Full Business Plan →
-                </button>
-              </div>
+              <OpportunityCard key={i} opp={opp} />
             ))}
 
-            {/* Paywall hint */}
+            {/* Paywall */}
             <div className="bg-[#111827] border border-[rgba(201,168,76,.2)] rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-3">
-                +{country.opportunity_count - 3} more opportunities available with Pro plan
+              <p className="text-xs text-gray-400 mb-1 font-medium">
+                +{Math.max(0, country.opportunity_count - 3)} more opportunities
               </p>
+              <p className="text-[10px] text-gray-500 mb-3">Full market values & detailed plans require Pro</p>
               <button className="px-4 py-2 bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] text-xs font-semibold rounded-lg hover:bg-[#C9A84C]/20 transition-colors">
-                Upgrade to Pro — €99/mo
+                Upgrade to Strategist — €99/mo
               </button>
             </div>
           </>
@@ -207,6 +216,67 @@ export default function CountryPanel({ country, onClose }: Props) {
         <button className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-semibold text-sm rounded-xl hover:bg-[#E8C97A] transition-colors">
           Get Full {country.name_fr} Report
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Opportunity card with 3-plan selector ────────────────────────────────────
+
+type OppData = typeof DEMO_OPPORTUNITIES[0]
+
+function OpportunityCard({ opp }: { opp: OppData }) {
+  const [plan, setPlan] = useState<PlanKey>('trade')
+  const selected = opp.plans[plan]
+  const meta = PLAN_META[plan]
+
+  return (
+    <div className="bg-[#111827] rounded-xl p-3 space-y-3">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-white">{opp.product}</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">{opp.volume} · avg {opp.avg_price}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-[#C9A84C] font-bold text-sm">{opp.market_value}</div>
+          <div className="text-[10px] text-gray-500">market/year</div>
+        </div>
+      </div>
+
+      {/* Plan tabs */}
+      <div className="flex gap-1">
+        {(Object.keys(PLAN_META) as PlanKey[]).map(k => (
+          <button
+            key={k}
+            onClick={() => setPlan(k)}
+            className="flex-1 py-1.5 text-[10px] font-medium rounded-lg transition-all"
+            style={plan === k
+              ? { background: PLAN_META[k].color + '22', color: PLAN_META[k].color, border: `1px solid ${PLAN_META[k].color}44` }
+              : { background: 'transparent', color: '#6B7280', border: '1px solid #1F2937' }}
+          >
+            {PLAN_META[k].icon} {PLAN_META[k].label}
+          </button>
+        ))}
+      </div>
+
+      {/* Selected plan summary */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: 'Strategy', value: selected.label },
+          { label: 'Capex',    value: selected.capex },
+          { label: 'Margin',   value: selected.margin },
+        ].map(item => (
+          <div key={item.label} className="bg-[#1F2937] rounded-lg p-2 text-center">
+            <p className="text-[9px] text-gray-500 uppercase tracking-wide">{item.label}</p>
+            <p className="text-xs font-semibold mt-0.5" style={{ color: meta.color }}>{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between text-[10px] text-gray-500">
+        <span>⏱ Time to market: <strong className="text-gray-300">{selected.time}</strong></span>
+        <span className="text-[#C9A84C] font-medium cursor-pointer hover:underline">Full plan →</span>
       </div>
     </div>
   )
