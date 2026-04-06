@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co'
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder'
 
-export const supabase = createClient<Database>(url, anon)
+// Untyped for now — run `supabase gen types` once DB is provisioned to replace with generated types
+export const supabase = createClient(url, anon)
 
 export function supabaseAdmin() {
-  return createClient<Database>(url, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  return createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY ?? anon, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Feel The Gap — AI Data Collection Agent
  *

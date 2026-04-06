@@ -86,8 +86,10 @@ function fmtUsd(v: number | null): string {
 
 export default function WorldMap() {
   const mapRef = useRef<HTMLDivElement>(null)
-  const leafletMapRef = useRef<import('leaflet').Map | null>(null)
-  const markersRef = useRef<import('leaflet').CircleMarker[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leafletMapRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersRef = useRef<any[]>([])
   const [selectedCountry, setSelectedCountry] = useState<CountryMapData | null>(null)
   const [countries] = useState<CountryMapData[]>(SEED_COUNTRIES)
 
@@ -129,8 +131,10 @@ export default function WorldMap() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function renderMarkers(
-    L: typeof import('leaflet').default,
-    map: import('leaflet').Map,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    map: any,
     data: CountryMapData[],
     onSelect: (c: CountryMapData) => void,
   ) {

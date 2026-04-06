@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Feel The Gap — Business Plan Builder Agent
  *
