@@ -125,7 +125,7 @@ export default function ReportsPage() {
             {filtered.map(c => (
               <Link
                 key={c.iso}
-                href={`/map?country=${c.iso}`}
+                href={`/country/${c.iso}`}
                 className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-4 hover:border-[#C9A84C]/50 transition-all group"
               >
                 <div className="flex items-center gap-2.5 mb-3">

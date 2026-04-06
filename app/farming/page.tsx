@@ -162,6 +162,138 @@ function ChannelCard({ ch, isRecommended }: { ch: ChannelOption; isRecommended: 
   )
 }
 
+// ── Influencer Module ────────────────────────────────────────────────────────
+
+const INFLUENCER_TYPES = [
+  { icon: '🎥', label: 'YouTube', desc: 'Long-form reviews & vlogs', avg_reach: '250K', commission: '8-15%' },
+  { icon: '📱', label: 'Instagram', desc: 'Stories + Reels product demos', avg_reach: '45K', commission: '5-12%' },
+  { icon: '🎵', label: 'TikTok', desc: 'Short viral product content', avg_reach: '180K', commission: '6-10%' },
+  { icon: '✍️', label: 'Blog / SEO', desc: 'Review articles + affiliate links', avg_reach: '30K/mo', commission: '10-20%' },
+]
+
+function InfluencerModule({ product, affiliateLink }: { product: string; affiliateLink: string }) {
+  const [open, setOpen] = useState(false)
+  const [commissionPct, setCommissionPct] = useState(10)
+  const hasLink = affiliateLink.trim().length > 0
+
+  const platformFee = (commissionPct * 0.05).toFixed(1)
+
+  return (
+    <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">📲</span>
+          <div className="text-left">
+            <div className="font-semibold text-white">Influencer & Affiliate Module</div>
+            <div className="text-xs text-gray-400">Connect your product with content creators — pay only on results</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasLink && <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-[10px] rounded-full font-semibold">Affiliate link ready</span>}
+          <span className="text-gray-500 text-sm">{open ? '▲' : '▼'}</span>
+        </div>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-5 border-t border-white/5">
+          {/* How it works */}
+          <div className="pt-4">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">How it works</div>
+            <div className="grid grid-cols-3 gap-3 text-center text-xs">
+              {[
+                { step: '1', label: 'You provide', desc: 'affiliate link + commission %' },
+                { step: '2', label: 'We match', desc: 'content creators in your niche' },
+                { step: '3', label: 'They promote', desc: 'pay 5% of their commission' },
+              ].map(s => (
+                <div key={s.step} className="bg-white/5 rounded-xl p-3">
+                  <div className="w-6 h-6 rounded-full bg-[#C9A84C]/20 text-[#C9A84C] font-bold text-sm flex items-center justify-center mx-auto mb-2">{s.step}</div>
+                  <div className="font-semibold text-white mb-0.5">{s.label}</div>
+                  <div className="text-gray-500">{s.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Commission simulator */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold text-white">Commission simulator</div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Your commission:</span>
+                <input
+                  type="number" min={1} max={40} value={commissionPct}
+                  onChange={e => setCommissionPct(Number(e.target.value))}
+                  className="w-14 px-2 py-1 bg-[#111827] border border-white/10 rounded-lg text-white text-xs text-center focus:outline-none focus:border-[#C9A84C]"
+                />
+                <span className="text-xs text-gray-500">%</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs text-center">
+              {[
+                { label: '€1,000 sale', commission: 1000 * commissionPct / 100, fee: 1000 * commissionPct / 100 * 0.05 },
+                { label: '€5,000/mo',   commission: 5000 * commissionPct / 100, fee: 5000 * commissionPct / 100 * 0.05 },
+                { label: '€20,000/mo',  commission: 20000 * commissionPct / 100, fee: 20000 * commissionPct / 100 * 0.05 },
+              ].map(sim => (
+                <div key={sim.label} className="bg-[#07090F] rounded-lg p-2.5">
+                  <div className="text-gray-500 mb-1">{sim.label}</div>
+                  <div className="text-emerald-400 font-semibold">€{sim.commission.toFixed(0)} earned</div>
+                  <div className="text-[10px] text-gray-600 mt-0.5">Platform fee: €{sim.fee.toFixed(0)}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-600 mt-2 text-center">
+              Influencers pay {platformFee}% of their commission earnings as platform subscription — zero upfront cost for you.
+            </p>
+          </div>
+
+          {/* Channel types */}
+          <div>
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Matched creator types for <span className="text-white">{product || 'your product'}</span></div>
+            <div className="grid grid-cols-2 gap-2">
+              {INFLUENCER_TYPES.map(t => (
+                <div key={t.label} className="bg-white/5 rounded-xl p-3 flex items-start gap-2.5">
+                  <span className="text-xl">{t.icon}</span>
+                  <div>
+                    <div className="text-sm font-semibold text-white">{t.label}</div>
+                    <div className="text-xs text-gray-500">{t.desc}</div>
+                    <div className="text-[10px] text-gray-600 mt-1">Avg reach: {t.avg_reach} · Commission: {t.commission}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Affiliate link status */}
+          {hasLink ? (
+            <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+              <span className="text-emerald-400">✓</span>
+              <div>
+                <div className="text-sm text-emerald-300 font-medium">Affiliate link configured</div>
+                <div className="text-xs text-gray-500 truncate max-w-xs">{affiliateLink}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 px-4 py-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+              <span className="text-yellow-400">⚠</span>
+              <div>
+                <div className="text-sm text-yellow-300 font-medium">No affiliate link provided</div>
+                <div className="text-xs text-gray-500">Add your affiliate link in the form above to activate influencer matching</div>
+              </div>
+            </div>
+          )}
+
+          <a href="/pricing" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm text-center rounded-xl hover:opacity-90 transition-opacity">
+            Activate influencer matching — Pro plan
+          </a>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FarmingPage() {
@@ -416,6 +548,9 @@ export default function FarmingPage() {
                 </ul>
               </div>
             )}
+
+            {/* ── Influencer Module ── */}
+            <InfluencerModule product={form.product} affiliateLink={form.affiliateLink} />
 
             {/* CTA */}
             <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 flex items-center justify-between">
