@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Carte",
+    "pricing": "Tarifs",
+    "login": "Connexion",
+    "signup": "Commencer"
+  },
+  "home": {
+    "hero_title": "Trouvez les plus grandes opportunités commerciales mondiales",
+    "hero_sub": "Découvrez où la demande dépasse l'offre — opportunités scorées dans plus de 90 pays avec des stratégies d'entrée alimentées par l'IA.",
+    "cta_explore": "Explorer les opportunités",
+    "cta_demo": "Voir la démo"
+  },
+  "map": {
+    "title": "Opportunités Commerciales Mondiales",
+    "filter_all": "Tous les secteurs",
+    "filter_energy": "Énergie",
+    "filter_agriculture": "Agriculture",
+    "filter_manufacturing": "Industrie",
+    "filter_technology": "Technologie",
+    "search_placeholder": "Rechercher un pays…",
+    "click_country": "Cliquez sur un pays pour explorer"
+  },
+  "panel": {
+    "opportunity_score": "Score d'opportunité",
+    "top_opportunities": "Meilleures Opportunités",
+    "import_value": "Valeur d'import",
+    "tariff": "Tarif douanier",
+    "entry_strategy": "Stratégie d'entrée",
+    "unlock_plan": "Débloquer le plan complet →",
+    "strategy_trade": "Importer & Revendre",
+    "strategy_production": "Produire Localement",
+    "strategy_training": "Former les Locaux",
+    "capex": "Investissement",
+    "margin": "Marge",
+    "timeline": "Délai"
+  },
+  "advisor": {
+    "title": "Conseiller IA Business",
+    "sub": "Stratégie personnalisée à votre contexte",
+    "features": {
+      "plan": "Business plan adapté à votre budget",
+      "competitive": "Analyse concurrentielle locale",
+      "steps": "Étapes de mise en œuvre",
+      "risks": "Risques & mitigation"
+    },
+    "start": "Démarrer la session IA →",
+    "unlock": "Débloquer le conseiller IA →",
+    "credits": "1 crédit par session (15€)",
+    "paywall_title": "Passer à Pro",
+    "paywall_sub": "Le conseiller IA est disponible pour les abonnés Pro. Il personnalise la stratégie selon votre budget, timeline et contexte.",
+    "upgrade_btn": "Passer à Pro — 99€/mois",
+    "credits_sub": "Inclut 5 sessions IA/mois · 15€ par session supplémentaire"
+  },
+  "pricing": {
+    "title": "Tarification simple et transparente",
+    "starter_name": "Starter",
+    "pro_name": "Pro",
+    "enterprise_name": "Entreprise",
+    "monthly": "mois",
+    "most_popular": "Le plus populaire"
+  },
+  "onboarding": {
+    "step_role": "Qui êtes-vous ?",
+    "step_role_sub": "Nous personnaliserons votre expérience",
+    "step_focus": "Vos domaines de focus",
+    "step_focus_sub": "Sélectionnez tout ce qui s'applique",
+    "step_profile": "Presque fini",
+    "step_profile_sub": "Facultatif — aide à personnaliser les recommandations",
+    "step_ready": "Vous êtes prêt !",
+    "step_ready_sub": "Nous vous ferons faire un tour rapide de la plateforme.",
+    "continue": "Continuer →",
+    "back": "← Retour",
+    "start_tour": "Commencer la visite →",
+    "skip_map": "Passer — aller directement à la carte"
+  },
+  "demo": {
+    "banner": "Mode démo — exploration de données commerciales réelles avec visite guidée",
+    "live": "Aller sur la plateforme →",
+    "try_country": "Essayer un autre pays"
+  },
+  "common": {
+    "loading": "Chargement…",
+    "error": "Une erreur s'est produite",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "close": "Fermer"
+  }
+}

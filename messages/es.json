@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Mapa",
+    "pricing": "Precios",
+    "login": "Iniciar sesión",
+    "signup": "Comenzar"
+  },
+  "home": {
+    "hero_title": "Encuentra las mayores brechas comerciales del mundo",
+    "hero_sub": "Descubre dónde la demanda supera a la oferta — oportunidades puntuadas en más de 90 países con estrategias de entrada impulsadas por IA.",
+    "cta_explore": "Explorar oportunidades",
+    "cta_demo": "Ver demo"
+  },
+  "map": {
+    "title": "Oportunidades Comerciales Mundiales",
+    "filter_all": "Todos los sectores",
+    "filter_energy": "Energía",
+    "filter_agriculture": "Agricultura",
+    "filter_manufacturing": "Manufactura",
+    "filter_technology": "Tecnología",
+    "search_placeholder": "Buscar país…",
+    "click_country": "Haz clic en un país para explorar"
+  },
+  "panel": {
+    "opportunity_score": "Puntuación de oportunidad",
+    "top_opportunities": "Mejores Oportunidades",
+    "import_value": "Valor de importación",
+    "tariff": "Arancel",
+    "entry_strategy": "Estrategia de entrada",
+    "unlock_plan": "Desbloquear plan completo →",
+    "strategy_trade": "Importar y Vender",
+    "strategy_production": "Producir Localmente",
+    "strategy_training": "Capacitar Locales",
+    "capex": "Inversión",
+    "margin": "Margen",
+    "timeline": "Plazo"
+  },
+  "advisor": {
+    "title": "Asesor IA de Negocios",
+    "sub": "Estrategia personalizada a tu contexto",
+    "features": {
+      "plan": "Plan de negocios adaptado a tu presupuesto",
+      "competitive": "Análisis competitivo local",
+      "steps": "Implementación paso a paso",
+      "risks": "Riesgos y mitigación"
+    },
+    "start": "Iniciar sesión IA →",
+    "unlock": "Desbloquear asesor IA →",
+    "credits": "1 crédito por sesión (€15)",
+    "paywall_title": "Actualizar a Pro",
+    "paywall_sub": "El asesor IA está disponible para suscriptores Pro.",
+    "upgrade_btn": "Actualizar a Pro — €99/mes",
+    "credits_sub": "Incluye 5 sesiones IA/mes · €15 por sesión adicional"
+  },
+  "pricing": {
+    "title": "Precios simples y transparentes",
+    "starter_name": "Starter",
+    "pro_name": "Pro",
+    "enterprise_name": "Empresa",
+    "monthly": "mes",
+    "most_popular": "Más popular"
+  },
+  "onboarding": {
+    "step_role": "¿Qué te describe mejor?",
+    "step_role_sub": "Personalizaremos tu experiencia",
+    "step_focus": "Tus áreas de enfoque",
+    "step_focus_sub": "Selecciona todo lo que aplique",
+    "step_profile": "Casi listo",
+    "step_profile_sub": "Opcional — ayuda a personalizar recomendaciones",
+    "step_ready": "¡Estás listo!",
+    "step_ready_sub": "Te guiaremos en un recorrido rápido por la plataforma.",
+    "continue": "Continuar →",
+    "back": "← Atrás",
+    "start_tour": "Comenzar el tour →",
+    "skip_map": "Omitir — ir directamente al mapa"
+  },
+  "demo": {
+    "banner": "Modo demo — exploración de datos comerciales reales con visita guiada",
+    "live": "Ir a la plataforma en vivo →",
+    "try_country": "Probar otro país"
+  },
+  "common": {
+    "loading": "Cargando…",
+    "error": "Ocurrió un error",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar"
+  }
+}

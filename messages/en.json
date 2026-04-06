@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "map": "Map",
+    "pricing": "Pricing",
+    "login": "Log in",
+    "signup": "Get started"
+  },
+  "home": {
+    "hero_title": "Find the world's biggest trade gaps",
+    "hero_sub": "Discover where demand outpaces supply — scored opportunities in 90+ countries with AI-powered entry strategies.",
+    "cta_explore": "Explore opportunities",
+    "cta_demo": "Watch demo"
+  },
+  "map": {
+    "title": "World Trade Opportunities",
+    "filter_all": "All sectors",
+    "filter_energy": "Energy",
+    "filter_agriculture": "Agriculture",
+    "filter_manufacturing": "Manufacturing",
+    "filter_technology": "Technology",
+    "search_placeholder": "Search country…",
+    "click_country": "Click a country to explore"
+  },
+  "panel": {
+    "opportunity_score": "Opportunity score",
+    "top_opportunities": "Top Opportunities",
+    "import_value": "Import value",
+    "tariff": "Tariff",
+    "entry_strategy": "Entry strategy",
+    "unlock_plan": "Unlock full plan →",
+    "strategy_trade": "Import & Sell",
+    "strategy_production": "Produce Locally",
+    "strategy_training": "Train Locals",
+    "capex": "Capex",
+    "margin": "Margin",
+    "timeline": "Timeline"
+  },
+  "advisor": {
+    "title": "AI Business Advisor",
+    "sub": "Personalised strategy for your context",
+    "features": {
+      "plan": "Business plan adapted to your budget",
+      "competitive": "Local competitive analysis",
+      "steps": "Step-by-step implementation",
+      "risks": "Risks & mitigation"
+    },
+    "start": "Start AI session →",
+    "unlock": "Unlock AI advisor →",
+    "credits": "1 credit per session (€15)",
+    "paywall_title": "Upgrade to Pro",
+    "paywall_sub": "The AI advisor is available to Pro subscribers. It personalises strategy based on your budget, timeline and context.",
+    "upgrade_btn": "Upgrade to Pro — €99/month",
+    "credits_sub": "Includes 5 AI sessions/month · €15 per additional session"
+  },
+  "pricing": {
+    "title": "Simple, transparent pricing",
+    "starter_name": "Starter",
+    "pro_name": "Pro",
+    "enterprise_name": "Enterprise",
+    "monthly": "month",
+    "most_popular": "Most popular"
+  },
+  "onboarding": {
+    "step_role": "What best describes you?",
+    "step_role_sub": "We'll personalise your experience",
+    "step_focus": "Your areas of focus",
+    "step_focus_sub": "Select all that apply",
+    "step_profile": "Almost there",
+    "step_profile_sub": "Optional — helps us tailor recommendations",
+    "step_ready": "You're all set!",
+    "step_ready_sub": "We'll take you on a quick tour of the platform.",
+    "continue": "Continue →",
+    "back": "← Back",
+    "start_tour": "Start the tour →",
+    "skip_map": "Skip — take me straight to the map"
+  },
+  "demo": {
+    "banner": "Demo mode — exploring real trade data with guided tour",
+    "live": "Go to live platform →",
+    "try_country": "Try another country"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close"
+  }
+}
