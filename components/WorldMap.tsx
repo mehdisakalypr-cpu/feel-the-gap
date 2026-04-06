@@ -87,9 +87,17 @@ export default function WorldMap() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<any[]>([])
   const [selectedCountry, setSelectedCountry] = useState<CountryMapData | null>(null)
-  const [countries] = useState<CountryMapData[]>(SEED_COUNTRIES)
+  const [countries, setCountries] = useState<CountryMapData[]>(SEED_COUNTRIES)
 
   const openPanel = useCallback((c: CountryMapData) => setSelectedCountry(c), [])
+
+  // Fetch live data from API (falls back to SEED_COUNTRIES if unavailable)
+  useEffect(() => {
+    fetch('/api/countries')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (Array.isArray(data) && data.length > 0) setCountries(data) })
+      .catch(() => {/* keep seed data */})
+  }, [])
 
   useEffect(() => {
     if (!mapRef.current || leafletMapRef.current) return
