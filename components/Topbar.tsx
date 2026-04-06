@@ -1,10 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { createSupabaseBrowser } from '@/lib/supabase'
 
 export default function Topbar() {
   const [search, setSearch] = useState('')
+  const [userInitial, setUserInitial] = useState<string | null>(null)
+
+  useEffect(() => {
+    const sb = createSupabaseBrowser()
+    sb.auth.getUser().then(({ data }) => {
+      const email = data.user?.email
+      if (email) setUserInitial(email[0].toUpperCase())
+    })
+  }, [])
 
   return (
     <header className="h-14 flex items-center justify-between px-4 border-b border-[rgba(201,168,76,.15)] bg-[#0D1117] shrink-0 z-50">
@@ -49,9 +59,15 @@ export default function Topbar() {
         <Link href="/pricing" className="px-3 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
           Pricing
         </Link>
-        <Link href="/auth/login" className="ml-2 px-4 py-1.5 bg-[#C9A84C] text-[#07090F] font-semibold rounded-lg hover:bg-[#E8C97A] transition-colors text-xs">
-          Sign in
-        </Link>
+        {userInitial ? (
+          <Link href="/account" className="ml-2 w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center hover:bg-[#E8C97A] transition-colors">
+            {userInitial}
+          </Link>
+        ) : (
+          <Link href="/auth/login" className="ml-2 px-4 py-1.5 bg-[#C9A84C] text-[#07090F] font-semibold rounded-lg hover:bg-[#E8C97A] transition-colors text-xs">
+            Sign in
+          </Link>
+        )}
       </nav>
     </header>
   )

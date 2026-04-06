@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { CountryMapData } from '@/types/database'
 
 interface Props {
@@ -61,6 +61,238 @@ const PLAN_META: Record<PlanKey, { icon: string; color: string; label: string }>
   production: { icon: '🏭', color: '#22C55E', label: 'Produce Locally' },
   training:   { icon: '🤝', color: '#C9A84C', label: 'Train Locals' },
 }
+
+// ── AI Advisor Chat ──────────────────────────────────────────────────────────
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+const MAX_EXCHANGES = 5
+
+function AIAdvisorChat({ country }: { country: CountryMapData }) {
+  const [open, setOpen] = useState(false)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState('')
+  const [streaming, setStreaming] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const exchangeCount = messages.filter(m => m.role === 'user').length
+  const limitReached = exchangeCount >= MAX_EXCHANGES
+
+  useEffect(() => {
+    if (open && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, open])
+
+  async function sendMessage() {
+    const text = input.trim()
+    if (!text || streaming || limitReached) return
+
+    const userMsg: ChatMessage = { role: 'user', content: text }
+    const newMessages = [...messages, userMsg]
+    setMessages(newMessages)
+    setInput('')
+    setStreaming(true)
+
+    // Append a placeholder for the assistant reply
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }])
+
+    try {
+      const res = await fetch('/api/advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages,
+          context: {
+            country: country.name_fr,
+            iso: country.iso ?? '',
+            product: country.top_import_category ?? 'général',
+            category: country.top_import_category ?? 'général',
+            strategy: 'trade',
+          },
+        }),
+      })
+
+      if (!res.ok || !res.body) {
+        setMessages(prev => {
+          const updated = [...prev]
+          updated[updated.length - 1] = {
+            role: 'assistant',
+            content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
+          }
+          return updated
+        })
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const payload = line.slice(6).trim()
+          if (payload === '[DONE]') break
+          try {
+            const json = JSON.parse(payload)
+            const chunk: string = json?.choices?.[0]?.delta?.content ?? ''
+            if (chunk) {
+              setMessages(prev => {
+                const updated = [...prev]
+                updated[updated.length - 1] = {
+                  role: 'assistant',
+                  content: updated[updated.length - 1].content + chunk,
+                }
+                return updated
+              })
+            }
+          } catch {
+            // ignore malformed chunks
+          }
+        }
+      }
+    } catch {
+      setMessages(prev => {
+        const updated = [...prev]
+        updated[updated.length - 1] = {
+          role: 'assistant',
+          content: "Connexion interrompue. Vérifiez votre réseau et réessayez.",
+        }
+        return updated
+      })
+    } finally {
+      setStreaming(false)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="p-3 border-t border-[rgba(201,168,76,.1)]">
+        <button
+          onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50) }}
+          className="w-full py-2 flex items-center justify-center gap-2 bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] text-xs font-semibold rounded-xl hover:bg-[#C9A84C]/20 transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.84 8.84 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd"/>
+          </svg>
+          Ask AI about this market
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-t border-[rgba(201,168,76,.1)] flex flex-col" style={{ maxHeight: 300 }}>
+      {/* Chat header */}
+      <div className="flex items-center justify-between px-3 py-2 bg-[#0D1117]">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
+          <span className="text-[11px] font-semibold text-[#C9A84C]">AI Advisor — {country.name_fr}</span>
+        </div>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-gray-600 hover:text-gray-400 transition-colors text-xs"
+          aria-label="Close AI chat"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0" style={{ maxHeight: 200 }}>
+        {messages.length === 0 && (
+          <p className="text-[11px] text-gray-500 text-center py-3">
+            Posez une question sur le marché de {country.name_fr}...
+          </p>
+        )}
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[85%] px-2.5 py-1.5 rounded-xl text-[11px] leading-relaxed whitespace-pre-wrap ${
+                msg.role === 'user'
+                  ? 'bg-[#C9A84C]/20 text-[#E8C97A] rounded-br-sm'
+                  : 'bg-[#1F2937] text-gray-300 rounded-bl-sm'
+              }`}
+            >
+              {msg.content || (
+                <span className="inline-flex gap-0.5 items-center">
+                  <span className="w-1 h-1 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1 h-1 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1 h-1 rounded-full bg-gray-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Limit reached CTA */}
+      {limitReached && (
+        <div className="px-3 py-2 bg-[#C9A84C]/5 border-t border-[rgba(201,168,76,.1)] text-center">
+          <p className="text-[10px] text-gray-500 mb-1">Limite de 5 échanges atteinte (plan gratuit)</p>
+          <a
+            href="/pricing"
+            className="text-[11px] font-semibold text-[#C9A84C] hover:underline"
+          >
+            Upgrade pour illimité →
+          </a>
+        </div>
+      )}
+
+      {/* Input */}
+      {!limitReached && (
+        <div className="flex items-center gap-2 px-3 py-2 border-t border-[rgba(201,168,76,.1)]">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={streaming}
+            placeholder="Votre question..."
+            className="flex-1 bg-[#1F2937] text-white text-[11px] rounded-lg px-2.5 py-1.5 outline-none placeholder-gray-600 border border-transparent focus:border-[rgba(201,168,76,.3)] disabled:opacity-50 transition-colors"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={streaming || !input.trim()}
+            className="shrink-0 px-2.5 py-1.5 bg-[#C9A84C] text-[#07090F] text-[11px] font-bold rounded-lg hover:bg-[#E8C97A] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {streaming ? '…' : '→'}
+          </button>
+        </div>
+      )}
+
+      <div className="px-3 pb-1.5 text-right">
+        <span className="text-[9px] text-gray-600">{exchangeCount}/{MAX_EXCHANGES} échanges</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Main panel ───────────────────────────────────────────────────────────────
 
 export default function CountryPanel({ country, onClose }: Props) {
   const [tab, setTab] = useState<'overview' | 'opportunities' | 'reports'>('overview')
@@ -210,6 +442,9 @@ export default function CountryPanel({ country, onClose }: Props) {
           </div>
         )}
       </div>
+
+      {/* AI Advisor Chat */}
+      <AIAdvisorChat country={country} />
 
       {/* Footer CTA */}
       <div className="p-4 border-t border-[rgba(201,168,76,.1)]">
