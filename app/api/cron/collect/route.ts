@@ -9,8 +9,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { runDataCollector } = await import('@/agents/data-collector')
-  await runDataCollector({ year: 2022 })
+  // Use the free multi-source collector (no API keys required for most sources)
+  const { runFreeCollector, runGapAnalyzer } = await import('@/agents/free-collector')
+  await runFreeCollector({ year: 2022 })
+  await runGapAnalyzer()
 
   return NextResponse.json({ ok: true, ts: new Date().toISOString() })
 }
