@@ -40,6 +40,12 @@ export default function Topbar() {
         <Link href="/reports" className="px-3 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
           Reports
         </Link>
+        <Link href="/farming" className="px-3 py-1.5 text-[#C9A84C] hover:text-white rounded-md hover:bg-[#C9A84C]/10 transition-colors font-medium flex items-center gap-1.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+          </svg>
+          Farming
+        </Link>
         <Link href="/pricing" className="px-3 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors">
           Pricing
         </Link>
