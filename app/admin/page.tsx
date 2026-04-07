@@ -36,6 +36,43 @@ async function getStats() {
   return { countries, opportunities, users, events30d, recentRuns, topCountries }
 }
 
+async function getReportsStats() {
+  const admin = supabaseAdmin()
+  const { data: oppsCountries } = await admin.from('opportunities').select('country_iso')
+  const uniqueWithOpps = [...new Set((oppsCountries ?? []).map(r => r.country_iso))]
+
+  const { data: reportCountries } = await admin.from('reports').select('country_iso')
+  const doneReports = new Set((reportCountries ?? []).map(r => r.country_iso))
+
+  const [{ count: totalOpps }, { count: bpCount }] = await Promise.all([
+    admin.from('opportunities').select('*', { count: 'exact', head: true }),
+    admin.from('business_plans').select('*', { count: 'exact', head: true }),
+  ])
+
+  const { data: recentReports } = await admin
+    .from('reports').select('country_iso, created_at')
+    .order('created_at', { ascending: false }).limit(5)
+
+  const allIsos = [...new Set([...(recentReports ?? []).map(r => r.country_iso), ...uniqueWithOpps])]
+  const { data: names } = allIsos.length > 0
+    ? await admin.from('countries').select('id, name_fr').in('id', allIsos) : { data: [] }
+  const nameMap: Record<string, string> = {}
+  for (const c of (names ?? [])) nameMap[c.id] = c.name_fr
+
+  const missing = uniqueWithOpps.filter(iso => !doneReports.has(iso))
+    .map(iso => ({ iso, name: nameMap[iso] ?? iso })).sort((a, b) => a.name.localeCompare(b.name))
+
+  const rpPct = uniqueWithOpps.length > 0 ? Math.round((doneReports.size / uniqueWithOpps.length) * 100) : 0
+  const bpPct = (totalOpps ?? 0) > 0 ? Math.round(((bpCount ?? 0) / (totalOpps ?? 1)) * 100) : 0
+
+  return {
+    reports: doneReports.size, totalWithOpps: uniqueWithOpps.length, rpPct,
+    bpCount: bpCount ?? 0, totalOpps: totalOpps ?? 0, bpPct,
+    recent: (recentReports ?? []).map(r => ({ iso: r.country_iso, name: nameMap[r.country_iso] ?? r.country_iso, date: r.created_at })),
+    missing,
+  }
+}
+
 function StatCard({ label, value, sub, color = '#C9A84C' }: {
   label: string; value: number | null; sub?: string; color?: string
 }) {
@@ -55,7 +92,7 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default async function AdminPage() {
-  const { countries, opportunities, users, events30d, recentRuns, topCountries } = await getStats()
+  const [{ countries, opportunities, users, events30d, recentRuns, topCountries }, rp] = await Promise.all([getStats(), getReportsStats()])
 
   return (
     <div className="p-6 space-y-6">
@@ -70,6 +107,67 @@ export default async function AdminPage() {
         <StatCard label="Opportunities"       value={opportunities} sub="scored & ready" color="#22C55E" />
         <StatCard label="Registered Users"    value={users}         sub="all tiers" color="#60A5FA" />
         <StatCard label="Events (30 days)"    value={events30d}     sub="page views + interactions" color="#A78BFA" />
+      </div>
+
+      {/* Rapports IA */}
+      <div className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-4">Rapports IA</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Rapports pays</p>
+            <p className="text-2xl font-bold text-[#C9A84C]">{rp.reports}<span className="text-sm font-normal text-gray-500"> / {rp.totalWithOpps}</span></p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Business plans</p>
+            <p className="text-2xl font-bold text-[#A78BFA]">{rp.bpCount}<span className="text-sm font-normal text-gray-500"> / {rp.totalOpps}</span></p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Couverture rapports</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2.5 bg-[#1F2937] rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-[#C9A84C]" style={{ width: `${rp.rpPct}%` }} />
+              </div>
+              <span className="text-sm font-semibold text-[#C9A84C]">{rp.rpPct}%</span>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Couverture BP</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2.5 bg-[#1F2937] rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-[#A78BFA]" style={{ width: `${rp.bpPct}%` }} />
+              </div>
+              <span className="text-sm font-semibold text-[#A78BFA]">{rp.bpPct}%</span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">5 derniers rapports</h3>
+            {rp.recent.length === 0 ? <p className="text-xs text-gray-500">Aucun rapport encore.</p> : (
+              <div className="space-y-2">
+                {rp.recent.map(r => (
+                  <div key={r.iso} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-[#C9A84C] w-8">{r.iso}</span>
+                      <span className="text-sm text-white">{r.name}</span>
+                    </div>
+                    <span className="text-[10px] text-gray-600">{new Date(r.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Pays sans rapport ({rp.missing.length})</h3>
+            {rp.missing.length === 0 ? <p className="text-xs text-[#22C55E]">Tous les pays sont couverts !</p> : (
+              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                {rp.missing.map(c => (
+                  <span key={c.iso} className="px-2 py-0.5 bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20 rounded text-[10px] font-medium">{c.name}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
