@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { isAdmin } from '@/lib/supabase-server'
 
 export const metadata: Metadata = { title: 'Admin — Feel The Gap' }
 
@@ -7,11 +9,17 @@ const NAV = [
   { href: '/admin',            label: 'Overview',  icon: '📊' },
   { href: '/admin/analytics',  label: 'Analytics', icon: '📈' },
   { href: '/admin/crm',        label: 'CRM',       icon: '👥' },
-  { href: '/admin/data',       label: 'Data',      icon: '🗄️' },
+  { href: '/admin/data',        label: 'Data',      icon: '🗄️' },
+  { href: '/admin/sources',    label: 'Sources',   icon: '🔌' },
   { href: '/admin/cms',        label: 'CMS',       icon: '✏️' },
 ]
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const authorized = await isAdmin()
+  if (!authorized) {
+    redirect('/map')
+  }
+
   return (
     <div className="min-h-screen flex bg-[#07090F]">
       {/* Sidebar */}

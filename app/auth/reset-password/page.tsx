@@ -22,12 +22,15 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
   const [checking, setChecking] = useState(true)
   const userIdRef = useRef<string | null>(null)
+  const resetTokenRef = useRef<string | null>(null)
   const handledRef = useRef(false)
 
   useEffect(() => {
@@ -37,6 +40,14 @@ function ResetPasswordForm() {
     const sb = createSupabaseBrowser()
 
     // Method 1: PKCE flow — code in query params (?code=...)
+    async function obtainResetToken(uid: string) {
+      const res = await fetch(`/api/auth/reset-password?userId=${uid}`)
+      if (res.ok) {
+        const { token } = await res.json()
+        resetTokenRef.current = token
+      }
+    }
+
     const code = searchParams.get('code')
     if (code) {
       sb.auth.exchangeCodeForSession(code).then(async ({ data, error: err }) => {
@@ -46,6 +57,7 @@ function ResetPasswordForm() {
           return
         }
         userIdRef.current = data.user.id
+        await obtainResetToken(data.user.id)
         await sb.auth.signOut()
         setReady(true)
         setChecking(false)
@@ -59,15 +71,15 @@ function ResetPasswordForm() {
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY' && session?.user) {
         userIdRef.current = session.user.id
+        await obtainResetToken(session.user.id)
         await sb.auth.signOut()
         setReady(true)
         setChecking(false)
       } else if (event === 'SIGNED_IN' && session?.user) {
-        // Could be a recovery that came as SIGNED_IN (some Supabase versions)
-        // Check if we have a recovery type in the hash
         const hash = window.location.hash
         if (hash.includes('type=recovery')) {
           userIdRef.current = session.user.id
+          await obtainResetToken(session.user.id)
           await sb.auth.signOut()
           setReady(true)
           setChecking(false)
@@ -87,6 +99,7 @@ function ResetPasswordForm() {
           sb.auth.getSession().then(async ({ data }) => {
             if (data.session?.user) {
               userIdRef.current = data.session.user.id
+              await obtainResetToken(data.session.user.id)
               await sb.auth.signOut()
               setReady(true)
             }
@@ -116,7 +129,7 @@ function ResetPasswordForm() {
       setError('Les mots de passe ne correspondent pas.')
       return
     }
-    if (!userIdRef.current) {
+    if (!userIdRef.current || !resetTokenRef.current) {
       setError('Session expirée. Demandez un nouveau lien.')
       return
     }
@@ -126,7 +139,7 @@ function ResetPasswordForm() {
     const res = await fetch('/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: userIdRef.current, password }),
+      body: JSON.stringify({ userId: userIdRef.current, password, resetToken: resetTokenRef.current }),
     })
 
     const data = await res.json()
@@ -180,22 +193,32 @@ function ResetPasswordForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Nouveau mot de passe</label>
-                  <input
-                    type="password" required value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Minimum 8 caractères"
-                    autoFocus
-                    className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'} required value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Minimum 8 caractères"
+                      autoFocus
+                      className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                    />
+                    <button type="button" onClick={() => setShowPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300" tabIndex={-1}>
+                      {showPwd ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Confirmer</label>
-                  <input
-                    type="password" required value={confirm}
-                    onChange={e => setConfirm(e.target.value)}
-                    placeholder="Retapez le mot de passe"
-                    className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirm ? 'text' : 'password'} required value={confirm}
+                      onChange={e => setConfirm(e.target.value)}
+                      placeholder="Retapez le mot de passe"
+                      className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                    />
+                    <button type="button" onClick={() => setShowConfirm(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300" tabIndex={-1}>
+                      {showConfirm ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                    </button>
+                  </div>
                 </div>
                 <button
                   type="submit" disabled={loading}

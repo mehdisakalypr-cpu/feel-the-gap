@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { supabaseAdmin } from '@/lib/supabase'
+import { getAuthUser } from '@/lib/supabase-server'
 
 // Cost tracking: charge ~4× API cost per session
 // Gemini 2.0 Flash input: $0.10/1M tokens, output: $0.40/1M tokens
@@ -53,11 +53,10 @@ export async function POST(req: NextRequest) {
       return new Response('Bad request', { status: 400 })
     }
 
-    // Auth check — user must be Pro tier (simplified: check header or session)
-    // In production, validate Supabase JWT and check profiles.tier
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      // For demo mode, allow unauthenticated (limited response)
+    // Auth check — require authenticated user
+    const user = await getAuthUser()
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
     }
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY

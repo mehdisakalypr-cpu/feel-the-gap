@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SEED_TRADE_DATA } from '@/data/seed-trade-data'
+import { isAdmin } from '@/lib/supabase-server'
 
 // Same metadata as scripts/seed.ts — kept in sync
 const META: Record<string, { iso2: string; name: string; flag: string; lat: number; lng: number; region: string; sub_region: string; population?: number; gdp_usd?: number }> = {
@@ -103,6 +104,9 @@ function slugify(s: string) {
 }
 
 export async function GET(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const admin = supabaseAdmin()
 
   const { count: countries } = await admin.from('countries').select('*', { count: 'exact', head: true })
@@ -113,6 +117,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   const { action } = await req.json()
   const admin = supabaseAdmin()
 
