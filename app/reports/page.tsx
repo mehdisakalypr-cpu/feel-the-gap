@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
@@ -28,7 +28,7 @@ function fmt(v: number | null) {
 
 const REGION_KEYS = ['All', 'Africa', 'Asia', 'Americas', 'Europe', 'Oceania']
 
-export default function ReportsPage() {
+function ReportsContent() {
   const { t } = useLang()
   const [countries, setCountries] = useState<Country[]>([])
   const [loading, setLoading] = useState(true)
@@ -176,5 +176,13 @@ export default function ReportsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense>
+      <ReportsContent />
+    </Suspense>
   )
 }
