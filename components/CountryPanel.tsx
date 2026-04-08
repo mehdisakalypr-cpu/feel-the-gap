@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import type { CountryMapData } from '@/types/database'
+import { useLang } from '@/components/LanguageProvider'
 
 interface Props {
   country: CountryMapData
@@ -57,10 +58,10 @@ const DEMO_OPPORTUNITIES = [
 
 type PlanKey = 'trade' | 'production' | 'training'
 
-const PLAN_META: Record<PlanKey, { icon: string; color: string; label: string }> = {
-  trade:      { icon: '🚢', color: '#60A5FA', label: 'Import & Sell' },
-  production: { icon: '🏭', color: '#22C55E', label: 'Produce Locally' },
-  training:   { icon: '🤝', color: '#C9A84C', label: 'Train Locals' },
+const PLAN_META: Record<PlanKey, { icon: string; color: string; label: string; label_fr: string }> = {
+  trade:      { icon: '🚢', color: '#60A5FA', label: 'Import & Sell',    label_fr: 'Import & Revente' },
+  production: { icon: '🏭', color: '#22C55E', label: 'Produce Locally',  label_fr: 'Production locale' },
+  training:   { icon: '🤝', color: '#C9A84C', label: 'Train Locals',     label_fr: 'Former localement' },
 }
 
 // ── AI Advisor Chat ──────────────────────────────────────────────────────────
@@ -73,6 +74,8 @@ interface ChatMessage {
 const MAX_EXCHANGES = 5
 
 function AIAdvisorChat({ country }: { country: CountryMapData }) {
+  const { lang } = useLang()
+  const fr = lang === 'fr'
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
@@ -195,7 +198,7 @@ function AIAdvisorChat({ country }: { country: CountryMapData }) {
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.84 8.84 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd"/>
           </svg>
-          Ask AI about this market
+          {fr ? 'Demander à l\'IA sur ce marché' : 'Ask AI about this market'}
         </button>
       </div>
     )
@@ -207,7 +210,7 @@ function AIAdvisorChat({ country }: { country: CountryMapData }) {
       <div className="flex items-center justify-between px-3 py-2 bg-[#0D1117]">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
-          <span className="text-[11px] font-semibold text-[#C9A84C]">AI Advisor — {country.name_fr}</span>
+          <span className="text-[11px] font-semibold text-[#C9A84C]">{fr ? 'Conseiller IA' : 'AI Advisor'} — {country.name_fr}</span>
         </div>
         <button
           onClick={() => setOpen(false)}
@@ -258,7 +261,7 @@ function AIAdvisorChat({ country }: { country: CountryMapData }) {
             href="/pricing"
             className="text-[11px] font-semibold text-[#C9A84C] hover:underline"
           >
-            Upgrade pour illimité →
+            {fr ? 'Upgrade pour illimité →' : 'Upgrade for unlimited →'}
           </a>
         </div>
       )}
@@ -295,7 +298,15 @@ function AIAdvisorChat({ country }: { country: CountryMapData }) {
 
 // ── Main panel ───────────────────────────────────────────────────────────────
 
+const TAB_LABELS: Record<string, Record<string, string>> = {
+  overview:      { en: 'Overview',      fr: 'Aperçu' },
+  opportunities: { en: 'Opportunities', fr: 'Opportunités' },
+  reports:       { en: 'Reports',       fr: 'Rapports' },
+}
+
 export default function CountryPanel({ country, onClose }: Props) {
+  const { lang } = useLang()
+  const fr = lang === 'fr'
   const [tab, setTab] = useState<'overview' | 'opportunities' | 'reports'>('overview')
   const balance = country.trade_balance_usd ?? 0
   const balancePositive = balance >= 0
@@ -307,7 +318,7 @@ export default function CountryPanel({ country, onClose }: Props) {
         <span className="text-3xl">{country.flag}</span>
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold text-white text-base truncate">{country.name_fr}</h2>
-          <p className="text-xs text-gray-500">{country.region} · Data {country.data_year ?? '2023'}</p>
+          <p className="text-xs text-gray-500">{country.region} · {fr ? 'Données' : 'Data'} {country.data_year ?? '2023'}</p>
         </div>
         <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/5">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -322,13 +333,13 @@ export default function CountryPanel({ country, onClose }: Props) {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 text-xs font-medium capitalize transition-colors ${
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
               tab === t
                 ? 'text-[#C9A84C] border-b-2 border-[#C9A84C]'
                 : 'text-gray-500 hover:text-gray-300'
             }`}
           >
-            {t}
+            {TAB_LABELS[t][lang]}
           </button>
         ))}
       </div>
@@ -339,18 +350,18 @@ export default function CountryPanel({ country, onClose }: Props) {
             {/* Trade balance */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#111827] rounded-xl p-3">
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Imports</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{fr ? 'Importations' : 'Imports'}</p>
                 <p className="text-lg font-bold text-red-400">{fmtUsd(country.total_imports_usd)}</p>
               </div>
               <div className="bg-[#111827] rounded-xl p-3">
-                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Exports</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{fr ? 'Exportations' : 'Exports'}</p>
                 <p className="text-lg font-bold text-green-400">{fmtUsd(country.total_exports_usd)}</p>
               </div>
             </div>
 
             <div className="bg-[#111827] rounded-xl p-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Trade Balance</span>
+                <span className="text-xs text-gray-500">{fr ? 'Balance commerciale' : 'Trade Balance'}</span>
                 <span className={`text-sm font-bold ${balancePositive ? 'text-green-400' : 'text-red-400'}`}>
                   {balancePositive ? '+' : ''}{fmtUsd(balance)}
                 </span>
@@ -369,7 +380,7 @@ export default function CountryPanel({ country, onClose }: Props) {
               <div className="bg-[#111827] rounded-xl p-3 flex items-center gap-3">
                 <span className="text-2xl">{CATEGORY_ICONS[country.top_import_category]}</span>
                 <div>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">Top Import Category</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">{fr ? 'Catégorie principale' : 'Top Import Category'}</p>
                   <p className="text-sm font-medium text-white capitalize mt-0.5">{country.top_import_category}</p>
                 </div>
               </div>
@@ -379,7 +390,7 @@ export default function CountryPanel({ country, onClose }: Props) {
             {country.top_opportunity_score && (
               <div className="bg-gradient-to-br from-[#C9A84C]/10 to-transparent border border-[rgba(201,168,76,.2)] rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-[#C9A84C]">⚡ Opportunity Score</p>
+                  <p className="text-xs font-medium text-[#C9A84C]">⚡ {fr ? 'Score d\'opportunité' : 'Opportunity Score'}</p>
                   <span className="text-lg font-bold text-[#C9A84C]">{country.top_opportunity_score}/100</span>
                 </div>
                 <div className="h-1.5 bg-[#1F2937] rounded-full">
@@ -389,7 +400,7 @@ export default function CountryPanel({ country, onClose }: Props) {
                   />
                 </div>
                 <p className="mt-2 text-xs text-gray-500">
-                  {country.opportunity_count} business opportunities identified
+                  {country.opportunity_count} {fr ? 'opportunités identifiées' : 'business opportunities identified'}
                 </p>
               </div>
             )}
@@ -398,7 +409,7 @@ export default function CountryPanel({ country, onClose }: Props) {
 
         {tab === 'opportunities' && (
           <>
-            <p className="text-xs text-gray-500">Market gaps identified by AI — choose your entry strategy</p>
+            <p className="text-xs text-gray-500">{fr ? 'Gaps de marché identifiés par l\'IA — choisissez votre stratégie d\'entrée' : 'Market gaps identified by AI — choose your entry strategy'}</p>
             {DEMO_OPPORTUNITIES.map((opp, i) => (
               <OpportunityCard key={i} opp={opp} />
             ))}
@@ -406,11 +417,11 @@ export default function CountryPanel({ country, onClose }: Props) {
             {/* Paywall */}
             <div className="bg-[#111827] border border-[rgba(201,168,76,.2)] rounded-xl p-4 text-center">
               <p className="text-xs text-gray-400 mb-1 font-medium">
-                +{Math.max(0, country.opportunity_count - 3)} more opportunities
+                +{Math.max(0, country.opportunity_count - 3)} {fr ? 'opportunités supplémentaires' : 'more opportunities'}
               </p>
-              <p className="text-[10px] text-gray-500 mb-3">Full market values & detailed plans require Pro</p>
+              <p className="text-[10px] text-gray-500 mb-3">{fr ? 'Valeurs marché et plans détaillés — Plan Pro requis' : 'Full market values & detailed plans require Pro'}</p>
               <button className="px-4 py-2 bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] text-xs font-semibold rounded-lg hover:bg-[#C9A84C]/20 transition-colors">
-                Upgrade to Strategist — €99/mo
+                {fr ? 'Passer au plan Strategy — 99 €/mois' : 'Upgrade to Strategist — €99/mo'}
               </button>
             </div>
           </>
@@ -418,19 +429,19 @@ export default function CountryPanel({ country, onClose }: Props) {
 
         {tab === 'reports' && (
           <div className="space-y-3">
-            <p className="text-xs text-gray-500">Country intelligence reports</p>
+            <p className="text-xs text-gray-500">{fr ? 'Rapports d\'intelligence pays' : 'Country intelligence reports'}</p>
             {[
-              { title: `${country.name_fr} — Trade Overview 2023`, tier: 'free', updated: '2024-03-01' },
-              { title: `Agriculture Gap Analysis — ${country.name_fr}`, tier: 'basic', updated: '2024-02-15' },
-              { title: `Top 10 Import Opportunities Report`, tier: 'pro', updated: '2024-03-10' },
+              { title: fr ? `${country.name_fr} — Vue d'ensemble commerciale 2023` : `${country.name_fr} — Trade Overview 2023`, tier: 'free', updated: '2024-03-01' },
+              { title: fr ? `Analyse des gaps agricoles — ${country.name_fr}` : `Agriculture Gap Analysis — ${country.name_fr}`, tier: 'basic', updated: '2024-02-15' },
+              { title: fr ? `Top 10 des opportunités d'import` : `Top 10 Import Opportunities Report`, tier: 'pro', updated: '2024-03-10' },
             ].map((r, i) => (
               <div key={i} className="bg-[#111827] rounded-xl p-3 flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{r.title}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Updated {r.updated}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{fr ? 'Mis à jour' : 'Updated'} {r.updated}</p>
                 </div>
                 {r.tier === 'free' ? (
-                  <button className="shrink-0 text-xs text-[#C9A84C] hover:underline">Read →</button>
+                  <button className="shrink-0 text-xs text-[#C9A84C] hover:underline">{fr ? 'Lire →' : 'Read →'}</button>
                 ) : (
                   <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                     r.tier === 'basic' ? 'bg-blue-500/15 text-blue-400' : 'bg-[#C9A84C]/15 text-[#C9A84C]'
@@ -454,14 +465,14 @@ export default function CountryPanel({ country, onClose }: Props) {
           target="_blank"
           className="flex-1 py-2.5 bg-[#C9A84C] text-[#07090F] font-semibold text-sm rounded-xl hover:bg-[#E8C97A] transition-colors text-center"
         >
-          📊 Rapport complet
+          📊 {fr ? 'Rapport complet' : 'Full report'}
         </Link>
         <Link
           href={`/country/${country.iso}/plan`}
           target="_blank"
           className="flex-1 py-2.5 bg-white/5 text-gray-300 border border-white/10 font-semibold text-sm rounded-xl hover:bg-white/10 transition-colors text-center"
         >
-          📝 Plan d'affaires
+          📝 {fr ? 'Plan d\'affaires' : 'Business plan'}
         </Link>
       </div>
     </div>
@@ -473,6 +484,8 @@ export default function CountryPanel({ country, onClose }: Props) {
 type OppData = typeof DEMO_OPPORTUNITIES[0]
 
 function OpportunityCard({ opp }: { opp: OppData }) {
+  const { lang } = useLang()
+  const fr = lang === 'fr'
   const [plan, setPlan] = useState<PlanKey>('trade')
   const selected = opp.plans[plan]
   const meta = PLAN_META[plan]
@@ -483,11 +496,11 @@ function OpportunityCard({ opp }: { opp: OppData }) {
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-white">{opp.product}</p>
-          <p className="text-[10px] text-gray-500 mt-0.5">{opp.volume} · avg {opp.avg_price}</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">{opp.volume} · {fr ? 'moy.' : 'avg'} {opp.avg_price}</p>
         </div>
         <div className="text-right shrink-0">
           <div className="text-[#C9A84C] font-bold text-sm">{opp.market_value}</div>
-          <div className="text-[10px] text-gray-500">market/year</div>
+          <div className="text-[10px] text-gray-500">{fr ? 'marché/an' : 'market/year'}</div>
         </div>
       </div>
 
@@ -502,7 +515,7 @@ function OpportunityCard({ opp }: { opp: OppData }) {
               ? { background: PLAN_META[k].color + '22', color: PLAN_META[k].color, border: `1px solid ${PLAN_META[k].color}44` }
               : { background: 'transparent', color: '#6B7280', border: '1px solid #1F2937' }}
           >
-            {PLAN_META[k].icon} {PLAN_META[k].label}
+            {PLAN_META[k].icon} {fr ? PLAN_META[k].label_fr : PLAN_META[k].label}
           </button>
         ))}
       </div>
@@ -510,9 +523,9 @@ function OpportunityCard({ opp }: { opp: OppData }) {
       {/* Selected plan summary */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Strategy', value: selected.label },
+          { label: fr ? 'Stratégie' : 'Strategy', value: selected.label },
           { label: 'Capex',    value: selected.capex },
-          { label: 'Margin',   value: selected.margin },
+          { label: fr ? 'Marge' : 'Margin',   value: selected.margin },
         ].map(item => (
           <div key={item.label} className="bg-[#1F2937] rounded-lg p-2 text-center">
             <p className="text-[9px] text-gray-500 uppercase tracking-wide">{item.label}</p>
@@ -522,8 +535,8 @@ function OpportunityCard({ opp }: { opp: OppData }) {
       </div>
 
       <div className="flex items-center justify-between text-[10px] text-gray-500">
-        <span>⏱ Time to market: <strong className="text-gray-300">{selected.time}</strong></span>
-        <span className="text-[#C9A84C] font-medium cursor-pointer hover:underline">Full plan →</span>
+        <span>⏱ {fr ? 'Délai' : 'Time to market'}: <strong className="text-gray-300">{selected.time}</strong></span>
+        <span className="text-[#C9A84C] font-medium cursor-pointer hover:underline">{fr ? 'Plan complet →' : 'Full plan →'}</span>
       </div>
     </div>
   )
