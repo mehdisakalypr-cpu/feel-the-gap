@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
@@ -25,47 +25,51 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [sessionReady, setSessionReady] = useState(false)
+  const [ready, setReady] = useState(false)
   const [checking, setChecking] = useState(true)
+  const userIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const sb = createSupabaseBrowser()
-
-    // Method 1: PKCE flow — code in query params
     const code = searchParams.get('code')
-    if (code) {
-      sb.auth.exchangeCodeForSession(code).then(({ error: err }) => {
-        if (err) {
-          setError('Lien expiré ou invalide. Demandez un nouveau lien.')
-        } else {
-          setSessionReady(true)
-        }
+
+    async function handleCode(authCode: string) {
+      // 1. Exchange code for session (needed to identify the user)
+      const { data, error: err } = await sb.auth.exchangeCodeForSession(authCode)
+      if (err || !data.user) {
+        setError('Lien expiré ou invalide. Demandez un nouveau lien.')
         setChecking(false)
-      })
+        return
+      }
+
+      // 2. Save user ID for the API call
+      userIdRef.current = data.user.id
+
+      // 3. SECURITY: Sign out IMMEDIATELY — destroy the session
+      // This prevents the recovery link from giving access to the app
+      await sb.auth.signOut()
+
+      // 4. Now the user has no session, only the form is available
+      setReady(true)
+      setChecking(false)
+    }
+
+    if (code) {
+      handleCode(code)
       return
     }
 
-    // Method 2: Hash fragment flow — tokens in URL hash (#access_token=...&type=recovery)
-    // The Supabase browser client auto-detects this via onAuthStateChange
-    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        setSessionReady(true)
+    // Hash fragment flow: PASSWORD_RECOVERY event
+    const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session?.user) {
+        userIdRef.current = session.user.id
+        await sb.auth.signOut()
+        setReady(true)
         setChecking(false)
       }
     })
 
-    // Method 3: Check if there's already an active session (e.g. user navigated here manually)
-    sb.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setSessionReady(true)
-      }
-      setChecking(false)
-    })
-
-    // Give the hash fragment detection 3 seconds
-    const timeout = setTimeout(() => {
-      setChecking(false)
-    }, 3000)
+    const timeout = setTimeout(() => setChecking(false), 3000)
 
     return () => {
       subscription.unsubscribe()
@@ -85,24 +89,36 @@ function ResetPasswordForm() {
       setError('Les mots de passe ne correspondent pas.')
       return
     }
+    if (!userIdRef.current) {
+      setError('Session expirée. Demandez un nouveau lien.')
+      return
+    }
 
     setLoading(true)
-    const sb = createSupabaseBrowser()
-    const { error: err } = await sb.auth.updateUser({ password })
+
+    // Call server-side API to update password (uses admin privileges, no session needed)
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: userIdRef.current, password }),
+    })
+
+    const data = await res.json()
     setLoading(false)
 
-    if (err) {
-      setError(err.message)
-    } else {
-      setSuccess(true)
-      setTimeout(() => router.push('/map'), 2000)
+    if (!res.ok) {
+      setError(data.error || 'Erreur lors de la mise à jour.')
+      return
     }
+
+    setSuccess(true)
+    setTimeout(() => router.push('/auth/login'), 2500)
   }
 
   return (
     <div className="min-h-screen bg-[#07090F] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <Link href="/auth/login" className="flex items-center justify-center gap-2 mb-8">
+        <div className="flex items-center justify-center gap-2 mb-8">
           <div className="w-8 h-8 rounded-lg bg-[#C9A84C] flex items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
               <path d="M2 8a6 6 0 1 1 12 0A6 6 0 0 1 2 8Z" stroke="#07090F" strokeWidth="1.5"/>
@@ -110,20 +126,21 @@ function ResetPasswordForm() {
             </svg>
           </div>
           <span className="font-bold text-white">Feel <span className="text-[#C9A84C]">The Gap</span></span>
-        </Link>
+        </div>
 
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-7">
           {success ? (
             <div className="text-center">
               <div className="text-4xl text-emerald-400 mb-3">&#10003;</div>
               <h2 className="text-lg font-bold text-white mb-2">Mot de passe mis à jour</h2>
-              <p className="text-gray-400 text-sm">Redirection...</p>
+              <p className="text-gray-400 text-sm mb-1">Redirection vers la page de connexion...</p>
+              <p className="text-gray-500 text-xs">Connectez-vous avec votre nouveau mot de passe.</p>
             </div>
           ) : checking ? (
             <div className="text-center py-4">
               <p className="text-gray-400 text-sm">Vérification du lien...</p>
             </div>
-          ) : sessionReady ? (
+          ) : ready ? (
             <>
               <h1 className="text-xl font-bold text-white mb-1">Nouveau mot de passe</h1>
               <p className="text-gray-400 text-sm mb-6">Choisissez votre nouveau mot de passe (minimum 8 caractères).</p>
@@ -164,36 +181,15 @@ function ResetPasswordForm() {
             </>
           ) : (
             <div className="text-center py-4">
-              {error ? (
-                <>
-                  <p className="text-red-400 text-sm mb-4">{error}</p>
-                  <Link
-                    href="/auth/forgot"
-                    className="inline-block px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors"
-                  >
-                    Demander un nouveau lien
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <p className="text-gray-400 text-sm mb-4">Lien invalide ou expiré.</p>
-                  <Link
-                    href="/auth/forgot"
-                    className="inline-block px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors"
-                  >
-                    Demander un nouveau lien
-                  </Link>
-                </>
-              )}
+              <p className="text-red-400 text-sm mb-4">{error || 'Lien invalide ou expiré.'}</p>
+              <Link
+                href="/auth/forgot"
+                className="inline-block px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors"
+              >
+                Demander un nouveau lien
+              </Link>
             </div>
           )}
-
-          <Link
-            href="/auth/login"
-            className="block text-center text-sm text-gray-500 mt-4 hover:text-[#C9A84C] transition-colors"
-          >
-            Retour à la connexion
-          </Link>
         </div>
       </div>
     </div>
