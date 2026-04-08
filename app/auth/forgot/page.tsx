@@ -2,32 +2,80 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 export default function ForgotPasswordPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Step 1: Send OTP code to email
+  async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     const sb = createSupabaseBrowser()
-    const redirectUrl = `${window.location.origin}/auth/reset-password`
-
-    const { error: err } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    })
+    const { error: err } = await sb.auth.resetPasswordForEmail(email)
 
     setLoading(false)
     if (err) {
       setError(err.message)
     } else {
-      setSent(true)
+      setStep('otp')
     }
+  }
+
+  // Step 2: Verify OTP + set new password
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    if (newPassword.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    setLoading(true)
+    const sb = createSupabaseBrowser()
+
+    // Verify OTP and get a session
+    const { error: verifyErr } = await sb.auth.verifyOtp({
+      email,
+      token: otp.trim(),
+      type: 'recovery',
+    })
+
+    if (verifyErr) {
+      setLoading(false)
+      setError('Code invalide ou expiré. Vérifiez le code reçu par email.')
+      return
+    }
+
+    // Now we have a valid session — update the password
+    const { error: updateErr } = await sb.auth.updateUser({ password: newPassword })
+
+    if (updateErr) {
+      setLoading(false)
+      setError(updateErr.message || 'Erreur lors de la mise à jour.')
+      return
+    }
+
+    await sb.auth.signOut()
+    setLoading(false)
+    setStep('success')
+    setTimeout(() => router.push('/auth/login'), 2500)
   }
 
   return (
@@ -45,11 +93,13 @@ export default function ForgotPasswordPage() {
         </Link>
 
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-7">
-          {!sent ? (
+
+          {/* STEP 1: Enter email */}
+          {step === 'email' && (
             <>
               <h1 className="text-xl font-bold text-white mb-1">Mot de passe oublié</h1>
               <p className="text-gray-400 text-sm mb-6">
-                Entrez votre adresse email. Nous vous enverrons un lien pour réinitialiser votre mot de passe.
+                Entrez votre email. Nous enverrons un code de vérification.
               </p>
 
               {error && (
@@ -58,7 +108,7 @@ export default function ForgotPasswordPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSendOtp} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Email</label>
                   <input
@@ -73,28 +123,86 @@ export default function ForgotPasswordPage() {
                   type="submit" disabled={loading}
                   className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors disabled:opacity-50 text-sm"
                 >
-                  {loading ? 'Envoi...' : 'Envoyer le lien de réinitialisation'}
+                  {loading ? 'Envoi...' : 'Envoyer le code'}
                 </button>
               </form>
             </>
-          ) : (
+          )}
+
+          {/* STEP 2: Enter OTP + new password */}
+          {step === 'otp' && (
             <>
-              <div className="text-center">
-                <div className="text-3xl mb-4">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                    <path d="M22 4L12 13 2 4"/>
-                  </svg>
+              <h1 className="text-xl font-bold text-white mb-1">Réinitialisation</h1>
+              <p className="text-gray-400 text-sm mb-2">
+                Un code a été envoyé à <span className="text-[#C9A84C] font-medium">{email}</span>
+              </p>
+              <p className="text-gray-500 text-xs mb-6">Vérifiez vos spams si nécessaire.</p>
+
+              {error && (
+                <div className="mb-4 px-3 py-2.5 bg-red-500/10 border border-red-500/25 rounded-lg text-red-400 text-sm">
+                  {error}
                 </div>
-                <h2 className="text-lg font-bold text-white mb-2">Email envoyé</h2>
-                <p className="text-gray-400 text-sm leading-relaxed mb-2">
-                  Si un compte existe pour <span className="text-[#C9A84C] font-medium">{email}</span>, vous recevrez un lien de réinitialisation.
-                </p>
-                <p className="text-gray-500 text-xs mb-6">
-                  Pensez à vérifier vos spams.
-                </p>
-              </div>
+              )}
+
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Code de vérification</label>
+                  <input
+                    type="text" required value={otp}
+                    onChange={e => setOtp(e.target.value)}
+                    placeholder="Entrez le code reçu par email"
+                    autoFocus
+                    maxLength={8}
+                    className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors text-center tracking-widest text-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Nouveau mot de passe</label>
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'} required value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Minimum 8 caractères"
+                      className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                    />
+                    <button type="button" onClick={() => setShowPwd(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300" tabIndex={-1}>
+                      {showPwd ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Confirmer</label>
+                  <input
+                    type="password" required value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Retapez le mot de passe"
+                    className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                  />
+                </div>
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors disabled:opacity-50 text-sm"
+                >
+                  {loading ? 'Mise à jour...' : 'Changer le mot de passe'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStep('email'); setError(null); setOtp(''); }}
+                  className="w-full text-center text-sm text-gray-500 hover:text-[#C9A84C] transition-colors"
+                >
+                  Renvoyer un code
+                </button>
+              </form>
             </>
+          )}
+
+          {/* STEP 3: Success */}
+          {step === 'success' && (
+            <div className="text-center">
+              <div className="text-4xl text-emerald-400 mb-3">&#10003;</div>
+              <h2 className="text-lg font-bold text-white mb-2">Mot de passe mis à jour</h2>
+              <p className="text-gray-400 text-sm">Redirection vers la connexion...</p>
+            </div>
           )}
 
           <Link
