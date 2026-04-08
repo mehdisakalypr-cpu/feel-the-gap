@@ -26,12 +26,13 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
+  const [checking, setChecking] = useState(true)
 
-  // Exchange the code from the email link for a session
   useEffect(() => {
     const sb = createSupabaseBrowser()
-    const code = searchParams.get('code')
 
+    // Method 1: PKCE flow — code in query params
+    const code = searchParams.get('code')
     if (code) {
       sb.auth.exchangeCodeForSession(code).then(({ error: err }) => {
         if (err) {
@@ -39,16 +40,36 @@ function ResetPasswordForm() {
         } else {
           setSessionReady(true)
         }
+        setChecking(false)
       })
-    } else {
-      // Check if user already has a session (e.g. from hash fragment)
-      sb.auth.getSession().then(({ data }) => {
-        if (data.session) {
-          setSessionReady(true)
-        } else {
-          setError('Lien invalide. Demandez un nouveau lien de réinitialisation.')
-        }
-      })
+      return
+    }
+
+    // Method 2: Hash fragment flow — tokens in URL hash (#access_token=...&type=recovery)
+    // The Supabase browser client auto-detects this via onAuthStateChange
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setSessionReady(true)
+        setChecking(false)
+      }
+    })
+
+    // Method 3: Check if there's already an active session (e.g. user navigated here manually)
+    sb.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSessionReady(true)
+      }
+      setChecking(false)
+    })
+
+    // Give the hash fragment detection 3 seconds
+    const timeout = setTimeout(() => {
+      setChecking(false)
+    }, 3000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
     }
   }, [searchParams])
 
@@ -98,6 +119,10 @@ function ResetPasswordForm() {
               <h2 className="text-lg font-bold text-white mb-2">Mot de passe mis à jour</h2>
               <p className="text-gray-400 text-sm">Redirection...</p>
             </div>
+          ) : checking ? (
+            <div className="text-center py-4">
+              <p className="text-gray-400 text-sm">Vérification du lien...</p>
+            </div>
           ) : sessionReady ? (
             <>
               <h1 className="text-xl font-bold text-white mb-1">Nouveau mot de passe</h1>
@@ -144,16 +169,31 @@ function ResetPasswordForm() {
                   <p className="text-red-400 text-sm mb-4">{error}</p>
                   <Link
                     href="/auth/forgot"
-                    className="text-[#C9A84C] text-sm hover:text-[#E8C97A]"
+                    className="inline-block px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors"
                   >
                     Demander un nouveau lien
                   </Link>
                 </>
               ) : (
-                <p className="text-gray-400 text-sm">Vérification du lien...</p>
+                <>
+                  <p className="text-gray-400 text-sm mb-4">Lien invalide ou expiré.</p>
+                  <Link
+                    href="/auth/forgot"
+                    className="inline-block px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors"
+                  >
+                    Demander un nouveau lien
+                  </Link>
+                </>
               )}
             </div>
           )}
+
+          <Link
+            href="/auth/login"
+            className="block text-center text-sm text-gray-500 mt-4 hover:text-[#C9A84C] transition-colors"
+          >
+            Retour à la connexion
+          </Link>
         </div>
       </div>
     </div>
