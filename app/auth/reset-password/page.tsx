@@ -29,92 +29,64 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
   const [checking, setChecking] = useState(true)
-  const userIdRef = useRef<string | null>(null)
-  const resetTokenRef = useRef<string | null>(null)
+  const sbRef = useRef(createSupabaseBrowser())
   const handledRef = useRef(false)
 
   useEffect(() => {
     if (handledRef.current) return
     handledRef.current = true
 
-    const sb = createSupabaseBrowser()
+    const sb = sbRef.current
 
     // Method 1: PKCE flow — code in query params (?code=...)
-    async function obtainResetToken(uid: string) {
-      const res = await fetch(`/api/auth/reset-password?userId=${uid}`)
-      if (res.ok) {
-        const { token } = await res.json()
-        resetTokenRef.current = token
-      }
-    }
-
     const code = searchParams.get('code')
     if (code) {
-      sb.auth.exchangeCodeForSession(code).then(async ({ data, error: err }) => {
-        if (err || !data.user) {
+      sb.auth.exchangeCodeForSession(code).then(({ data, error: err }) => {
+        if (err || !data.session) {
+          console.error('exchangeCodeForSession error:', err)
           setError('Lien expiré ou invalide. Demandez un nouveau lien.')
           setChecking(false)
           return
         }
-        userIdRef.current = data.user.id
-        await obtainResetToken(data.user.id)
-        await sb.auth.signOut()
+        // Session is now active — user can update password directly
         setReady(true)
         setChecking(false)
       })
       return
     }
 
-    // Method 2: Implicit flow — tokens in hash fragment (#access_token=...&type=recovery)
-    // The Supabase browser client auto-detects hash tokens on init.
-    // We listen for the PASSWORD_RECOVERY event.
-    const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session?.user) {
-        userIdRef.current = session.user.id
-        await obtainResetToken(session.user.id)
-        await sb.auth.signOut()
-        setReady(true)
-        setChecking(false)
-      } else if (event === 'SIGNED_IN' && session?.user) {
+    // Method 2: Hash fragment flow (#access_token=...&type=recovery)
+    const { data: { subscription } } = sb.auth.onAuthStateChange((event, session) => {
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
         const hash = window.location.hash
-        if (hash.includes('type=recovery')) {
-          userIdRef.current = session.user.id
-          await obtainResetToken(session.user.id)
-          await sb.auth.signOut()
+        if (event === 'PASSWORD_RECOVERY' || hash.includes('type=recovery')) {
           setReady(true)
           setChecking(false)
         }
       }
     })
 
-    // Method 3: Manual hash parsing as fallback
-    // Some Supabase versions send: #access_token=...&type=recovery&...
+    // Fallback: check if we already have a recovery session from hash
     const hash = window.location.hash.substring(1)
     if (hash && hash.includes('type=recovery')) {
-      // Let onAuthStateChange handle it — the Supabase client will process the hash
-      // Give it time
       setTimeout(() => {
         if (!ready) {
-          // Try to get session that was set from hash
-          sb.auth.getSession().then(async ({ data }) => {
-            if (data.session?.user) {
-              userIdRef.current = data.session.user.id
-              await obtainResetToken(data.session.user.id)
-              await sb.auth.signOut()
+          sb.auth.getSession().then(({ data }) => {
+            if (data.session) {
               setReady(true)
+            } else {
+              setError('Lien expiré ou invalide.')
             }
             setChecking(false)
           })
         }
       }, 2000)
-    } else {
-      // No code and no hash — invalid link
-      setTimeout(() => setChecking(false), 2000)
+    } else if (!code) {
+      // No code and no hash — invalid access
+      setTimeout(() => setChecking(false), 1500)
     }
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => { subscription.unsubscribe() }
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -129,27 +101,22 @@ function ResetPasswordForm() {
       setError('Les mots de passe ne correspondent pas.')
       return
     }
-    if (!userIdRef.current || !resetTokenRef.current) {
-      setError('Session expirée. Demandez un nouveau lien.')
-      return
-    }
 
     setLoading(true)
 
-    const res = await fetch('/api/auth/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: userIdRef.current, password, resetToken: resetTokenRef.current }),
-    })
+    // Use the active recovery session to update password directly
+    const sb = sbRef.current
+    const { error: updateErr } = await sb.auth.updateUser({ password })
 
-    const data = await res.json()
-    setLoading(false)
-
-    if (!res.ok) {
-      setError(data.error || 'Erreur lors de la mise à jour.')
+    if (updateErr) {
+      setLoading(false)
+      setError(updateErr.message || 'Erreur lors de la mise à jour.')
       return
     }
 
+    // Sign out after password change
+    await sb.auth.signOut()
+    setLoading(false)
     setSuccess(true)
     setTimeout(() => router.push('/auth/login'), 2500)
   }
