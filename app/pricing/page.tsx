@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
+import { createSupabaseBrowser } from '@/lib/supabase'
 
-// Stripe price IDs — will be set when live keys arrive end of April
 const STRIPE_PRICES = {
-  basic: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC ?? '',
-  pro:   process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO   ?? '',
+  basic:    process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC    ?? '',
+  standard: process.env.NEXT_PUBLIC_STRIPE_PRICE_STANDARD ?? '',
+  premium:  process.env.NEXT_PUBLIC_STRIPE_PRICE_PREMIUM  ?? '',
 }
 
 const PLANS = [
@@ -17,88 +18,137 @@ const PLANS = [
     name: 'Explorer',
     price: 0,
     period: null,
-    description: 'Discover global trade gaps at a glance.',
+    badge: null,
+    description: 'Explorez la carte mondiale et découvrez les flux commerciaux.',
     color: '#6B7280',
     features: [
-      'World map — all countries',
-      'Trade balance overview',
-      'Top import category per country',
-      'Opportunity score indicator',
-      '1 free country report/month',
+      'Carte mondiale interactive',
+      'Vue d\'ensemble des balances commerciales',
+      'Top catégorie d\'import par pays',
+      'Score d\'opportunité indicatif',
+      '1 fiche pays gratuite / mois',
     ],
-    cta: 'Start for free',
+    cta: 'Commencer gratuitement',
     href: '/auth/register',
     priceId: null,
+    popular: false,
   },
   {
     id: 'basic',
-    name: 'Analyst',
+    name: 'Data',
     price: 29,
-    period: 'month',
-    description: 'Full data access for market researchers.',
+    period: 'mois',
+    badge: null,
+    description: 'Abonnement aux données — accédez aux opportunités et sauvegardez vos analyses.',
     color: '#60A5FA',
     features: [
-      'Everything in Explorer',
-      'Full trade flow data (all years)',
-      'Unlimited country reports',
-      'Top 10 opportunities per country',
-      'Export data to CSV',
-      'Email alerts on new opportunities',
+      'Tout Explorer',
+      'Sauvegarde des recherches avec filtres',
+      'Opportunités matérialisées sur la carte (pays par pays)',
+      'Fiche opportunité par pays — volume d\'affaires potentiel',
+      'Historique de recherches illimité',
+      'Export données CSV',
+      'Alertes email nouvelles opportunités',
     ],
-    cta: 'Start Analyst plan',
+    cta: 'Démarrer Data',
     href: '/auth/register?plan=basic',
     priceId: STRIPE_PRICES.basic,
     popular: false,
   },
   {
-    id: 'pro',
-    name: 'Strategist',
+    id: 'standard',
+    name: 'Strategy',
     price: 99,
-    period: 'month',
-    description: 'AI-powered business plans & full analysis.',
+    period: 'mois',
+    badge: 'POPULAIRE',
+    description: 'Planification IA — business plan, feuille de route et advisor à la demande.',
     color: '#C9A84C',
     features: [
-      'Everything in Analyst',
-      'Complete business plans (trade & production)',
-      'Machinery & supplier recommendations',
-      'Capex/Opex/ROI models',
-      'AI advisor — unlimited chat',
-      'Opportunity Farming — product scanner',
-      '1-on-1 onboarding call',
+      'Tout Data',
+      'Génération de business plans IA (dépenses, actions, ROI)',
+      'AI Advisor — cahier des charges & rapport d\'actions concrètes',
+      'Opportunity Farming — scanner de produit',
+      'Crédits IA à la consommation (rechargeables)',
+      'Compteur de crédits en temps réel',
+      'Appel d\'onboarding 1-on-1',
     ],
-    cta: 'Start Strategist plan',
-    href: '/auth/register?plan=pro',
-    priceId: STRIPE_PRICES.pro,
+    cta: 'Démarrer Strategy',
+    href: '/auth/register?plan=standard',
+    priceId: STRIPE_PRICES.standard,
     popular: true,
+    note: 'L\'AI Advisor est facturé à l\'usage via un système de crédits internes. Recharge à partir de 10 €.',
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 149,
+    period: 'mois',
+    badge: 'NOUVEAU',
+    description: 'Réseau d\'influence IA — distribuez via des audiences qualifiées.',
+    color: '#A78BFA',
+    features: [
+      'Tout Strategy',
+      'Accès réseau influenceurs (audiences localisées, niches, reach)',
+      'Matching influenceur ↔ produit par géo et catégorie',
+      'AI Advisor prospecte les influenceurs pour votre produit',
+      'Dashboard performance affiliation (clics, conversions, CA)',
+      'Carte des ventes par audience géographique influenceur',
+    ],
+    cta: 'Démarrer Premium',
+    href: '/auth/register?plan=premium',
+    priceId: STRIPE_PRICES.premium,
+    popular: false,
+    note: 'L\'AI Advisor prospection consomme des crédits IA (inclus dans le plan, rechargeables).',
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
     price: null,
     period: null,
-    description: 'Custom research & white-label solutions.',
-    color: '#A78BFA',
+    badge: null,
+    description: 'Recherche sur-mesure et solutions white-label pour organisations.',
+    color: '#64748B',
     features: [
-      'Everything in Strategist',
-      'Custom country/sector research',
-      'White-label reports',
-      'API access',
-      'Dedicated analyst',
-      'SLA & custom contracts',
+      'Tout Premium',
+      'Recherche pays / secteur personnalisée',
+      'Rapports white-label',
+      'Accès API REST',
+      'Analyste dédié',
+      'SLA & contrats sur mesure',
     ],
-    cta: 'Contact us',
+    cta: 'Nous contacter',
     href: 'mailto:hello@feelthegap.com',
     priceId: null,
+    popular: false,
   },
+]
+
+const CREDIT_PACKS = [
+  { label: '10 €', amount: 10 },
+  { label: '20 €', amount: 20 },
+  { label: '50 €', amount: 50 },
+  { label: '75 €', amount: 75 },
+  { label: '100 €', amount: 100 },
 ]
 
 export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
+  const [userTier, setUserTier] = useState<string | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null)
+
+  useEffect(() => {
+    const sb = createSupabaseBrowser()
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return
+      setCurrentUser({ id: data.user.id, email: data.user.email ?? '' })
+      const { data: profile } = await sb.from('profiles').select('tier').eq('id', data.user.id).single()
+      setUserTier(profile?.tier ?? 'free')
+    })
+  }, [])
 
   async function handleSubscribe(plan: typeof PLANS[0]) {
     if (!plan.priceId) {
-      // Stripe not live yet — redirect to register
       router.push(plan.href)
       return
     }
@@ -108,9 +158,12 @@ export default function PricingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceId: plan.priceId,
+          priceId:    plan.priceId,
           successUrl: `${location.origin}/account?upgraded=1`,
-          cancelUrl: `${location.origin}/pricing`,
+          cancelUrl:  `${location.origin}/pricing`,
+          userId:     currentUser?.id,
+          userEmail:  currentUser?.email,
+          planLabel:  plan.name,
         }),
       })
       const { url } = await res.json()
@@ -125,54 +178,87 @@ export default function PricingPage() {
     <div className="min-h-screen flex flex-col bg-[#07090F]">
       <Topbar />
       <main className="flex-1 px-6 py-16 max-w-6xl mx-auto w-full">
+
+        {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-3">
-            Simple, transparent pricing
+            Tarifs simples et transparents
           </h1>
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
-            From free market exploration to full AI-powered business plans. Scale as you grow.
+            De la découverte gratuite au business plan IA complet. Passez au niveau supérieur quand vous êtes prêt.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {PLANS.map(plan => (
+        {/* Plans grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mb-16">
+          {PLANS.map(plan => {
+            const isCurrentPlan = userTier === plan.id
+            return (
             <div key={plan.id} className={`relative flex flex-col rounded-2xl border p-6 ${
-              plan.popular ? 'border-[#C9A84C] bg-gradient-to-b from-[#C9A84C]/5 to-transparent' : 'border-white/10 bg-[#0D1117]'
+              isCurrentPlan
+                ? 'border-[#C9A84C] ring-2 ring-[#C9A84C]/30 bg-gradient-to-b from-[#C9A84C]/8 to-transparent'
+                : plan.popular
+                ? 'border-[#C9A84C] bg-gradient-to-b from-[#C9A84C]/5 to-transparent'
+                : 'border-white/10 bg-[#0D1117]'
             }`}>
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-[#C9A84C] text-[#07090F] text-[10px] font-bold px-3 py-1 rounded-full">MOST POPULAR</span>
+              {isCurrentPlan && (
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                  <span className="bg-[#C9A84C] text-[#07090F] text-[10px] font-bold px-3 py-1 rounded-full whitespace-nowrap flex items-center gap-1">
+                    <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                    </svg>
+                    Plan actuel
+                  </span>
                 </div>
               )}
+              {!isCurrentPlan && plan.badge && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-[#C9A84C] text-[#07090F] text-[10px] font-bold px-3 py-1 rounded-full">
+                    {plan.badge}
+                  </span>
+                </div>
+              )}
+
               <div className="mb-5">
-                <div className="w-8 h-8 rounded-lg mb-3 flex items-center justify-center" style={{ background: plan.color + '22' }}>
+                <div className="w-8 h-8 rounded-lg mb-3 flex items-center justify-center"
+                  style={{ background: plan.color + '22' }}>
                   <div className="w-3 h-3 rounded-full" style={{ background: plan.color }} />
                 </div>
                 <h2 className="text-lg font-semibold text-white">{plan.name}</h2>
                 <p className="text-xs text-gray-500 mt-1">{plan.description}</p>
               </div>
+
               <div className="mb-6">
                 {plan.price === null ? (
-                  <span className="text-2xl font-bold text-white">Custom</span>
+                  <span className="text-2xl font-bold text-white">Sur mesure</span>
                 ) : plan.price === 0 ? (
-                  <span className="text-2xl font-bold text-white">Free</span>
+                  <span className="text-2xl font-bold text-white">Gratuit</span>
                 ) : (
                   <div className="flex items-end gap-1">
-                    <span className="text-3xl font-bold text-white">€{plan.price}</span>
+                    <span className="text-3xl font-bold text-white">{plan.price} €</span>
                     <span className="text-gray-500 text-sm pb-1">/{plan.period}</span>
                   </div>
                 )}
               </div>
-              <ul className="space-y-2 flex-1 mb-6">
+
+              <ul className="space-y-2 flex-1 mb-4">
                 {plan.features.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-gray-400">
-                    <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ color: plan.color }}>
+                    <svg className="shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 20 20"
+                      fill="currentColor" style={{ color: plan.color }}>
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                     </svg>
                     {f}
                   </li>
                 ))}
               </ul>
+
+              {'note' in plan && plan.note && (
+                <p className="text-[11px] text-[#C9A84C]/70 mb-4 border border-[#C9A84C]/20 rounded-lg px-3 py-2 bg-[#C9A84C]/5">
+                  {plan.note}
+                </p>
+              )}
+
               {plan.id === 'enterprise' ? (
                 <a href={plan.href}
                   className="w-full py-2.5 text-sm font-semibold text-center rounded-xl transition-colors block"
@@ -193,16 +279,65 @@ export default function PricingPage() {
                   style={plan.popular
                     ? { background: plan.color, color: '#07090F' }
                     : { background: plan.color + '18', color: plan.color, border: `1px solid ${plan.color}33` }}>
-                  {loading === plan.id ? 'Redirecting…' : plan.cta}
+                  {loading === plan.id ? 'Redirection…' : plan.cta}
                 </button>
               )}
             </div>
-          ))}
+          )})}
         </div>
 
-        <p className="text-center text-xs text-gray-600 mt-8">
-          All plans include a 7-day free trial. No credit card required for Explorer.
-          Stripe payments activate end of April 2026.
+        {/* Credits section */}
+        <div className="border border-[#C9A84C]/20 rounded-2xl bg-[#0D1117] p-8 mb-10">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-[#C9A84C]/10 flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-1">Crédits AI Advisor</h2>
+              <p className="text-sm text-gray-400 max-w-2xl">
+                L'AI Advisor (génération de business plans, cahiers des charges, rapports d'actions) consomme des tokens IA.
+                Chaque session est facturée à l'usage via un compteur de crédits interne. Les crédits sont rechargeables à tout moment.
+                Dès que votre solde atteint <span className="text-white font-medium">1 €</span>, une invitation à recharger s'affiche automatiquement.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {CREDIT_PACKS.map(pack => (
+              <div key={pack.amount}
+                className="px-5 py-3 rounded-xl border border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C] font-semibold text-sm cursor-default">
+                + {pack.label} de crédits
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-gray-600 mt-4">
+            Les recharges sont disponibles dans votre espace compte. Inclus dans le plan Strategy.
+          </p>
+        </div>
+
+        {/* Access control note */}
+        <div className="border border-white/5 rounded-xl bg-[#0D1117] px-6 py-5 mb-8">
+          <h3 className="text-sm font-semibold text-white mb-2">Accès et abonnement</h3>
+          <ul className="text-sm text-gray-500 space-y-1.5">
+            <li className="flex items-start gap-2">
+              <span className="text-red-400 shrink-0">•</span>
+              En cas de non-renouvellement ou de paiement refusé, l'historique des recherches et les fiches opportunités sont masqués — ils se débloquent dès la régularisation du paiement.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-red-400 shrink-0">•</span>
+              La carte cesse d'afficher les opportunités et les plans d'action sont inaccessibles sans abonnement actif.
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-400 shrink-0">•</span>
+              Le paiement réactive immédiatement l'ensemble de vos données et fonctionnalités.
+            </li>
+          </ul>
+        </div>
+
+        <p className="text-center text-xs text-gray-600">
+          Paiements sécurisés via Stripe. Annulation possible à tout moment.
         </p>
       </main>
     </div>

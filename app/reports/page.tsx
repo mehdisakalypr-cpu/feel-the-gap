@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import { useLang } from '@/components/LanguageProvider'
@@ -31,9 +32,15 @@ export default function ReportsPage() {
   const { t } = useLang()
   const [countries, setCountries] = useState<Country[]>([])
   const [loading, setLoading] = useState(true)
+  const searchParams = useSearchParams()
   const [search, setSearch] = useState('')
   const [region, setRegion] = useState('All')
   const [sort, setSort] = useState<'score' | 'imports' | 'balance'>('score')
+
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q) setSearch(q)
+  }, [searchParams])
 
   useEffect(() => {
     fetch('/api/countries')

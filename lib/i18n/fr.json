@@ -66,7 +66,9 @@
     "back_reports": "← Rapports",
     "gap_label": "Gap :",
     "score": "score",
-    "seed_data": "Ajouter des données →"
+    "seed_data": "Ajouter des données →",
+    "see_opportunities": "Découvrir {{count}} opportunités",
+    "see_opportunities_desc": "Rapport détaillé, scoring et business plans IA pour {{country}}"
   },
   "farming": {
     "title": "Opportunity Farming",
@@ -119,7 +121,7 @@
     "access_inactive": "En cas de non-renouvellement ou de paiement refusé, l'historique des recherches et les fiches opportunités sont masqués — ils se débloquent dès la régularisation du paiement.",
     "access_map": "La carte cesse d'afficher les opportunités et les plans d'action sont inaccessibles sans abonnement actif.",
     "access_reactivate": "Le paiement réactive immédiatement l'ensemble de vos données et fonctionnalités.",
-    "trial_note": "Tous les plans incluent 7 jours d'essai gratuit. Paiements Stripe activés fin avril 2026."
+    "trial_note": "Paiements sécurisés via Stripe. Annulation possible à tout moment."
   },
   "account": {
     "title": "Mon compte",
@@ -233,6 +235,8 @@
     "hero_title_accent": "avant tout le monde",
     "hero_desc": "Feel The Gap analyse les flux commerciaux mondiaux pour identifier les marchés sous-approvisionnés. IA, données réelles, business plans actionnables.",
     "cta_register": "Commencer gratuitement →",
+    "cta_register_full": "S'inscrire et commencer gratuitement →",
+    "cta_signin": "Déjà inscrit ? Se connecter",
     "cta_map": "Explorer la carte",
     "features_title": "De la data brute aux opportunités actionnables",
     "f1_title": "Carte mondiale des flux",

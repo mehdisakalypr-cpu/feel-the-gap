@@ -110,6 +110,31 @@ const META: Record<string, { iso2:string; name:string; flag:string; lat:number; 
   HND:{iso2:'HN',name:'Honduras',flag:'🇭🇳',lat:15.20,lng:-86.24,region:'Americas',sub_region:'Central America',population:9904607,gdp_usd:28000000000},
   DOM:{iso2:'DO',name:'Dominican Republic',flag:'🇩🇴',lat:18.74,lng:-70.16,region:'Americas',sub_region:'Caribbean',population:10847904,gdp_usd:95000000000},
   CUB:{iso2:'CU',name:'Cuba',flag:'🇨🇺',lat:21.52,lng:-77.78,region:'Americas',sub_region:'Caribbean',population:11326616,gdp_usd:107000000000},
+  // Europe
+  DEU:{iso2:'DE',name:'Germany',flag:'🇩🇪',lat:51.17,lng:10.45,region:'Europe',sub_region:'Western Europe',population:83783942,gdp_usd:4072000000000},
+  FRA:{iso2:'FR',name:'France',flag:'🇫🇷',lat:46.23,lng:2.21,region:'Europe',sub_region:'Western Europe',population:65273511,gdp_usd:2782000000000},
+  GBR:{iso2:'GB',name:'United Kingdom',flag:'🇬🇧',lat:55.38,lng:-3.44,region:'Europe',sub_region:'Northern Europe',population:67886011,gdp_usd:3070000000000},
+  ITA:{iso2:'IT',name:'Italy',flag:'🇮🇹',lat:41.87,lng:12.57,region:'Europe',sub_region:'Southern Europe',population:60461826,gdp_usd:2010000000000},
+  ESP:{iso2:'ES',name:'Spain',flag:'🇪🇸',lat:40.46,lng:-3.75,region:'Europe',sub_region:'Southern Europe',population:46754778,gdp_usd:1418000000000},
+  NLD:{iso2:'NL',name:'Netherlands',flag:'🇳🇱',lat:52.13,lng:5.29,region:'Europe',sub_region:'Western Europe',population:17134872,gdp_usd:1011000000000},
+  BEL:{iso2:'BE',name:'Belgium',flag:'🇧🇪',lat:50.50,lng:4.47,region:'Europe',sub_region:'Western Europe',population:11589623,gdp_usd:579000000000},
+  CHE:{iso2:'CH',name:'Switzerland',flag:'🇨🇭',lat:46.82,lng:8.23,region:'Europe',sub_region:'Western Europe',population:8654622,gdp_usd:807000000000},
+  SWE:{iso2:'SE',name:'Sweden',flag:'🇸🇪',lat:60.13,lng:18.64,region:'Europe',sub_region:'Northern Europe',population:10099265,gdp_usd:585000000000},
+  NOR:{iso2:'NO',name:'Norway',flag:'🇳🇴',lat:60.47,lng:8.47,region:'Europe',sub_region:'Northern Europe',population:5421241,gdp_usd:482000000000},
+  DNK:{iso2:'DK',name:'Denmark',flag:'🇩🇰',lat:56.26,lng:9.50,region:'Europe',sub_region:'Northern Europe',population:5792202,gdp_usd:395000000000},
+  AUT:{iso2:'AT',name:'Austria',flag:'🇦🇹',lat:47.52,lng:14.55,region:'Europe',sub_region:'Western Europe',population:9006398,gdp_usd:477000000000},
+  FIN:{iso2:'FI',name:'Finland',flag:'🇫🇮',lat:61.92,lng:25.75,region:'Europe',sub_region:'Northern Europe',population:5540720,gdp_usd:281000000000},
+  IRL:{iso2:'IE',name:'Ireland',flag:'🇮🇪',lat:53.41,lng:-8.24,region:'Europe',sub_region:'Northern Europe',population:4937786,gdp_usd:529000000000},
+  PRT:{iso2:'PT',name:'Portugal',flag:'🇵🇹',lat:39.40,lng:-8.22,region:'Europe',sub_region:'Southern Europe',population:10196709,gdp_usd:240000000000},
+  GRC:{iso2:'GR',name:'Greece',flag:'🇬🇷',lat:39.07,lng:21.82,region:'Europe',sub_region:'Southern Europe',population:10423054,gdp_usd:218000000000},
+  // Major economies
+  CHN:{iso2:'CN',name:'China',flag:'🇨🇳',lat:35.86,lng:104.20,region:'Asia',sub_region:'Eastern Asia',population:1439323776,gdp_usd:17963000000000},
+  USA:{iso2:'US',name:'United States',flag:'🇺🇸',lat:37.09,lng:-95.71,region:'Americas',sub_region:'Northern America',population:331002651,gdp_usd:25463000000000},
+  JPN:{iso2:'JP',name:'Japan',flag:'🇯🇵',lat:36.20,lng:138.25,region:'Asia',sub_region:'Eastern Asia',population:126476461,gdp_usd:4232000000000},
+  KOR:{iso2:'KR',name:'South Korea',flag:'🇰🇷',lat:35.91,lng:127.77,region:'Asia',sub_region:'Eastern Asia',population:51269185,gdp_usd:1665000000000},
+  CAN:{iso2:'CA',name:'Canada',flag:'🇨🇦',lat:56.13,lng:-106.35,region:'Americas',sub_region:'Northern America',population:37742154,gdp_usd:2140000000000},
+  AUS:{iso2:'AU',name:'Australia',flag:'🇦🇺',lat:-25.27,lng:133.78,region:'Oceania',sub_region:'Australia and New Zealand',population:25499884,gdp_usd:1703000000000},
+  RUS:{iso2:'RU',name:'Russia',flag:'🇷🇺',lat:61.52,lng:105.32,region:'Europe',sub_region:'Eastern Europe',population:145934462,gdp_usd:2241000000000},
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

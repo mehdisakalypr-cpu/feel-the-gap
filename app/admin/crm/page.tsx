@@ -9,7 +9,7 @@ async function getCRM() {
     { data: savedSearches },
     { data: upgradeClicks },
   ] = await Promise.all([
-    admin.from('profiles').select('*').order('created_at', { ascending: false }).limit(100),
+    admin.from('profiles').select('*, is_billed, is_admin, demo_expires_at').order('created_at', { ascending: false }).limit(100),
     admin.from('user_sessions').select('*').order('last_seen_at', { ascending: false }).limit(100),
     admin.from('saved_searches').select('*').order('created_at', { ascending: false }).limit(50),
     admin.from('tracking_events')
@@ -31,9 +31,10 @@ async function getCRM() {
 
 const TIER_COLOR: Record<string, string> = {
   free:       '#6B7280',
-  starter:    '#60A5FA',
-  pro:        '#22C55E',
-  enterprise: '#C9A84C',
+  basic:      '#60A5FA',
+  standard:   '#C9A84C',
+  premium:    '#A78BFA',
+  enterprise: '#64748B',
 }
 
 export default async function CRMPage() {
@@ -92,8 +93,13 @@ export default async function CRMPage() {
                           color: TIER_COLOR[u.tier ?? 'free'],
                           background: (TIER_COLOR[u.tier ?? 'free']) + '22',
                         }}>
-                        {u.tier ?? 'free'}
+                        {u.is_billed === false && !u.is_admin ? `Demo ${u.tier ?? 'free'}` : u.tier ?? 'free'}
                       </span>
+                      {u.is_admin && (
+                        <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#C9A84C]/10 text-[#C9A84C]">
+                          ADMIN
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 pr-4 text-gray-400">{u.company ?? '—'}</td>
                     <td className="py-2 text-gray-500">

@@ -14,6 +14,11 @@ const WorldMap = dynamic(() => import('./WorldMap'), {
   ),
 })
 
-export default function MapLoader() {
-  return <WorldMap />
+interface Props {
+  activeCategories: string[]
+  activeSubs: string[]
+}
+
+export default function MapLoader({ activeCategories, activeSubs }: Props) {
+  return <WorldMap activeCategories={activeCategories} activeSubs={activeSubs} />
 }

@@ -1,8 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
+import PaywallGate from '@/components/PaywallGate'
+import { createSupabaseBrowser } from '@/lib/supabase'
 import type { OpportunityScanResult, GeoOpportunity, ChannelOption } from '@/agents/opportunity-scanner'
+import { useLang } from '@/components/LanguageProvider'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -297,20 +301,48 @@ function InfluencerModule({ product, affiliateLink }: { product: string; affilia
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FarmingPage() {
+  const router = useRouter()
+  const { t } = useLang()
+
   const [form, setForm] = useState({
-    product: '',
-    manufacturer: '',
+    productName: '',
+    productDescription: '',
+    productUrl: '',
+    productPrice: '',
+    opportunityTypes: [] as string[],
+    opportunityDescription: '',
     geography: '',
     budget: '',
     affiliateLink: '',
   })
+
+  function toggleOpportunityType(type: string) {
+    setForm(f => ({
+      ...f,
+      opportunityTypes: f.opportunityTypes.includes(type)
+        ? f.opportunityTypes.filter(t => t !== type)
+        : [...f.opportunityTypes, type],
+    }))
+  }
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<OpportunityScanResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Auth guard — redirect to login if not authenticated
+  useEffect(() => {
+    async function checkAuth() {
+      const supabase = createSupabaseBrowser()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+      }
+    }
+    checkAuth()
+  }, [router])
+
   async function handleScan(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.product.trim()) return
+    if (!form.productName.trim()) return
     setLoading(true)
     setError(null)
     setResult(null)
@@ -319,7 +351,17 @@ export default function FarmingPage() {
       const res = await fetch('/api/farming', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          product: form.productName,
+          description: form.productDescription,
+          productUrl: form.productUrl,
+          productPrice: form.productPrice,
+          opportunityTypes: form.opportunityTypes,
+          opportunityDescription: form.opportunityDescription,
+          geography: form.geography,
+          budget: form.budget,
+          affiliateLink: form.affiliateLink,
+        }),
       })
       if (!res.ok) throw new Error(await res.text())
       setResult(await res.json())
@@ -339,91 +381,174 @@ export default function FarmingPage() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2 py-0.5 bg-[#C9A84C]/15 text-[#C9A84C] text-xs font-semibold rounded-full uppercase tracking-wide">
-              Product Opportunity Farming
+              {t('farming.title')}
             </span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Find where your product <span className="text-[#C9A84C]">can win</span>
+            {t('farming.title')}
           </h1>
           <p className="text-gray-400 max-w-xl">
-            Enter your product — our AI maps the best geographies, competitors, and distribution channels with profitability comparison and time-to-market.
+            {t('farming.subtitle')}
           </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleScan} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {/* Product — full width */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                Product description <span className="text-[#C9A84C]">*</span>
+        {/* Form — accessible to all authenticated users */}
+        <form onSubmit={handleScan} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-8 space-y-5">
+
+          {/* ── Bloc 1 : Produit ── */}
+          <div>
+            <div className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest mb-3">1 — {t('farming.block1_title')}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.product_name')} <span className="text-[#C9A84C]">*</span>
+                </label>
+                <input
+                  type="text" required
+                  placeholder={t('farming.product_name_placeholder')}
+                  value={form.productName}
+                  onChange={e => setForm(f => ({ ...f, productName: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.product_desc')}
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={t('farming.product_desc_placeholder')}
+                  value={form.productDescription}
+                  onChange={e => setForm(f => ({ ...f, productDescription: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.product_url')}
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://votre-site.com/produit"
+                  value={form.productUrl}
+                  onChange={e => setForm(f => ({ ...f, productUrl: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.product_price')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="ex : 2 500 € / unité ou 49 €/mois"
+                  value={form.productPrice}
+                  onChange={e => setForm(f => ({ ...f, productPrice: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5" />
+
+          {/* ── Bloc 2 : Recherche d'opportunités ── */}
+          <div>
+            <div className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest mb-3">2 — {t('farming.block2_title')}</div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                {t('farming.opp_type_label')}
               </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Exoskeleton hiking assistance device — reduces knee strain on descents"
-                value={form.product}
-                onChange={e => setForm(f => ({ ...f, product: e.target.value }))}
-                className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-              />
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'clients_finaux',  label: '👤 ' + t('farming.opp_types.end_clients') },
+                  { id: 'distributeurs',   label: '📦 ' + t('farming.opp_types.distributors') },
+                  { id: 'grossistes',      label: '🏭 ' + t('farming.opp_types.wholesalers') },
+                  { id: 'franchises',      label: '🤝 ' + t('farming.opp_types.franchisees') },
+                  { id: 'revendeurs',      label: '🏪 ' + t('farming.opp_types.resellers') },
+                  { id: 'agents',          label: '🧳 ' + t('farming.opp_types.agents') },
+                  { id: 'oem_partenaires', label: '⚙️ ' + t('farming.opp_types.oem') },
+                  { id: 'autre',           label: '🔍 ' + t('farming.opp_types.other') },
+                ].map(opt => (
+                  <button
+                    key={opt.id} type="button"
+                    onClick={() => toggleOpportunityType(opt.id)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      background: form.opportunityTypes.includes(opt.id) ? 'rgba(201,168,76,.15)' : '#1F2937',
+                      color:      form.opportunityTypes.includes(opt.id) ? '#C9A84C' : '#9CA3AF',
+                      border: `1px solid ${form.opportunityTypes.includes(opt.id) ? 'rgba(201,168,76,.4)' : 'transparent'}`,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                Manufacturer / Distributor
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. ExoWalk Technologies"
-                value={form.manufacturer}
-                onChange={e => setForm(f => ({ ...f, manufacturer: e.target.value }))}
-                className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.opp_desc')} <span className="text-[#C9A84C]">*</span>
+                </label>
+                <textarea
+                  rows={3} required
+                  placeholder="Précisez vos objectifs : quel marché vous intéresse, pourquoi, quel volume espéré, contraintes logistiques ou réglementaires, concurrents connus… L'AI Advisor s'appuiera sur ces informations pour affiner l'analyse."
+                  value={form.opportunityDescription}
+                  onChange={e => setForm(f => ({ ...f, opportunityDescription: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors resize-none"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                Target geography
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Alps region, Southeast Asia, worldwide…"
-                value={form.geography}
-                onChange={e => setForm(f => ({ ...f, geography: e.target.value }))}
-                className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.geography')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="ex : France, Maroc, Asie du Sud-Est… ou laisser vide pour analyse globale"
+                  value={form.geography}
+                  onChange={e => setForm(f => ({ ...f, geography: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                Budget available
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. 50 000 – 200 000 EUR"
-                value={form.budget}
-                onChange={e => setForm(f => ({ ...f, budget: e.target.value }))}
-                className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-              />
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+                  {t('farming.budget')}
+                </label>
+                <input
+                  type="text"
+                  placeholder="ex : 50 000 € ou 200 K€ / an"
+                  value={form.budget}
+                  onChange={e => setForm(f => ({ ...f, budget: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                />
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                Affiliate link <span className="text-gray-600 normal-case font-normal">(enables influencer matching)</span>
-              </label>
-              <input
-                type="url"
-                placeholder="https://your-store.com?ref=partner"
-                value={form.affiliateLink}
-                onChange={e => setForm(f => ({ ...f, affiliateLink: e.target.value }))}
-                className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-              />
-            </div>
+          <div className="border-t border-white/5" />
+
+          {/* ── Bloc 3 : Lien affilié ── */}
+          <div>
+            <div className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest mb-3">3 — {t('farming.block3_title')}</div>
+            <input
+              type="url"
+              placeholder="https://votre-boutique.com?ref=partenaire"
+              value={form.affiliateLink}
+              onChange={e => setForm(f => ({ ...f, affiliateLink: e.target.value }))}
+              className="w-full px-4 py-3 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+            />
           </div>
 
           <button
             type="submit"
-            disabled={loading || !form.product.trim()}
+            disabled={loading || !form.productName.trim()}
             className="w-full py-3 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
@@ -432,12 +557,12 @@ export default function FarmingPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                 </svg>
-                AI scanning opportunities…
+                {t('farming.scanning')}
               </>
             ) : (
               <>
                 <IconTarget />
-                Scan opportunities
+                {t('farming.submit_btn')}
               </>
             )}
           </button>
@@ -450,119 +575,121 @@ export default function FarmingPage() {
           </div>
         )}
 
-        {/* Results */}
+        {/* Results — behind Pro paywall */}
         {result && (
-          <div className="space-y-8">
-            {/* Executive summary */}
-            <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <IconZap />
-                <h2 className="font-bold text-white">Executive Summary</h2>
-              </div>
-              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{result.executive_summary}</p>
-            </div>
-
-            {/* Geographic opportunities */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <IconGlobe />
-                <h2 className="font-bold text-white text-lg">Top Geographies</h2>
-                <span className="ml-auto text-xs text-gray-500">{result.top_geographies.length} markets identified</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {result.top_geographies
-                  .sort((a, b) => b.score - a.score)
-                  .map((geo, i) => (
-                    <GeoCard key={geo.name} geo={geo} rank={i + 1} />
-                  ))}
-              </div>
-            </div>
-
-            {/* Channel strategy */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <IconTrending />
-                <h2 className="font-bold text-white text-lg">Channel Strategy Comparison</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {result.channel_options.map(ch => (
-                  <ChannelCard
-                    key={ch.channel}
-                    ch={ch}
-                    isRecommended={ch.channel === result.recommended_channel}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Competitor map */}
-            {result.competitor_map.length > 0 && (
+          <PaywallGate requiredTier="standard" featureName="Opportunity Farming">
+            <div className="space-y-8">
+              {/* Executive summary */}
               <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
-                <h2 className="font-bold text-white mb-4">Competitor Landscape</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-xs text-gray-500 uppercase tracking-wide border-b border-white/5">
-                        <th className="pb-2 pr-4">Company</th>
-                        <th className="pb-2 pr-4">Type</th>
-                        <th className="pb-2 pr-4">Geography</th>
-                        <th className="pb-2 pr-4">Share</th>
-                        <th className="pb-2">Weakness to exploit</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {result.competitor_map.map((c, i) => (
-                        <tr key={i} className="text-gray-300">
-                          <td className="py-2.5 pr-4 font-medium text-white">{c.name}</td>
-                          <td className="py-2.5 pr-4">
-                            <span className="px-2 py-0.5 bg-white/5 rounded-full text-xs capitalize">{c.type}</span>
-                          </td>
-                          <td className="py-2.5 pr-4 text-gray-400">{c.geography}</td>
-                          <td className="py-2.5 pr-4 text-gray-400">
-                            {c.market_share_pct != null ? `${c.market_share_pct}%` : '—'}
-                          </td>
-                          <td className="py-2.5 text-xs text-gray-500">{c.weakness ?? '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Influencer angles */}
-            {result.influencer_angles && result.influencer_angles.length > 0 && (
-              <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/20 rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xl">📲</span>
-                  <h2 className="font-bold text-white">Influencer Content Angles</h2>
-                  <span className="ml-auto px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full">Affiliate module</span>
+                  <IconZap />
+                  <h2 className="font-bold text-white">Executive Summary</h2>
                 </div>
-                <ul className="space-y-2">
-                  {result.influencer_angles.map((angle, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                      <span className="text-purple-400 mt-0.5 shrink-0">›</span>
-                      {angle}
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">{result.executive_summary}</p>
               </div>
-            )}
 
-            {/* ── Influencer Module ── */}
-            <InfluencerModule product={form.product} affiliateLink={form.affiliateLink} />
-
-            {/* CTA */}
-            <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 flex items-center justify-between">
+              {/* Geographic opportunities */}
               <div>
-                <div className="font-semibold text-white mb-1">Want a full GTM execution plan?</div>
-                <div className="text-sm text-gray-400">Get detailed action plans, operator contacts, and influencer matching for each channel.</div>
+                <div className="flex items-center gap-2 mb-4">
+                  <IconGlobe />
+                  <h2 className="font-bold text-white text-lg">Top Geographies</h2>
+                  <span className="ml-auto text-xs text-gray-500">{result.top_geographies.length} markets identified</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {result.top_geographies
+                    .sort((a, b) => b.score - a.score)
+                    .map((geo, i) => (
+                      <GeoCard key={geo.name} geo={geo} rank={i + 1} />
+                    ))}
+                </div>
               </div>
-              <a href="/pricing" className="shrink-0 ml-4 px-5 py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm">
-                Upgrade to Pro
-              </a>
+
+              {/* Channel strategy */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <IconTrending />
+                  <h2 className="font-bold text-white text-lg">Channel Strategy Comparison</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {result.channel_options.map(ch => (
+                    <ChannelCard
+                      key={ch.channel}
+                      ch={ch}
+                      isRecommended={ch.channel === result.recommended_channel}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Competitor map */}
+              {result.competitor_map.length > 0 && (
+                <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
+                  <h2 className="font-bold text-white mb-4">Competitor Landscape</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-gray-500 uppercase tracking-wide border-b border-white/5">
+                          <th className="pb-2 pr-4">Company</th>
+                          <th className="pb-2 pr-4">Type</th>
+                          <th className="pb-2 pr-4">Geography</th>
+                          <th className="pb-2 pr-4">Share</th>
+                          <th className="pb-2">Weakness to exploit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {result.competitor_map.map((c, i) => (
+                          <tr key={i} className="text-gray-300">
+                            <td className="py-2.5 pr-4 font-medium text-white">{c.name}</td>
+                            <td className="py-2.5 pr-4">
+                              <span className="px-2 py-0.5 bg-white/5 rounded-full text-xs capitalize">{c.type}</span>
+                            </td>
+                            <td className="py-2.5 pr-4 text-gray-400">{c.geography}</td>
+                            <td className="py-2.5 pr-4 text-gray-400">
+                              {c.market_share_pct != null ? `${c.market_share_pct}%` : '—'}
+                            </td>
+                            <td className="py-2.5 text-xs text-gray-500">{c.weakness ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Influencer angles */}
+              {result.influencer_angles && result.influencer_angles.length > 0 && (
+                <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/20 rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xl">📲</span>
+                    <h2 className="font-bold text-white">Influencer Content Angles</h2>
+                    <span className="ml-auto px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full">Affiliate module</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {result.influencer_angles.map((angle, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                        <span className="text-purple-400 mt-0.5 shrink-0">›</span>
+                        {angle}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* ── Influencer Module ── */}
+              <InfluencerModule product={form.productName} affiliateLink={form.affiliateLink} />
+
+              {/* CTA */}
+              <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-white mb-1">Want a full GTM execution plan?</div>
+                  <div className="text-sm text-gray-400">Get detailed action plans, operator contacts, and influencer matching for each channel.</div>
+                </div>
+                <a href="/pricing" className="shrink-0 ml-4 px-5 py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm">
+                  Upgrade to Pro
+                </a>
+              </div>
             </div>
-          </div>
+          </PaywallGate>
         )}
       </div>
     </div>

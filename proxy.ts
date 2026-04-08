@@ -6,11 +6,20 @@ const PUBLIC_PAGES = new Set([
   '/',
   '/pricing',
   '/demo',
+  '/map',
+  '/reports',
+  '/farming',
+  '/gemini',
+  '/onboarding',
+  '/seller',
+  '/influencer',
 ])
 
 const PUBLIC_PAGE_PREFIXES = [
-  '/auth/',    // login, register, forgot, reset-password, callback, biometric-setup
-  '/go/',      // affiliate redirect links
+  '/auth/',      // login, register, forgot, reset-password, callback, biometric-setup
+  '/go/',        // affiliate redirect links
+  '/reports/',   // country reports (tier-gated in page)
+  '/country/',   // country detail pages (tier-gated in page)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
@@ -101,10 +110,10 @@ export async function proxy(request: NextRequest) {
     if (!authorized) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_delegate_admin')
         .eq('id', user.id)
         .single()
-      authorized = profile?.is_admin === true
+      authorized = profile?.is_admin === true || profile?.is_delegate_admin === true
     }
 
     if (!authorized) {

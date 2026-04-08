@@ -562,7 +562,7 @@ function PlanDisplay({ plan, opps, country, iso, userTier }: {
   const b2bTargets = plan.b2b_targets?.length ? plan.b2b_targets : []
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 overflow-hidden break-words">
 
       {/* ── Hero ── */}
       <div className="relative rounded-3xl overflow-hidden" style={{ height: 280 }}>
@@ -1089,7 +1089,7 @@ export default function BusinessPlanPage() {
   return (
     <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
       <Topbar />
-      <div className="max-w-4xl mx-auto w-full px-4 py-8">
+      <div className="max-w-4xl mx-auto w-full px-4 py-8 overflow-hidden">
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-6">

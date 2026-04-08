@@ -66,7 +66,9 @@
     "back_reports": "← Reports",
     "gap_label": "Gap:",
     "score": "score",
-    "seed_data": "Seed data →"
+    "seed_data": "Seed data →",
+    "see_opportunities": "Discover {{count}} opportunities",
+    "see_opportunities_desc": "Detailed report, scoring and AI business plans for {{country}}"
   },
   "farming": {
     "title": "Opportunity Farming",
@@ -119,7 +121,7 @@
     "access_inactive": "If your subscription lapses or payment fails, search history and opportunity sheets are hidden — they unlock as soon as payment is settled.",
     "access_map": "The map stops showing opportunities and action plans are inaccessible without an active subscription.",
     "access_reactivate": "Payment immediately reactivates all your data and features.",
-    "trial_note": "All plans include a 7-day free trial. Stripe payments active end of April 2026."
+    "trial_note": "Secure payments via Stripe. Cancel anytime."
   },
   "account": {
     "title": "My Account",
@@ -233,6 +235,8 @@
     "hero_title_accent": "before everyone else",
     "hero_desc": "Feel The Gap analyses global trade flows to identify under-supplied markets. AI, real data, actionable business plans.",
     "cta_register": "Get started for free →",
+    "cta_register_full": "Sign up and get started for free →",
+    "cta_signin": "Already registered? Sign in",
     "cta_map": "Explore the map",
     "features_title": "From raw data to actionable opportunities",
     "f1_title": "Global trade flow map",

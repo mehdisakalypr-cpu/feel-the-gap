@@ -9,7 +9,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { google } from '@ai-sdk/google'
+import { createGroq } from '@ai-sdk/groq'
 import { generateText } from 'ai'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -72,7 +72,11 @@ async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 4)
   throw new Error('Unreachable')
 }
 
-const DELAY_BETWEEN_CALLS = 4000 // 4s between Gemini calls
+// ── Groq model ───────────────────────────────────────────────────────────────
+const groq = createGroq({ apiKey: process.env.GROQ_API_KEY! })
+const model = groq('llama-3.3-70b-versatile')
+
+const DELAY_BETWEEN_CALLS = 4000 // 4s between API calls
 
 // ── Country Report Generator ──────────────────────────────────────────────────
 async function generateCountryReport(country: any, opps: any[]): Promise<string> {
@@ -81,7 +85,7 @@ async function generateCountryReport(country: any, opps: any[]): Promise<string>
   ).join('\n')
 
   const { text } = await withRetry(() => generateText({
-    model: google('gemini-2.0-flash'),
+    model: model,
     prompt: `Generate a professional trade intelligence report in HTML format for ${country.name_fr}.
 
 Data:
@@ -113,7 +117,7 @@ Return only the HTML content (no <!DOCTYPE> or <html> wrapper).`,
 // ── Business Plan Generator ───────────────────────────────────────────────────
 async function buildTradePlan(opp: any, productName: string, countryName: string) {
   const { text } = await withRetry(() => generateText({
-    model: google('gemini-2.0-flash'),
+    model: model,
     prompt: `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
 
 Country: ${countryName}
@@ -138,7 +142,7 @@ Return ONLY valid JSON with this structure:
 
 async function buildProductionPlan(opp: any, productName: string, countryName: string) {
   const { text } = await withRetry(() => generateText({
-    model: google('gemini-2.0-flash'),
+    model: model,
     prompt: `You are an investment consultant. Generate a local production business plan in JSON format.
 
 Country: ${countryName}

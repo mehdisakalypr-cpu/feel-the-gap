@@ -22,6 +22,7 @@ export default function Topbar() {
   const [search, setSearch] = useState('')
   const [userInitial, setUserInitial] = useState<string | null>(null)
   const [tier, setTier] = useState<string | null>(null)
+  const [isAdminUser, setIsAdminUser] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const navRef = useRef<HTMLElement>(null)
   const { lang, setLang, t } = useLang()
@@ -33,8 +34,9 @@ export default function Topbar() {
       const email = data.user?.email
       if (email) {
         setUserInitial(email[0].toUpperCase())
-        const { data: profile } = await sb.from('profiles').select('tier').eq('id', data.user!.id).single()
+        const { data: profile } = await sb.from('profiles').select('tier, is_admin, is_delegate_admin').eq('id', data.user!.id).single()
         setTier(profile?.tier ?? 'free')
+        if (profile?.is_admin || profile?.is_delegate_admin) setIsAdminUser(true)
       }
     })
   }, [])
@@ -123,6 +125,13 @@ export default function Topbar() {
           <Link href="/pricing" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors whitespace-nowrap shrink-0">
             {t('nav.pricing')}
           </Link>
+          {/* Admin link — only for admins */}
+          {isAdminUser && (
+            <Link href="/admin" className="px-2.5 py-1.5 text-[#F59E0B] hover:text-white rounded-md hover:bg-[#F59E0B]/10 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 font-medium text-xs">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              Admin
+            </Link>
+          )}
           {/* Language switcher */}
           <div className="flex items-center gap-0.5 ml-1 bg-white/5 rounded-lg p-0.5 shrink-0">
             {(['fr', 'en'] as Lang[]).map(l => (

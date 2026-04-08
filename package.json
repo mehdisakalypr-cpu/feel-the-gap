@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.58",
+    "@ai-sdk/groq": "^3.0.35",
     "@google/generative-ai": "^0.24.1",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.0",

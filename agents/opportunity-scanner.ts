@@ -13,11 +13,16 @@ import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
 
 export interface ScanInput {
-  product: string          // e.g. "exoskeleton hiking assistance device"
-  manufacturer?: string    // e.g. "ExoWalk Technologies"
-  geography?: string       // e.g. "Alps region" or "worldwide"
-  budget?: string          // e.g. "50000-200000 EUR"
-  affiliateLink?: string   // optional, for influencer module
+  product: string               // nom du produit
+  description?: string          // description détaillée du produit
+  productUrl?: string           // URL de la page produit
+  productPrice?: string         // prix indicatif
+  opportunityTypes?: string[]   // ['clients finaux', 'distributeurs', 'grossistes', ...]
+  opportunityDescription?: string // description libre de la recherche d'opportunités
+  manufacturer?: string         // fabricant / distributeur
+  geography?: string            // géographie cible
+  budget?: string               // budget max disponible
+  affiliateLink?: string        // lien affilié (pour module influenceur)
 }
 
 export interface GeoOpportunity {
@@ -67,11 +72,19 @@ const SCANNER_PROMPT = (input: ScanInput) => `
 You are a world-class GTM (Go-To-Market) strategist specializing in finding geographic and channel opportunities for physical products.
 
 PRODUCT: ${input.product}
+${input.description ? `PRODUCT DESCRIPTION: ${input.description}` : ''}
+${input.productPrice ? `PRODUCT PRICE: ${input.productPrice}` : ''}
+${input.productUrl ? `PRODUCT URL: ${input.productUrl}` : ''}
+${input.opportunityTypes && input.opportunityTypes.length > 0 ? `OPPORTUNITY TYPES SOUGHT: ${input.opportunityTypes.join(', ')}` : ''}
+${input.opportunityDescription ? `OPPORTUNITY SEARCH DESCRIPTION: ${input.opportunityDescription}` : ''}
 ${input.manufacturer ? `MANUFACTURER / DISTRIBUTOR: ${input.manufacturer}` : ''}
 ${input.geography ? `TARGET GEOGRAPHY: ${input.geography}` : 'TARGET GEOGRAPHY: worldwide (identify best regions)'}
 ${input.budget ? `BUDGET AVAILABLE: ${input.budget}` : ''}
 
 YOUR TASK: Identify where and how this product can be sold, distributed or integrated into existing ecosystems.
+${input.opportunityTypes && input.opportunityTypes.length > 0
+  ? `FOCUS ON these channel types specifically: ${input.opportunityTypes.join(', ')}. Prioritize these in channel_options and recommendations.`
+  : ''}
 
 Return ONLY valid JSON matching this exact structure:
 {

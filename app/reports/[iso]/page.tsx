@@ -228,7 +228,7 @@ export default function ReportPage() {
     <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
       <Topbar />
 
-      <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8 overflow-hidden">
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -238,11 +238,11 @@ export default function ReportPage() {
         </div>
 
         {/* ── Header ── */}
-        <div className="flex items-start gap-4 md:gap-6">
-          <div className="text-6xl">{country.flag}</div>
-          <div className="flex-1">
+        <div className="flex items-start gap-4 md:gap-6 flex-wrap md:flex-nowrap">
+          <div className="text-6xl shrink-0">{country.flag}</div>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold text-white">{country.name_fr}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-white break-words">{country.name_fr}</h1>
               <span className="px-2 py-0.5 bg-white/5 rounded-full text-xs text-gray-400">{country.sub_region}</span>
               {topOpp && (
                 <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: '#C9A84C22', color: '#C9A84C', border: '1px solid #C9A84C44' }}>
@@ -255,11 +255,11 @@ export default function ReportPage() {
               les écarts de production et les opportunités d'investissement identifiées pour {country.name_fr}.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Link href={`/country/${iso}`} className="px-4 py-2 bg-white/5 text-gray-400 border border-white/10 rounded-xl text-sm hover:bg-white/10 transition-colors">
+          <div className="flex gap-2 shrink-0 w-full md:w-auto">
+            <Link href={`/country/${iso}`} className="px-4 py-2 bg-white/5 text-gray-400 border border-white/10 rounded-xl text-sm hover:bg-white/10 transition-colors whitespace-nowrap">
               Fiche pays
             </Link>
-            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors">
+            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors whitespace-nowrap">
               Plan d'affaires →
             </Link>
           </div>
@@ -343,7 +343,7 @@ export default function ReportPage() {
               <span className="px-2 py-0.5 bg-[#C9A84C]/10 text-[#C9A84C] text-xs rounded-full ml-2">IA</span>
             </h2>
             <div
-              className="text-gray-300 text-sm leading-relaxed [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-gray-200 [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_li]:mb-1 [&_strong]:text-white [&_a]:text-[#C9A84C] [&_a]:underline"
+              className="text-gray-300 text-sm leading-relaxed break-words overflow-hidden [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-white [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-gray-200 [&_h3]:mt-4 [&_h3]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_li]:mb-1 [&_strong]:text-white [&_a]:text-[#C9A84C] [&_a]:underline [&_table]:w-full [&_table]:overflow-x-auto [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_img]:max-w-full"
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reportHtml) }}
             />
           </div>

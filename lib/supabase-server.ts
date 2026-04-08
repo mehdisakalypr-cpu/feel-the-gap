@@ -32,9 +32,22 @@ export async function getAuthUser() {
 }
 
 /**
- * Check if the authenticated user is an admin (stored in profiles.is_admin).
+ * Check if the authenticated user is an admin (stored in profiles.is_admin or is_delegate_admin).
  */
 export async function isAdmin() {
+  const sb = await createSupabaseServer()
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) return false
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (adminEmail && user.email === adminEmail) return true
+  const { data: profile } = await sb.from('profiles').select('is_admin, is_delegate_admin').eq('id', user.id).single()
+  return profile?.is_admin === true || profile?.is_delegate_admin === true
+}
+
+/**
+ * Check if user is a super admin (not delegate).
+ */
+export async function isSuperAdmin() {
   const sb = await createSupabaseServer()
   const { data: { user } } = await sb.auth.getUser()
   if (!user) return false
