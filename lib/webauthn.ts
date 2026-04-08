@@ -14,9 +14,22 @@ import { supabaseAdmin } from "@/lib/supabase";
 // ── Config ──────────────────────────────────────────────────────────────────────
 
 const RP_NAME = "Feel The Gap";
-const RP_ID = process.env.WEBAUTHN_RP_ID || "feel-the-gap.duckdns.org";
-const ORIGIN = process.env.NEXT_PUBLIC_BASE_URL || `https://${RP_ID}`;
 const APP_ID = "feel-the-gap";
+
+const ALLOWED_HOSTS = new Set([
+  "feel-the-gap.duckdns.org",
+  "feel-the-gap.vercel.app",
+  "localhost",
+]);
+
+export function getWebAuthnConfig(host?: string | null) {
+  const h = (host || "").replace(/:\d+$/, "");
+  // Also allow any *.vercel.app subdomain for preview deployments
+  const isVercel = h.endsWith(".vercel.app");
+  const rpId = ALLOWED_HOSTS.has(h) || isVercel ? h : "feel-the-gap.duckdns.org";
+  const origin = h === "localhost" ? `http://${host}` : `https://${rpId}`;
+  return { rpId, origin, rpName: RP_NAME };
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────────
 
@@ -77,7 +90,8 @@ function getAndDeleteChallenge(userId: string): string | null {
 
 // ── Registration ─────────────────────────────────────────────────────────────────
 
-export async function startRegistration(userId: string, userEmail: string) {
+export async function startRegistration(userId: string, userEmail: string, host?: string | null) {
+  const { rpId, rpName } = getWebAuthnConfig(host);
   const existing = await getCredentials(userId);
   const excludeCredentials = existing.map((c) => ({
     id: c.id,
@@ -85,8 +99,8 @@ export async function startRegistration(userId: string, userEmail: string) {
   }));
 
   const options = await generateRegistrationOptions({
-    rpName: RP_NAME,
-    rpID: RP_ID,
+    rpName,
+    rpID: rpId,
     userName: userEmail,
     attestationType: "none",
     authenticatorSelection: {
@@ -104,16 +118,18 @@ export async function startRegistration(userId: string, userEmail: string) {
 export async function finishRegistration(
   userId: string,
   response: RegistrationResponseJSON,
-  deviceName?: string
+  deviceName?: string,
+  host?: string | null
 ) {
+  const { rpId, origin } = getWebAuthnConfig(host);
   const expectedChallenge = getAndDeleteChallenge(userId);
   if (!expectedChallenge) throw new Error("Challenge expired or missing");
 
   const verification = await verifyRegistrationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: ORIGIN,
-    expectedRPID: RP_ID,
+    expectedOrigin: origin,
+    expectedRPID: rpId,
   });
 
   if (!verification.verified || !verification.registrationInfo) {
@@ -136,8 +152,8 @@ export async function finishRegistration(
 
 // ── Authentication ───────────────────────────────────────────────────────────────
 
-export async function startAuthenticationForEmail(email: string) {
-  // Look up Supabase user by email
+export async function startAuthenticationForEmail(email: string, host?: string | null) {
+  const { rpId } = getWebAuthnConfig(host);
   const sb = supabaseAdmin();
   const { data } = await sb.auth.admin.listUsers();
   const user = data?.users?.find((u) => u.email === email);
@@ -152,7 +168,7 @@ export async function startAuthenticationForEmail(email: string) {
   }));
 
   const options = await generateAuthenticationOptions({
-    rpID: RP_ID,
+    rpID: rpId,
     allowCredentials,
     userVerification: "required",
   });
@@ -163,7 +179,8 @@ export async function startAuthenticationForEmail(email: string) {
 
 export async function finishAuthentication(
   userId: string,
-  response: AuthenticationResponseJSON
+  response: AuthenticationResponseJSON,
+  host?: string | null
 ) {
   const expectedChallenge = getAndDeleteChallenge(userId);
   if (!expectedChallenge) throw new Error("Challenge expired or missing");
@@ -172,11 +189,12 @@ export async function finishAuthentication(
   const credential = credentials.find((c) => c.id === response.id);
   if (!credential) throw new Error("Credential not found");
 
+  const { rpId, origin } = getWebAuthnConfig(host);
   const verification = await verifyAuthenticationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: ORIGIN,
-    expectedRPID: RP_ID,
+    expectedOrigin: origin,
+    expectedRPID: rpId,
     credential: {
       id: credential.id,
       publicKey: Buffer.from(credential.public_key, "base64url"),

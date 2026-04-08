@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { startAuthenticationForEmail, finishAuthentication } from "@/lib/webauthn";
 import { supabaseAdmin } from "@/lib/supabase";
+import { headers } from "next/headers";
 
 // POST — two actions: "start" and "finish"
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const h = await headers();
+  const host = h.get("host");
 
   // Step 1: Start authentication — client sends { action: "start", email }
   if (body.action === "start") {
     const { email } = body;
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
-    const result = await startAuthenticationForEmail(email);
+    const result = await startAuthenticationForEmail(email, host);
     if (!result) return NextResponse.json({ available: false });
 
     return NextResponse.json({ available: true, options: result.options, userId: result.userId });
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest) {
   if (body.action === "finish") {
     const { userId, response } = body;
     try {
-      const result = await finishAuthentication(userId, response);
+      const result = await finishAuthentication(userId, response, host);
       if (!result.verified) {
         return NextResponse.json({ error: "Verification failed" }, { status: 401 });
       }
@@ -33,7 +36,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      // Generate a one-time login link
       const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
         type: "magiclink",
         email: userData.user.email,
@@ -42,10 +44,6 @@ export async function POST(req: NextRequest) {
       if (linkErr || !linkData) {
         return NextResponse.json({ error: "Session creation failed" }, { status: 500 });
       }
-
-      // Return the token hash + type for client to exchange
-      const url = new URL(linkData.properties.action_link);
-      const token_hash = url.searchParams.get("token_hash") || url.hash;
 
       return NextResponse.json({
         ok: true,
