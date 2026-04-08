@@ -10,7 +10,11 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { createGroq } from '@ai-sdk/groq'
+import { google } from '@ai-sdk/google'
+import { createMistral } from '@ai-sdk/mistral'
+import { createTogetherAI } from '@ai-sdk/togetherai'
 import { generateText } from 'ai'
+import type { LanguageModelV1 } from 'ai'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -53,28 +57,85 @@ async function runConcurrent<T>(
   await Promise.all(Array.from({ length: concurrency }, worker))
 }
 
-// ── Retry helper with exponential backoff ────────────────────────────────────
-async function withRetry<T>(fn: () => Promise<T>, label: string, maxRetries = 4): Promise<T> {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      if ((msg.includes('quota') || msg.includes('rate') || msg.includes('429')) && attempt < maxRetries) {
-        const wait = attempt * 20000
-        console.log(`  [rate limit ${label}, attempt ${attempt}/${maxRetries}, waiting ${wait/1000}s]`)
-        await new Promise(r => setTimeout(r, wait))
-      } else {
-        throw err
+// ── Multi-provider rotation ──────────────────────────────────────────────────
+interface Provider {
+  name: string
+  model: LanguageModelV1
+  exhausted: boolean
+}
+
+function buildProviders(): Provider[] {
+  const providers: Provider[] = []
+  if (process.env.GROQ_API_KEY) {
+    const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
+    providers.push({ name: 'Groq/Llama-3.3-70B', model: groq('llama-3.3-70b-versatile'), exhausted: false })
+  }
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    providers.push({ name: 'Google/Gemini-2.0-Flash', model: google('gemini-2.0-flash'), exhausted: false })
+  }
+  if (process.env.MISTRAL_API_KEY) {
+    const mistral = createMistral({ apiKey: process.env.MISTRAL_API_KEY })
+    providers.push({ name: 'Mistral/Small', model: mistral('mistral-small-latest'), exhausted: false })
+  }
+  if (process.env.TOGETHER_API_KEY) {
+    const together = createTogetherAI({ apiKey: process.env.TOGETHER_API_KEY })
+    providers.push({ name: 'Together/Llama-3.1-70B', model: together('meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'), exhausted: false })
+  }
+  if (providers.length === 0) throw new Error('No AI API keys configured')
+  return providers
+}
+
+const providers = buildProviders()
+let currentProviderIdx = 0
+
+function getModel(): { model: LanguageModelV1; name: string } {
+  // Find next non-exhausted provider
+  const start = currentProviderIdx
+  do {
+    const p = providers[currentProviderIdx]
+    if (!p.exhausted) return { model: p.model, name: p.name }
+    currentProviderIdx = (currentProviderIdx + 1) % providers.length
+  } while (currentProviderIdx !== start)
+  // All exhausted — reset and try again (quotas may have refreshed)
+  throw new Error('All providers exhausted. Try again later.')
+}
+
+function markExhausted(providerName: string) {
+  const p = providers.find(p => p.name === providerName)
+  if (p) {
+    p.exhausted = true
+    console.log(`  ⚠ ${providerName} quota exhausted — rotating to next provider`)
+    currentProviderIdx = (currentProviderIdx + 1) % providers.length
+  }
+}
+
+// ── Retry with provider rotation ────────────────────────────────────────────
+async function withRetry<T>(fn: (model: LanguageModelV1) => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+  const tried = new Set<string>()
+  while (tried.size < providers.length) {
+    const { model, name } = getModel()
+    tried.add(name)
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn(model)
+      } catch (err: unknown) {
+        const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+        const isRateLimit = msg.includes('quota') || msg.includes('rate') || msg.includes('429') || msg.includes('resource_exhausted')
+        if (isRateLimit && attempt < maxRetries) {
+          const wait = attempt * 10000
+          console.log(`  [${name} rate limit ${label}, attempt ${attempt}/${maxRetries}, waiting ${wait/1000}s]`)
+          await new Promise(r => setTimeout(r, wait))
+        } else if (isRateLimit) {
+          markExhausted(name)
+          break // try next provider
+        } else {
+          throw err
+        }
       }
     }
   }
-  throw new Error('Unreachable')
+  throw new Error(`All providers failed for: ${label}`)
 }
-
-// ── Groq model ───────────────────────────────────────────────────────────────
-const groq = createGroq({ apiKey: process.env.GROQ_API_KEY! })
-const model = groq('llama-3.3-70b-versatile')
 
 const DELAY_BETWEEN_CALLS = 4000 // 4s between API calls
 
@@ -84,8 +145,8 @@ async function generateCountryReport(country: any, opps: any[]): Promise<string>
     `- ${o.products?.name_fr ?? o.product_id}: score ${o.opportunity_score}/100, gap $${((o.gap_value_usd ?? 0) / 1e6).toFixed(0)}M/yr`
   ).join('\n')
 
-  const { text } = await withRetry(() => generateText({
-    model: model,
+  const { text } = await withRetry((m) => generateText({
+    model: m,
     prompt: `Generate a professional trade intelligence report in HTML format for ${country.name_fr}.
 
 Data:
@@ -116,8 +177,8 @@ Return only the HTML content (no <!DOCTYPE> or <html> wrapper).`,
 
 // ── Business Plan Generator ───────────────────────────────────────────────────
 async function buildTradePlan(opp: any, productName: string, countryName: string) {
-  const { text } = await withRetry(() => generateText({
-    model: model,
+  const { text } = await withRetry((m) => generateText({
+    model: m,
     prompt: `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
 
 Country: ${countryName}
@@ -141,8 +202,8 @@ Return ONLY valid JSON with this structure:
 }
 
 async function buildProductionPlan(opp: any, productName: string, countryName: string) {
-  const { text } = await withRetry(() => generateText({
-    model: model,
+  const { text } = await withRetry((m) => generateText({
+    model: m,
     prompt: `You are an investment consultant. Generate a local production business plan in JSON format.
 
 Country: ${countryName}
@@ -175,7 +236,8 @@ Return ONLY valid JSON:
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  console.log('=== Feel The Gap Batch Generator ===\n')
+  console.log('=== Feel The Gap Batch Generator ===')
+  console.log(`Providers: ${providers.map(p => p.name).join(' → ')}\n`)
 
   // Fetch existing reports & plans to skip
   const [{ data: existingReports }, { data: existingPlans }, { data: countries }, { data: allOpps }] = await Promise.all([
