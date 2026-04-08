@@ -11,6 +11,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createGroq } from '@ai-sdk/groq'
 import { google } from '@ai-sdk/google'
+import { createOpenAI } from '@ai-sdk/openai'
 import { createMistral } from '@ai-sdk/mistral'
 import { createTogetherAI } from '@ai-sdk/togetherai'
 import { generateText } from 'ai'
@@ -69,6 +70,10 @@ function buildProviders(): Provider[] {
   if (process.env.GROQ_API_KEY) {
     const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
     providers.push({ name: 'Groq/Llama-3.3-70B', model: groq('llama-3.3-70b-versatile'), exhausted: false })
+  }
+  if (process.env.OPENAI_API_KEY) {
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    providers.push({ name: 'OpenAI/GPT-4o-mini', model: openai('gpt-4o-mini'), exhausted: false })
   }
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     providers.push({ name: 'Google/Gemini-2.0-Flash', model: google('gemini-2.0-flash'), exhausted: false })
