@@ -1,41 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl
+const PUBLIC_ROUTES = new Set([
+  '/',
+  '/auth/login',
+  '/auth/register',
+  '/auth/callback',
+  '/auth/biometric-setup',
+  '/auth/forgot',
+  '/pricing',
+  '/onboarding',
+  '/demo',
+  '/map',
+  '/gemini',
+])
 
-  // ── Admin routes — HTTP Basic Auth ─────────────────────────────────────────
-  if (pathname.startsWith('/admin')) {
-    const auth = req.headers.get('authorization')
+const PUBLIC_PREFIXES = ['/go/', '/country/', '/reports/']
 
-    if (!auth) {
-      return new NextResponse(null, {
-        status: 401,
-        headers: {
-          'WWW-Authenticate': 'Basic realm="Feel The Gap Admin"',
-        },
-      })
-    }
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-    const [type, credentials] = auth.split(' ')
-    if (type !== 'Basic') {
-      return new NextResponse('Unauthorized', { status: 401 })
-    }
+  if (pathname.startsWith('/_next') || pathname.startsWith('/api/') || pathname.includes('.'))
+    return NextResponse.next()
 
-    const [user, password] = Buffer.from(credentials, 'base64').toString().split(':')
-    const validUser = process.env.ADMIN_USER ?? 'admin'
-    const validPass = process.env.ADMIN_PASSWORD ?? 'changeme'
+  if (PUBLIC_ROUTES.has(pathname)) return NextResponse.next()
+  if (PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) return NextResponse.next()
 
-    if (user !== validUser || password !== validPass) {
-      return new NextResponse(null, {
-        status: 401,
-        headers: { 'WWW-Authenticate': 'Basic realm="Feel The Gap Admin"' },
-      })
-    }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  let response = NextResponse.next({ request })
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() { return request.cookies.getAll() },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        response = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+      },
+    },
+  })
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = '/auth/login'
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
-  return NextResponse.next()
+  return response
 }
 
-export const config = {
-  matcher: ['/admin/:path*'],
+export const proxyConfig = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 }
