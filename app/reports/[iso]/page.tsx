@@ -225,7 +225,7 @@ export default function ReportPage() {
   const totalGap = opps.reduce((s, o) => s + (o.gap_value_usd ?? 0), 0)
 
   return (
-    <div className="min-h-screen bg-[#07090F] flex flex-col">
+    <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
       <Topbar />
 
       <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8">
@@ -238,7 +238,7 @@ export default function ReportPage() {
         </div>
 
         {/* ── Header ── */}
-        <div className="flex items-start gap-6">
+        <div className="flex items-start gap-4 md:gap-6">
           <div className="text-6xl">{country.flag}</div>
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
@@ -284,7 +284,7 @@ export default function ReportPage() {
         </div>
 
         {/* ── Executive Summary ── */}
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
+        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-4 md:p-6">
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-[#C9A84C]/15 flex items-center justify-center text-sm">📋</span>
             Synthèse exécutive
@@ -336,7 +336,7 @@ export default function ReportPage() {
 
         {/* ── AI-generated detailed report (from reports table) ── */}
         {reportHtml && (
-          <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
+          <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-4 md:p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-[#C9A84C]/15 flex items-center justify-center text-sm">🤖</span>
               Rapport détaillé
@@ -351,12 +351,12 @@ export default function ReportPage() {
 
         {/* ── Import Profile ── */}
         {imports.length > 0 && (
-          <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
+          <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-4 md:p-6">
             <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-[#60A5FA]/15 flex items-center justify-center text-sm">📦</span>
               Profil des importations
             </h2>
-            <p className="text-xs text-gray-500 mb-5">Estimation de la répartition basée sur les données CIA Factbook · {country.data_year ?? 2023}</p>
+            <p className="text-xs text-gray-500 mb-5">Estimation de la répartition · {country.data_year ?? 2023}</p>
 
             <div className="space-y-3">
               {imports.map((imp, i) => (
@@ -378,12 +378,11 @@ export default function ReportPage() {
               ))}
             </div>
 
-            <div className="mt-5 pt-4 border-t border-white/5 flex flex-wrap gap-3 text-xs text-gray-500">
-              <span>Source : CIA World Factbook</span>
-              {country.top_export_text && (
-                <span className="ml-auto">Exports clés : <span className="text-gray-400">{country.top_export_text}</span></span>
-              )}
-            </div>
+            {country.top_export_text && (
+              <div className="mt-5 pt-4 border-t border-white/5 text-xs text-gray-500">
+                Exports clés : <span className="text-gray-400">{country.top_export_text}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -515,7 +514,7 @@ export default function ReportPage() {
         )}
 
         {/* ── Country Context ── */}
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6">
+        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-4 md:p-6">
           <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-[#A78BFA]/15 flex items-center justify-center text-sm">🌍</span>
             Contexte pays
@@ -543,7 +542,7 @@ export default function ReportPage() {
         </div>
 
         {/* ── CTA ── */}
-        <div className="bg-gradient-to-r from-[#C9A84C]/10 to-[#A78BFA]/10 border border-[#C9A84C]/20 rounded-2xl p-6 flex items-center gap-6">
+        <div className="bg-gradient-to-r from-[#C9A84C]/10 to-[#A78BFA]/10 border border-[#C9A84C]/20 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
           <div className="flex-1">
             <h3 className="font-bold text-white mb-1">Générer un plan d'affaires personnalisé</h3>
             <p className="text-sm text-gray-400">Notre IA analyse les opportunités ci-dessus et génère un business plan complet avec stratégie d'entrée, projections financières et feuille de route.</p>
@@ -557,7 +556,7 @@ export default function ReportPage() {
         </div>
 
         <div className="text-center text-xs text-gray-600 pb-4">
-          Rapport Feel The Gap · Données {country.data_year ?? 2023} · Sources : CIA Factbook, World Bank, données internes
+          Rapport Feel The Gap · {country.data_year ?? 2023}
         </div>
       </div>
 
