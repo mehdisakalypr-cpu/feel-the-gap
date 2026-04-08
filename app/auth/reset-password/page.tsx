@@ -28,52 +28,79 @@ function ResetPasswordForm() {
   const [ready, setReady] = useState(false)
   const [checking, setChecking] = useState(true)
   const userIdRef = useRef<string | null>(null)
+  const handledRef = useRef(false)
 
   useEffect(() => {
+    if (handledRef.current) return
+    handledRef.current = true
+
     const sb = createSupabaseBrowser()
+
+    // Method 1: PKCE flow — code in query params (?code=...)
     const code = searchParams.get('code')
-
-    async function handleCode(authCode: string) {
-      // 1. Exchange code for session (needed to identify the user)
-      const { data, error: err } = await sb.auth.exchangeCodeForSession(authCode)
-      if (err || !data.user) {
-        setError('Lien expiré ou invalide. Demandez un nouveau lien.')
-        setChecking(false)
-        return
-      }
-
-      // 2. Save user ID for the API call
-      userIdRef.current = data.user.id
-
-      // 3. SECURITY: Sign out IMMEDIATELY — destroy the session
-      // This prevents the recovery link from giving access to the app
-      await sb.auth.signOut()
-
-      // 4. Now the user has no session, only the form is available
-      setReady(true)
-      setChecking(false)
-    }
-
     if (code) {
-      handleCode(code)
+      sb.auth.exchangeCodeForSession(code).then(async ({ data, error: err }) => {
+        if (err || !data.user) {
+          setError('Lien expiré ou invalide. Demandez un nouveau lien.')
+          setChecking(false)
+          return
+        }
+        userIdRef.current = data.user.id
+        await sb.auth.signOut()
+        setReady(true)
+        setChecking(false)
+      })
       return
     }
 
-    // Hash fragment flow: PASSWORD_RECOVERY event
+    // Method 2: Implicit flow — tokens in hash fragment (#access_token=...&type=recovery)
+    // The Supabase browser client auto-detects hash tokens on init.
+    // We listen for the PASSWORD_RECOVERY event.
     const { data: { subscription } } = sb.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY' && session?.user) {
         userIdRef.current = session.user.id
         await sb.auth.signOut()
         setReady(true)
         setChecking(false)
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        // Could be a recovery that came as SIGNED_IN (some Supabase versions)
+        // Check if we have a recovery type in the hash
+        const hash = window.location.hash
+        if (hash.includes('type=recovery')) {
+          userIdRef.current = session.user.id
+          await sb.auth.signOut()
+          setReady(true)
+          setChecking(false)
+        }
       }
     })
 
-    const timeout = setTimeout(() => setChecking(false), 3000)
+    // Method 3: Manual hash parsing as fallback
+    // Some Supabase versions send: #access_token=...&type=recovery&...
+    const hash = window.location.hash.substring(1)
+    if (hash && hash.includes('type=recovery')) {
+      // Let onAuthStateChange handle it — the Supabase client will process the hash
+      // Give it time
+      setTimeout(() => {
+        if (!ready) {
+          // Try to get session that was set from hash
+          sb.auth.getSession().then(async ({ data }) => {
+            if (data.session?.user) {
+              userIdRef.current = data.session.user.id
+              await sb.auth.signOut()
+              setReady(true)
+            }
+            setChecking(false)
+          })
+        }
+      }, 2000)
+    } else {
+      // No code and no hash — invalid link
+      setTimeout(() => setChecking(false), 2000)
+    }
 
     return () => {
       subscription.unsubscribe()
-      clearTimeout(timeout)
     }
   }, [searchParams])
 
@@ -96,7 +123,6 @@ function ResetPasswordForm() {
 
     setLoading(true)
 
-    // Call server-side API to update password (uses admin privileges, no session needed)
     const res = await fetch('/api/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
