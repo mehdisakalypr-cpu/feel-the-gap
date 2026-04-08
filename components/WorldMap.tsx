@@ -266,8 +266,8 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
     <div className="relative w-full h-full">
       <div ref={mapRef} className="w-full h-full" />
 
-      {/* Tile mode switcher */}
-      <div className="absolute top-4 right-4 z-[400] flex gap-1 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-xl p-1 backdrop-blur-sm">
+      {/* Tile mode switcher — hidden when country panel is open on mobile */}
+      <div className={`absolute top-4 right-4 z-[400] flex gap-1 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-xl p-1 backdrop-blur-sm ${selectedCountry ? 'hidden md:flex' : ''}`}>
         {([
           { id: 'standard',  label: t('map.tile_standard'),  icon: '🗺️' },
           { id: 'satellite', label: t('map.tile_satellite'), icon: '🛰️' },
@@ -288,8 +288,8 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
         ))}
       </div>
 
-      {/* Stats bar */}
-      <div className="absolute bottom-4 left-4 flex items-center gap-3 z-[400]">
+      {/* Stats bar — hidden when country panel is open on mobile */}
+      <div className={`absolute bottom-4 left-4 flex items-center gap-3 z-[400] ${selectedCountry ? 'hidden md:flex' : ''}`}>
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-lg px-3 py-2 text-xs text-gray-400">
           <span className="text-[#C9A84C] font-semibold">{countries.length}</span> {t('map.countries_tracked')}
         </div>
@@ -309,6 +309,11 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
           </div>
         )}
       </div>
+
+      {/* Hide zoom controls on mobile when panel is open */}
+      {selectedCountry && (
+        <style>{`@media (max-width: 767px) { .leaflet-control-zoom { display: none !important; } }`}</style>
+      )}
 
       {/* Country detail panel */}
       {selectedCountry && (

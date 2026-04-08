@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Hide scrollbar for touch-scroll elements */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 :root {
   --gold: #C9A84C;
   --gold-light: #E8C97A;

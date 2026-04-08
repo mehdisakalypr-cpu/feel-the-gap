@@ -301,7 +301,7 @@ export default function CountryPanel({ country, onClose }: Props) {
   const balancePositive = balance >= 0
 
   return (
-    <div className="absolute top-0 right-0 h-full w-full max-w-96 bg-[#0D1117] border-l border-[rgba(201,168,76,.15)] flex flex-col z-[500] shadow-2xl">
+    <div className="fixed md:absolute inset-0 md:inset-auto md:top-0 md:right-0 md:h-full w-full md:max-w-96 bg-[#0D1117] md:border-l border-[rgba(201,168,76,.15)] flex flex-col z-[1100] shadow-2xl overflow-y-auto">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-[rgba(201,168,76,.1)]">
         <span className="text-3xl">{country.flag}</span>
