@@ -1076,7 +1076,10 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
         title={collapsed ? "Ouvrir les filtres" : "Fermer les filtres"}
       >
         {collapsed ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round"><path d="M3 2l4 3-4 3"/></svg>
+          </span>
         ) : (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
         )}
