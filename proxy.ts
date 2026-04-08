@@ -8,6 +8,7 @@ const PUBLIC_ROUTES = new Set([
   '/auth/callback',
   '/auth/biometric-setup',
   '/auth/forgot',
+  '/auth/reset-password',
   '/pricing',
   '/onboarding',
   '/demo',
