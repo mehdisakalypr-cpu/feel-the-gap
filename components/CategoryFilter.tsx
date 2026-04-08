@@ -1064,10 +1064,11 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
         onClick={() => setCollapsed(c => !c)}
         className="fixed z-[1000] flex items-center justify-center rounded-r-lg shadow-lg transition-all duration-200"
         style={{
-          top: 72,
+          top: '50%',
+          transform: 'translateY(-50%)',
           left: collapsed ? 0 : 224,
           width: 36,
-          height: 36,
+          height: 44,
           background: '#0D1117',
           border: '1px solid rgba(201,168,76,.25)',
           borderLeft: 'none',
