@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import CountryPanel from './CountryPanel'
 import { getAnimatedIconHTML, CATEGORY_COLORS } from './AnimatedIcon'
+import { useLang } from '@/components/LanguageProvider'
 import type { CountryMapData } from '@/types/database'
 
 // Seed data — replaced by API once Supabase is populated
@@ -80,18 +81,40 @@ function fmtUsd(v: number | null): string {
   return sign + '$' + abs.toLocaleString()
 }
 
-export default function WorldMap() {
+const TILE_URLS = {
+  standard:  { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19 } },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Esri' } },
+  night:     { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19 } },
+} as const
+
+const SATELLITE_LABEL_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+
+interface Props {
+  activeCategories?: string[]
+  activeSubs?: string[]
+}
+
+export default function WorldMap({ activeCategories = [], activeSubs = [] }: Props) {
+  const { t } = useLang()
   const mapRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const leafletMapRef = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leafletRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<any[]>([])
   const [selectedCountry, setSelectedCountry] = useState<CountryMapData | null>(null)
   const [countries, setCountries] = useState<CountryMapData[]>(SEED_COUNTRIES)
+  const [mapReady, setMapReady] = useState(false)
+  const [tileMode, setTileMode] = useState<'standard' | 'satellite' | 'night'>('standard')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tileLayerRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const labelLayerRef = useRef<any>(null)
 
   const openPanel = useCallback((c: CountryMapData) => setSelectedCountry(c), [])
 
-  // Fetch live data from API (falls back to SEED_COUNTRIES if unavailable)
+  // Fetch live data from API
   useEffect(() => {
     fetch('/api/countries')
       .then(r => r.ok ? r.json() : null)
@@ -99,6 +122,7 @@ export default function WorldMap() {
       .catch(() => {/* keep seed data */})
   }, [])
 
+  // Init map once
   useEffect(() => {
     if (!mapRef.current || leafletMapRef.current) return
 
@@ -110,18 +134,20 @@ export default function WorldMap() {
         center: [20, 10],
         zoom: 2.5,
         minZoom: 2,
-        maxZoom: 8,
+        maxZoom: 18,
         zoomControl: true,
+        zoomSnap: 0.5,
+        zoomDelta: 0.5,
+        touchZoom: true,
         attributionControl: false,
         worldCopyJump: true,
       })
       leafletMapRef.current = map
+      leafletRef.current = L
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-      }).addTo(map)
+      tileLayerRef.current = L.tileLayer(TILE_URLS.standard.url, TILE_URLS.standard.opts).addTo(map)
 
-      renderMarkers(L, map, countries, openPanel)
+      setMapReady(true)
     }
 
     init()
@@ -130,9 +156,44 @@ export default function WorldMap() {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove()
         leafletMapRef.current = null
+        leafletRef.current = null
+        setMapReady(false)
       }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Switch tile layer when tileMode changes
+  useEffect(() => {
+    if (!mapReady || !leafletMapRef.current || !leafletRef.current || !tileLayerRef.current) return
+    const L = leafletRef.current
+    const map = leafletMapRef.current
+
+    // Remove previous label overlay
+    if (labelLayerRef.current) {
+      labelLayerRef.current.remove()
+      labelLayerRef.current = null
+    }
+
+    tileLayerRef.current.remove()
+    tileLayerRef.current = L.tileLayer(TILE_URLS[tileMode].url, TILE_URLS[tileMode].opts).addTo(map)
+
+    // Add label overlay for satellite mode (cities + countries)
+    if (tileMode === 'satellite') {
+      labelLayerRef.current = L.tileLayer(SATELLITE_LABEL_URL, { maxZoom: 19, opacity: 1 }).addTo(map)
+    }
+
+    // Keep markers on top
+    markersRef.current.forEach(m => m.bringToFront?.())
+  }, [tileMode, mapReady])
+
+  // Re-render markers whenever map is ready, countries, or filter changes
+  useEffect(() => {
+    if (!mapReady || !leafletMapRef.current || !leafletRef.current) return
+    const filtered = activeCategories.length === 0
+      ? countries
+      : countries.filter(c => c.top_import_category && activeCategories.includes(c.top_import_category))
+    renderMarkers(leafletRef.current, leafletMapRef.current, filtered, openPanel)
+  }, [mapReady, countries, activeCategories, activeSubs, openPanel])
 
   function renderMarkers(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -205,16 +266,48 @@ export default function WorldMap() {
     <div className="relative w-full h-full">
       <div ref={mapRef} className="w-full h-full" />
 
+      {/* Tile mode switcher */}
+      <div className="absolute top-4 right-4 z-[400] flex gap-1 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-xl p-1 backdrop-blur-sm">
+        {([
+          { id: 'standard',  label: t('map.tile_standard'),  icon: '🗺️' },
+          { id: 'satellite', label: t('map.tile_satellite'), icon: '🛰️' },
+          { id: 'night',     label: t('map.tile_night'),     icon: '🌙' },
+        ] as const).map(m => (
+          <button
+            key={m.id}
+            onClick={() => setTileMode(m.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              tileMode === m.id
+                ? 'bg-[#C9A84C] text-[#07090F]'
+                : 'text-gray-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>{m.icon}</span>
+            <span>{m.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Stats bar */}
       <div className="absolute bottom-4 left-4 flex items-center gap-3 z-[400]">
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-lg px-3 py-2 text-xs text-gray-400">
-          <span className="text-[#C9A84C] font-semibold">{countries.length}</span> countries tracked
+          <span className="text-[#C9A84C] font-semibold">{countries.length}</span> {t('map.countries_tracked')}
         </div>
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-lg px-3 py-2 text-xs text-gray-400">
           <span className="text-[#C9A84C] font-semibold">
             {countries.reduce((s, c) => s + c.opportunity_count, 0)}
-          </span> opportunities identified
+          </span> {t('map.opportunities')}
         </div>
+        {(activeCategories.length > 0 || activeSubs.length > 0) && (
+          <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg px-3 py-2 text-xs text-[#C9A84C]">
+            {t('map.filter')}: <span className="font-semibold">
+              {activeCategories.length > 0
+                ? activeCategories.join(', ')
+                : ''}
+              {activeSubs.length > 0 ? ` · ${activeSubs.length} sub` : ''}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Country detail panel */}
