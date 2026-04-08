@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import type { CountryMapData } from '@/types/database'
 
 interface Props {
@@ -300,7 +301,7 @@ export default function CountryPanel({ country, onClose }: Props) {
   const balancePositive = balance >= 0
 
   return (
-    <div className="absolute top-0 right-0 h-full w-96 bg-[#0D1117] border-l border-[rgba(201,168,76,.15)] flex flex-col z-[500] shadow-2xl">
+    <div className="absolute top-0 right-0 h-full w-full max-w-96 bg-[#0D1117] border-l border-[rgba(201,168,76,.15)] flex flex-col z-[500] shadow-2xl">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-[rgba(201,168,76,.1)]">
         <span className="text-3xl">{country.flag}</span>
@@ -447,10 +448,21 @@ export default function CountryPanel({ country, onClose }: Props) {
       <AIAdvisorChat country={country} />
 
       {/* Footer CTA */}
-      <div className="p-4 border-t border-[rgba(201,168,76,.1)]">
-        <button className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-semibold text-sm rounded-xl hover:bg-[#E8C97A] transition-colors">
-          Get Full {country.name_fr} Report
-        </button>
+      <div className="p-4 border-t border-[rgba(201,168,76,.1)] flex gap-2">
+        <Link
+          href={`/reports/${country.iso}`}
+          target="_blank"
+          className="flex-1 py-2.5 bg-[#C9A84C] text-[#07090F] font-semibold text-sm rounded-xl hover:bg-[#E8C97A] transition-colors text-center"
+        >
+          📊 Rapport complet
+        </Link>
+        <Link
+          href={`/country/${country.iso}/plan`}
+          target="_blank"
+          className="flex-1 py-2.5 bg-white/5 text-gray-300 border border-white/10 font-semibold text-sm rounded-xl hover:bg-white/10 transition-colors text-center"
+        >
+          📝 Plan d'affaires
+        </Link>
       </div>
     </div>
   )
