@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
   const [biometricEmail, setBiometricEmail] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   // Check biometric availability when email changes (debounced)
   useEffect(() => {
@@ -96,11 +97,28 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
       if (!msg.includes('AbortError') && !msg.includes('NotAllowedError')) {
-        setError('Erreur biométrique. Utilisez le mot de passe.')
+        setError('biometric_error')
       }
     }
     setBiometricLoading(false)
   }, [email, biometricEmail, router])
+
+  async function resetBiometric() {
+    // Clear local biometric data and server credentials
+    localStorage.removeItem('ftg_biometric_email')
+    localStorage.removeItem('ftg_biometric_offered')
+    setBiometricAvailable(false)
+    setBiometricEmail('')
+    setError(null)
+    // Try to delete server-side credentials
+    try {
+      await fetch('/api/auth/webauthn/check', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: biometricEmail || email }),
+      })
+    } catch { /* ignore */ }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -110,12 +128,12 @@ export default function LoginPage() {
     const { error: err } = await sb.auth.signInWithPassword({ email, password })
     if (err) { setError(err.message); setLoading(false); return }
 
-    // After successful login, offer biometric setup
     // Save email for biometric quick-access
     localStorage.setItem('ftg_biometric_email', email)
 
-    // Check if biometric can be registered
-    if (window.PublicKeyCredential) {
+    // Offer biometric setup only ONCE (never re-ask if already offered or configured)
+    const biometricOffered = localStorage.getItem('ftg_biometric_offered')
+    if (!biometricOffered && window.PublicKeyCredential) {
       try {
         const platformOk = typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
           ? await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -130,7 +148,8 @@ export default function LoginPage() {
           const checkData = await checkRes.json()
 
           if (!checkData.available) {
-            // No passkey yet — redirect to setup page
+            // Mark as offered so we never ask again
+            localStorage.setItem('ftg_biometric_offered', 'true')
             setLoading(false)
             router.push('/auth/biometric-setup')
             return
@@ -170,7 +189,14 @@ export default function LoginPage() {
 
           {error && (
             <div className="mb-4 px-3 py-2.5 bg-red-500/10 border border-red-500/25 rounded-lg text-red-400 text-sm">
-              {error}
+              {error === 'biometric_error' ? (
+                <div>
+                  <p>Erreur biométrique. Utilisez le mot de passe.</p>
+                  <button onClick={resetBiometric} className="mt-2 text-xs text-[#C9A84C] underline hover:text-[#E8C97A]">
+                    Réinitialiser la biométrie
+                  </button>
+                </div>
+              ) : error}
             </div>
           )}
 
@@ -214,12 +240,21 @@ export default function LoginPage() {
                 <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('auth.password')}</label>
                 <Link href="/auth/forgot" className="text-xs text-[#C9A84C] hover:text-[#E8C97A]">{t('auth.forgot')}</Link>
               </div>
-              <input
-                type="password" required value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'} required value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors"
+                />
+                <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
             </div>
             <button
               type="submit" disabled={loading}
