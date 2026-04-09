@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import { useLang } from '@/components/LanguageProvider'
+
+// Accent-insensitive lowercase for search matching.
+function normalize(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
 
 interface Country {
   iso: string
@@ -30,17 +35,15 @@ const REGION_KEYS = ['All', 'Africa', 'Asia', 'Americas', 'Europe', 'Oceania']
 
 function ReportsContent() {
   const { t } = useLang()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [countries, setCountries] = useState<Country[]>([])
   const [loading, setLoading] = useState(true)
-  const searchParams = useSearchParams()
-  const [search, setSearch] = useState('')
+  // Initial search from URL ?q=, read ONCE (lazy initializer — avoids useEffect reapply loop)
+  const [search, setSearch] = useState<string>(() => searchParams.get('q') ?? '')
   const [region, setRegion] = useState('All')
   const [sort, setSort] = useState<'score' | 'imports' | 'balance'>('score')
-
-  useEffect(() => {
-    const q = searchParams.get('q')
-    if (q) setSearch(q)
-  }, [searchParams])
 
   useEffect(() => {
     fetch('/api/countries')
@@ -52,9 +55,23 @@ function ReportsContent() {
       .catch(() => setLoading(false))
   }, [])
 
+  // Keep URL ?q= in sync with input (debounced-ish: on every keystroke, cheap replace)
+  useEffect(() => {
+    const current = searchParams.get('q') ?? ''
+    if (current === search) return
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    if (search) params.set('q', search)
+    else params.delete('q')
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  const normalizedSearch = useMemo(() => normalize(search.trim()), [search])
+
   const filtered = countries
     .filter(c => region === 'All' || c.region === region)
-    .filter(c => !search || c.name_fr.toLowerCase().includes(search.toLowerCase()))
+    .filter(c => !normalizedSearch || normalize(c.name_fr).includes(normalizedSearch))
     .sort((a, b) => {
       if (sort === 'score') return (b.top_opportunity_score ?? 0) - (a.top_opportunity_score ?? 0)
       if (sort === 'imports') return (b.total_imports_usd ?? 0) - (a.total_imports_usd ?? 0)
@@ -78,13 +95,25 @@ function ReportsContent() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <input
-            type="text"
-            placeholder={t('reports.search_placeholder')}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="px-3 py-2 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#C9A84C] w-48"
-          />
+          <div className="relative w-48">
+            <input
+              type="text"
+              placeholder={t('reports.search_placeholder')}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-3 pr-8 py-2 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#C9A84C]"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white text-xs leading-none"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <div className="flex gap-1">
             {REGION_KEYS.map(r => (
               <button

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import DOMPurify from 'dompurify'
 import Topbar from '@/components/Topbar'
@@ -241,16 +241,24 @@ function StudiesTab({ iso, userTier, country, lang }: { iso: string; userTier: s
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function CountryPage() {
+type TabId = 'overview' | 'opportunities' | 'studies'
+const VALID_TABS: readonly TabId[] = ['overview', 'opportunities', 'studies'] as const
+
+function CountryPageInner() {
   const { iso } = useParams<{ iso: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t, lang } = useLang()
   const [country, setCountry] = useState<Country | null>(null)
   const [opps, setOpps] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [userTier, setUserTier] = useState<string>('free')
   const [topImports, setTopImports] = useState<TopImport[]>([])
-  const [activeTab, setActiveTab] = useState<'overview' | 'opportunities' | 'studies'>('overview')
+  const initialTab = ((): TabId => {
+    const t = searchParams.get('tab')
+    return t && (VALID_TABS as readonly string[]).includes(t) ? (t as TabId) : 'overview'
+  })()
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab)
 
   useEffect(() => {
     if (!iso) return
@@ -454,5 +462,13 @@ export default function CountryPage() {
       </div>
       </div>
     </div>
+  )
+}
+
+export default function CountryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#07090F] flex items-center justify-center"><div className="w-6 h-6 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" /></div>}>
+      <CountryPageInner />
+    </Suspense>
   )
 }
