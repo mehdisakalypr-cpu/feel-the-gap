@@ -1,8 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLang } from '@/components/LanguageProvider'
 import type { TradeCategory } from '@/types/database'
+
+function normalize(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
 
 const CATEGORIES: { id: TradeCategory | 'all'; label: string; label_fr: string; icon: string; color: string }[] = [
   { id: 'all',          label: 'All Markets',  label_fr: 'Tous les marchés',    icon: '🌐', color: '#C9A84C' },
@@ -1036,6 +1040,78 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
   // Expand/collapse
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null)
   const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  // Search across all commodities (auto-expands matching category/group/item)
+  const [search, setSearch] = useState('')
+  const normalizedSearch = useMemo(() => normalize(search.trim()), [search])
+  const hasSearch = normalizedSearch.length > 0
+
+  // When the user types a search, auto-find the first matching (cat, group, item) triple
+  // and navigate to it so the user sees the matches immediately.
+  useEffect(() => {
+    if (!hasSearch) {
+      // Clearing the search collapses everything back to the default all-categories view
+      setNavCat('all')
+      setExpandedGroup(null)
+      setExpandedItem(null)
+      return
+    }
+
+    // Find first match across all categories
+    for (const cat of CATEGORIES) {
+      if (cat.id === 'all') continue
+      const catId = cat.id as TradeCategory
+      const groups = SUBCATEGORIES[catId]
+      if (!groups) continue
+
+      // Match category name itself
+      const catMatches = normalize(L(cat, lang)).includes(normalizedSearch)
+
+      for (const group of groups) {
+        const groupMatches = normalize(G(group, lang)).includes(normalizedSearch)
+
+        for (const item of group.items) {
+          const itemMatches = normalize(L(item, lang)).includes(normalizedSearch)
+          const variantMatch = item.variants?.find(v =>
+            normalize(L(v, lang)).includes(normalizedSearch),
+          )
+
+          if (catMatches || groupMatches || itemMatches || variantMatch) {
+            setNavCat(catId)
+            setExpandedGroup(group.group)
+            if (item.variants && (itemMatches || variantMatch)) {
+              setExpandedItem(item.id)
+            } else if (!itemMatches && !variantMatch) {
+              setExpandedItem(null)
+            }
+            return
+          }
+        }
+      }
+    }
+    // No match → keep navCat but clear expansions
+    setExpandedGroup(null)
+    setExpandedItem(null)
+  }, [normalizedSearch, hasSearch, lang])
+
+  // Filter a group's items to only those matching search (or all when no search)
+  function filterItems(items: SubItem[]): SubItem[] {
+    if (!hasSearch) return items
+    return items.filter(item => {
+      if (normalize(L(item, lang)).includes(normalizedSearch)) return true
+      if (item.variants?.some(v => normalize(L(v, lang)).includes(normalizedSearch))) return true
+      return false
+    })
+  }
+
+  // Decide whether to render a group at all when searching
+  function groupHasMatches(group: SubGroup): boolean {
+    if (!hasSearch) return true
+    if (normalize(G(group, lang)).includes(normalizedSearch)) return true
+    return group.items.some(item => {
+      if (normalize(L(item, lang)).includes(normalizedSearch)) return true
+      return item.variants?.some(v => normalize(L(v, lang)).includes(normalizedSearch)) ?? false
+    })
+  }
 
   function emit(cats: Set<string>, subs: Set<string>) {
     onSelectionChange?.({ categories: [...cats], subs: [...subs] })
@@ -1156,6 +1232,42 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
         </div>
       )}
 
+      {/* Search — auto-expands matching category/group/item */}
+      <div className="px-3 pt-3 pb-2 border-b border-[rgba(201,168,76,.1)]">
+        <div className="relative">
+          <svg
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+            width="12"
+            height="12"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={lang === 'fr' ? 'Rechercher (ex: gold)' : 'Search (e.g. gold)'}
+            className="w-full pl-7 pr-7 h-8 text-[11px] bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A84C] transition-colors"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-500 hover:text-white text-base leading-none"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Top-level categories */}
       <div className="p-3 border-b border-[rgba(201,168,76,.1)]">
         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">{lang === 'fr' ? 'Catégorie' : 'Category'}</p>
@@ -1204,10 +1316,12 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
         <div className="p-3 flex-1">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{lang === 'fr' ? 'Matières' : 'Commodities'}</p>
-            <button onClick={() => setNavCat('all')} className="text-[9px] text-gray-600 hover:text-gray-300">{lang === 'fr' ? '← Retour' : '← Back'}</button>
+            {!hasSearch && (
+              <button onClick={() => setNavCat('all')} className="text-[9px] text-gray-600 hover:text-gray-300">{lang === 'fr' ? '← Retour' : '← Back'}</button>
+            )}
           </div>
           <div className="space-y-0.5">
-            {subGroups.map(group => (
+            {subGroups.filter(groupHasMatches).map(group => (
               <div key={group.group}>
                 <button
                   onClick={() => toggleGroup(group.group)}
@@ -1219,7 +1333,7 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
 
                 {expandedGroup === group.group && (
                   <div className="ml-1 mb-1">
-                    {group.items.map(item => {
+                    {filterItems(group.items).map(item => {
                       const hasVariants = !!(item.variants?.length)
                       const isItemChecked = selectedSubs.has(item.id)
                       const isItemExpanded = hasVariants && expandedItem === item.id
