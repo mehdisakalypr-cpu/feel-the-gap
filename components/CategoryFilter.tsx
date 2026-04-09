@@ -342,6 +342,25 @@ const SUBCATEGORIES: Record<string, SubGroup[]> = {
       ],
     },
     {
+      group: 'Organic & Sustainable', group_fr: 'Bio & Agriculture durable',
+      items: [
+        { id: 'organic_fruits',   label: 'Organic Fruits & Vegetables', label_fr: 'Fruits & Légumes bio',     unit: '$/t' },
+        { id: 'organic_coffee',   label: 'Organic Coffee',              label_fr: 'Café bio',                  unit: '$/kg' },
+        { id: 'organic_olive',    label: 'Organic Olive Oil',           label_fr: 'Huile d\'olive bio',        unit: '$/L' },
+        { id: 'sustainable_agri', label: 'Sustainable Agri-Tech',       label_fr: 'Agri-tech durable',         unit: '$/ha' },
+      ],
+    },
+    {
+      group: 'Spices & Condiments', group_fr: 'Épices & Condiments',
+      items: [
+        { id: 'garlic',  label: 'Garlic',   label_fr: 'Ail',      unit: '$/t' },
+        { id: 'ginger',  label: 'Ginger',   label_fr: 'Gingembre', unit: '$/t' },
+        { id: 'pepper',  label: 'Pepper',   label_fr: 'Poivre',   unit: '$/kg' },
+        { id: 'vanilla', label: 'Vanilla',  label_fr: 'Vanille',  unit: '$/kg' },
+        { id: 'saffron', label: 'Saffron',  label_fr: 'Safran',   unit: '$/g' },
+      ],
+    },
+    {
       group: 'Fiber & Industrial Crops', group_fr: 'Fibres & Cultures industrielles',
       items: [
         { id: 'cotton', label: 'Cotton', label_fr: 'Coton', unit: 'c/lb', variants: [
@@ -436,6 +455,15 @@ const SUBCATEGORIES: Record<string, SubGroup[]> = {
         { id: 'wind', label: 'Wind Turbines', label_fr: 'Éoliennes', unit: '$/kW', variants: [
           { id: 'wind_onshore',  label: 'Onshore',  label_fr: 'Terrestre',  note: '2-6 MW' },
           { id: 'wind_offshore', label: 'Offshore', label_fr: 'En mer',     note: '8-15 MW' },
+        ]},
+        { id: 'biogas',  label: 'Biogas',       label_fr: 'Biogaz',        unit: '$/m3',  variants: [
+          { id: 'biogas_agri',      label: 'Agricultural Biogas',    label_fr: 'Biogaz agricole',      note: 'Farm waste digesters' },
+          { id: 'biogas_municipal', label: 'Municipal Waste Biogas', label_fr: 'Biogaz déchets urbains', note: 'Landfill / wastewater' },
+        ]},
+        { id: 'biomass', label: 'Biomass Energy', label_fr: 'Biomasse énergie', unit: '$/t', variants: [
+          { id: 'biomass_pellets', label: 'Wood Pellets',   label_fr: 'Granulés de bois',    note: 'Co-firing / heating' },
+          { id: 'biomass_bagasse', label: 'Bagasse',        label_fr: 'Bagasse',             note: 'Sugarcane residue' },
+          { id: 'biomass_briq',    label: 'Briquettes',     label_fr: 'Briquettes',          note: 'Compressed biomass' },
         ]},
       ],
     },
@@ -546,6 +574,18 @@ const SUBCATEGORIES: Record<string, SubGroup[]> = {
           { id: 'hms',      label: 'HMS 1&2 (80/20)', label_fr: 'HMS 1&2 (80/20)',    note: 'International ref.' },
           { id: 'shredded', label: 'Shredded Scrap',  label_fr: 'Ferraille broyée',   note: 'High bulk density' },
         ]},
+      ],
+    },
+    {
+      group: 'Construction & Green Materials', group_fr: 'Construction & Matériaux durables',
+      items: [
+        { id: 'cement',            label: 'Cement',                 label_fr: 'Ciment',                  unit: '$/t' },
+        { id: 'concrete',         label: 'Ready-Mix Concrete',     label_fr: 'Béton prêt à l\'emploi',  unit: '$/m3' },
+        { id: 'bricks',           label: 'Bricks & Blocks',        label_fr: 'Briques & Parpaings',     unit: '$/unit' },
+        { id: 'iron_pipes',       label: 'Iron & Steel Pipes',     label_fr: 'Tuyaux fer & acier',      unit: '$/t' },
+        { id: 'sustainable_bldg', label: 'Sustainable Building Materials', label_fr: 'Matériaux de construction durables', unit: '$/t' },
+        { id: 'biodegradable',    label: 'Biodegradable Materials', label_fr: 'Matériaux biodégradables', unit: '$/t' },
+        { id: 'sustainable_pkg',  label: 'Sustainable Packaging',  label_fr: 'Emballages durables',      unit: '$/t' },
       ],
     },
     {
@@ -785,6 +825,7 @@ const SUBCATEGORIES: Record<string, SubGroup[]> = {
         { id: 'mining_eq',       label: 'Mining Equipment',       label_fr: 'Équipements miniers',              unit: '$/unit' },
         { id: 'food_processing', label: 'Food Processing Equipment', label_fr: 'Équipements agroalimentaires', unit: '$/unit' },
         { id: 'packaging_eq',    label: 'Packaging Machinery',    label_fr: 'Machines d\'emballage',            unit: '$/unit' },
+        { id: 'textile_eq',      label: 'Textile Machinery',      label_fr: 'Machines textiles',                unit: '$/unit' },
       ],
     },
     {
@@ -798,6 +839,11 @@ const SUBCATEGORIES: Record<string, SubGroup[]> = {
         { id: 'trucks',      label: 'Trucks & Buses', label_fr: 'Camions & Bus',     unit: '$/unit' },
         { id: 'motorcycles', label: 'Motorcycles',    label_fr: 'Motos',              unit: '$/unit' },
         { id: 'auto_parts',  label: 'Auto Parts',     label_fr: 'Pièces auto',        unit: '$/kg' },
+        { id: 'ev_components', label: 'EV Components', label_fr: 'Composants VE',   unit: '$/unit', variants: [
+          { id: 'ev_motors',   label: 'EV Motors',           label_fr: 'Moteurs électriques',     note: 'Permanent magnet / induction' },
+          { id: 'ev_batteries',label: 'EV Battery Packs',    label_fr: 'Packs batteries VE',      note: 'LFP / NMC / Solid-state' },
+          { id: 'ev_chargers', label: 'EV Charging Stations', label_fr: 'Bornes de recharge',     note: 'AC Level 2 / DC Fast' },
+        ]},
       ],
     },
     {

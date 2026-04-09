@@ -43,7 +43,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const CHECKPOINT_FILE = path.join(process.cwd(), '.opportunity-checkpoint.json')
 const DELAY_MS = 4000  // 4s between countries (Gemini rate limit)
 const MAX_OPPS_PER_COUNTRY = 4
-const GEMINI_MODEL = 'gemini-2.0-flash'  // renouvellement quota à minuit UTC
+const GEMINI_MODEL = 'gemini-2.5-flash'  // renouvellement quota à minuit UTC
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })
 

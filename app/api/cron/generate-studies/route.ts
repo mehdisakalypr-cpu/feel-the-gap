@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
   // If fetch to self doesn't work (no auth), generate directly
   if (!res.ok) {
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 8192 } })
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', generationConfig: { maxOutputTokens: 8192 } })
       const prompt = buildStudyPromptDirect(targetPart, country, flatOpps, imports)
       const result = await model.generateContent(prompt)
       let html = result.response.text()

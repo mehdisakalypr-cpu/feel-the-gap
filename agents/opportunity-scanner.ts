@@ -184,7 +184,7 @@ IMPORTANT:
 
 export async function scanOpportunities(input: ScanInput): Promise<OpportunityScanResult> {
   const { text } = await generateText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-2.5-flash'),
     prompt: SCANNER_PROMPT(input),
     maxTokens: 4000,
   })

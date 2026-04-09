@@ -17,11 +17,29 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import * as dotenv from 'dotenv'
+import { generateText } from 'ai'
+import type { LanguageModelV1 } from 'ai'
+import { google } from '@ai-sdk/google'
+import { createGroq } from '@ai-sdk/groq'
+import { createOpenAI } from '@ai-sdk/openai'
+import * as fs from 'fs'
 import * as path from 'path'
 
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') })
+// Load .env.local manually (no dotenv dependency)
+function loadEnv() {
+  const envPath = path.join(process.cwd(), '.env.local')
+  if (!fs.existsSync(envPath)) throw new Error('.env.local not found')
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const idx = trimmed.indexOf('=')
+    if (idx < 0) continue
+    const key = trimmed.slice(0, idx).trim()
+    const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '')
+    if (!process.env[key]) process.env[key] = val
+  }
+}
+loadEnv()
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +47,79 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+// ── Multi-provider rotation (Groq → OpenAI → Gemini) ────────────────────────
+
+interface Provider {
+  name: string
+  model: LanguageModelV1
+  exhausted: boolean
+}
+
+function buildProviders(): Provider[] {
+  const providers: Provider[] = []
+  if (process.env.GROQ_API_KEY) {
+    const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
+    providers.push({ name: 'Groq/Llama-3.3-70B', model: groq('llama-3.3-70b-versatile'), exhausted: false })
+  }
+  if (process.env.OPENAI_API_KEY) {
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    providers.push({ name: 'OpenAI/GPT-4o-mini', model: openai('gpt-4o-mini'), exhausted: false })
+  }
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    providers.push({ name: 'Google/Gemini-2.0-Flash', model: google('gemini-2.5-flash'), exhausted: false })
+  }
+  if (providers.length === 0) throw new Error('No AI API keys configured')
+  return providers
+}
+
+const providers = buildProviders()
+let currentProviderIdx = 0
+
+function getModel(): { model: LanguageModelV1; name: string } {
+  const start = currentProviderIdx
+  do {
+    const p = providers[currentProviderIdx]
+    if (!p.exhausted) return { model: p.model, name: p.name }
+    currentProviderIdx = (currentProviderIdx + 1) % providers.length
+  } while (currentProviderIdx !== start)
+  throw new Error('All providers exhausted. Try again later.')
+}
+
+function markExhausted(providerName: string) {
+  const p = providers.find(p => p.name === providerName)
+  if (p) {
+    p.exhausted = true
+    console.log(`  ⚠ ${providerName} quota exhausted — rotating to next provider`)
+    currentProviderIdx = (currentProviderIdx + 1) % providers.length
+  }
+}
+
+async function withRetry<T>(fn: (model: LanguageModelV1) => Promise<T>, label: string, maxRetries = 3): Promise<T> {
+  const tried = new Set<string>()
+  while (tried.size < providers.length) {
+    const { model, name } = getModel()
+    tried.add(name)
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn(model)
+      } catch (err: unknown) {
+        const msg = (err instanceof Error ? err.message : String(err)).toLowerCase()
+        const isRateLimit = msg.includes('quota') || msg.includes('rate') || msg.includes('429') || msg.includes('resource_exhausted')
+        if (isRateLimit && attempt < maxRetries) {
+          const wait = attempt * 10000
+          console.log(`  [${name} rate limit ${label}, attempt ${attempt}/${maxRetries}, waiting ${wait/1000}s]`)
+          await new Promise(r => setTimeout(r, wait))
+        } else if (isRateLimit) {
+          markExhausted(name)
+          break
+        } else {
+          throw err
+        }
+      }
+    }
+  }
+  throw new Error(`All providers failed for: ${label}`)
+}
 
 // ── CLI args ─────────────────────────────────────────────────────────────────
 
@@ -269,14 +359,15 @@ Formate avec des tableaux HTML et des sections clairement structurées.`,
 
 async function generateStudyPart(iso: string, part: number, ctx: any): Promise<string> {
   const prompt = PART_PROMPTS[part](ctx)
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
-  })
 
-  const result = await model.generateContent(prompt)
-  let html = result.response.text()
+  const { text } = await withRetry((m) => generateText({
+    model: m,
+    prompt,
+    maxTokens: 8192,
+    temperature: 0.7,
+  }), `${iso}-part${part}`)
 
+  let html = text
   // Strip markdown code fences if present
   const match = html.match(/```html\s*([\s\S]*?)```/)
   if (match) html = match[1]

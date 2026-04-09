@@ -204,7 +204,7 @@ async function generateWithGemini(prompt: string): Promise<string> {
 
   const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     generationConfig: { temperature: 0.7, maxOutputTokens: 8192, responseMimeType: 'application/json' },
     systemInstruction: SYSTEM,
   })

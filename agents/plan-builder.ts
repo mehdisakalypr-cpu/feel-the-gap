@@ -18,7 +18,7 @@ import type { Opportunity } from '@/types/database'
 
 async function buildTradePlan(opp: Opportunity, productName: string, countryName: string) {
   const { text } = await generateText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-2.5-flash'),
     prompt: `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
 
 Country: ${countryName}
@@ -66,7 +66,7 @@ Return ONLY valid JSON with this structure:
 
 async function buildProductionPlan(opp: Opportunity, productName: string, countryName: string) {
   const { text } = await generateText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-2.5-flash'),
     prompt: `You are an agricultural/industrial investment consultant specializing in emerging markets.
 Generate a detailed local production business plan in JSON format.
 
@@ -142,7 +142,7 @@ export async function generateCountryReport(countryIso: string, productId?: stri
     .limit(10)
 
   const { text } = await generateText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-2.5-flash'),
     prompt: `Generate a professional trade intelligence report in HTML format for ${country.name_fr}.
 
 Data:

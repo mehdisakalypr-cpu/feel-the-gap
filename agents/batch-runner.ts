@@ -76,7 +76,7 @@ function buildProviders(): Provider[] {
     providers.push({ name: 'OpenAI/GPT-4o-mini', model: openai('gpt-4o-mini'), exhausted: false })
   }
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    providers.push({ name: 'Google/Gemini-2.0-Flash', model: google('gemini-2.0-flash'), exhausted: false })
+    providers.push({ name: 'Google/Gemini-2.0-Flash', model: google('gemini-2.5-flash'), exhausted: false })
   }
   if (process.env.MISTRAL_API_KEY) {
     const mistral = createMistral({ apiKey: process.env.MISTRAL_API_KEY })
