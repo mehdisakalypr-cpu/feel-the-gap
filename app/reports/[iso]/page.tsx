@@ -502,12 +502,22 @@ export default function ReportPage() {
                           {isSelected && <span className="text-[#07090F] text-xs font-bold">✓</span>}
                         </div>
                         {showCheckboxHint && idx === 0 && (
-                          <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 animate-in fade-in slide-in-from-right-2 pointer-events-none">
-                            <div className="relative bg-amber-500 text-gray-950 text-xs font-bold px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                              👆 Cochez si cette opportunité vous intéresse
-                              <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-l-[6px] border-l-amber-500" />
+                          <>
+                            {/* Mobile: below checkbox, arrow up, wraps to 2 lines if needed */}
+                            <div className="md:hidden absolute top-full right-0 mt-2 z-20 animate-in fade-in slide-in-from-top-1 pointer-events-none">
+                              <div className="relative bg-amber-500 text-gray-950 text-[11px] font-bold px-2.5 py-1.5 rounded-lg shadow-lg w-max max-w-[220px] leading-tight">
+                                👆 Cochez si cette opportunité vous intéresse
+                                <div className="absolute right-2 top-[-6px] w-0 h-0 border-x-[6px] border-x-transparent border-b-[6px] border-b-amber-500" />
+                              </div>
                             </div>
-                          </div>
+                            {/* Desktop: to the left of the checkbox, arrow right */}
+                            <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2 z-20 animate-in fade-in slide-in-from-right-2 pointer-events-none">
+                              <div className="relative bg-amber-500 text-gray-950 text-xs font-bold px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                                👆 Cochez si cette opportunité vous intéresse
+                                <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-l-[6px] border-l-amber-500" />
+                              </div>
+                            </div>
+                          </>
                         )}
                       </div>
                       {/* Score ring */}
