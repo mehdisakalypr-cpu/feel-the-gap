@@ -277,9 +277,9 @@ function GeneratingScreen({ opps, models, country }: { opps: OppRow[]; models: s
 // ── Context form step ──────────────────────────────────────────────────────────
 
 function ContextForm({
-  opps, models, onSubmit, loading,
+  opps, models, onSubmit, loading, countryName,
 }: {
-  opps: OppRow[]; models: string[]; onSubmit: (ctx: UserContext) => void; loading: boolean
+  opps: OppRow[]; models: string[]; onSubmit: (ctx: UserContext) => void; loading: boolean; countryName: string
 }) {
   const [ctx, setCtx] = useState<UserContext>({
     qty_tons: '', price_eur_kg: '', budget_eur: '', timeline: '12-24 mois', sector: '', notes: '',
@@ -362,7 +362,7 @@ function ContextForm({
         <div>
           <label className="text-xs text-gray-400 block mb-1.5">Informations complémentaires</label>
           <textarea value={ctx.notes} onChange={up('notes')} rows={3}
-            placeholder="Ex: J'ai déjà des contacts en Guinée, je cherche un produit alimentaire à fort volume, j'ai une expérience dans la logistique froide..."
+            placeholder={`Ex: J'ai déjà des contacts en ${countryName}, je cherche un produit alimentaire à fort volume, j'ai une expérience dans la logistique froide…`}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A84C]/40 resize-none" />
         </div>
       </div>
@@ -1154,7 +1154,7 @@ export default function BusinessPlanPage() {
         {loading ? (
           <GeneratingScreen opps={opps} models={selectedModels} country={countryName} />
         ) : !plan ? (
-          <ContextForm opps={opps} models={selectedModels} onSubmit={generate} loading={loading} />
+          <ContextForm opps={opps} models={selectedModels} onSubmit={generate} loading={loading} countryName={countryName} />
         ) : (
           <PlanDisplay plan={plan} opps={opps} country={countryName} iso={iso} userTier={userTier} />
         )}
