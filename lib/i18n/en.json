@@ -31,7 +31,12 @@
   },
   "map": {
     "countries_tracked": "countries tracked",
+    "countries_tracked_short": "countries",
     "opportunities": "opportunities identified",
+    "opportunities_qualified": "qualified opportunities",
+    "opportunities_short": "qual. opps",
+    "markets_analyzed": "markets analyzed",
+    "markets_short": "markets",
     "filter": "Filter",
     "loading": "Loading world data…",
     "tile_standard": "Map",

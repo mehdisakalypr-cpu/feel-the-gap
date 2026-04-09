@@ -31,7 +31,12 @@
   },
   "map": {
     "countries_tracked": "pays suivis",
+    "countries_tracked_short": "pays",
     "opportunities": "opportunités identifiées",
+    "opportunities_qualified": "opportunités qualifiées",
+    "opportunities_short": "opps qualifiées",
+    "markets_analyzed": "marchés analysés",
+    "markets_short": "marchés",
     "filter": "Filtre",
     "loading": "Chargement des données mondiales…",
     "tile_standard": "Carte",

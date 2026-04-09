@@ -84,12 +84,20 @@ const TR = {
     en: 'Chat with the AI Advisor to dig into any point.',
   },
   openAdvisor: { fr: 'Ouvrir l\'AI Advisor', en: 'Open AI Advisor' },
-  affiliateTitle: { fr: 'Monétisez votre réussite', en: 'Monetize your success' },
-  affiliateDesc: {
-    fr: 'Partagez votre lien affilié et gagnez 70 % sur chaque conversion.',
-    en: 'Share your affiliate link and earn 70% on each conversion.',
+  productPageTitle: { fr: 'Vendre mon produit', en: 'Sell my product' },
+  productPageDesc: {
+    fr: 'Créez votre page produit et trouvez les bons influenceurs pour booster vos ventes. Un code d\'affiliation web personnalisé est généré par influenceur pour tracker vos conversions.',
+    en: 'Create your product page and find the right influencers to boost your sales. A unique web affiliate code is generated per influencer to track your conversions.',
   },
-  goAffiliate: { fr: 'Mon espace influenceur', en: 'My influencer space' },
+  createProductPage: { fr: 'Créer ma page produit →', en: 'Create my product page →' },
+  noSalesSite: {
+    fr: 'Pas encore de site de vente en ligne ?',
+    en: 'No online sales site yet?',
+  },
+  noSalesSiteCta: {
+    fr: 'Nous pouvons vous aider à en créer un →',
+    en: 'We can help you build one →',
+  },
   stepsFallback: {
     fr: 'Étapes génériques — remplissez le formulaire du business plan pour obtenir un plan détaillé.',
     en: 'Generic steps — fill out the business plan form to get a detailed plan.',
@@ -471,18 +479,27 @@ export default function SuccessPage() {
                   </Link>
                 </div>
 
-                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 rounded-2xl p-5">
+                <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 rounded-2xl p-5 flex flex-col">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">💰</span>
-                    <h3 className="font-bold text-white">{t('affiliateTitle')}</h3>
+                    <span className="text-xl">🛍️</span>
+                    <h3 className="font-bold text-white">{t('productPageTitle')}</h3>
                   </div>
-                  <p className="text-xs text-gray-400 mb-4">{t('affiliateDesc')}</p>
+                  <p className="text-xs text-gray-400 mb-4 leading-relaxed">{t('productPageDesc')}</p>
                   <Link
-                    href="/influencer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/20 border border-amber-500/40 rounded-lg text-sm font-semibold text-amber-300 hover:bg-amber-500/30 transition-colors"
+                    href="/product-page"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/20 border border-amber-500/40 rounded-lg text-sm font-semibold text-amber-300 hover:bg-amber-500/30 transition-colors self-start"
                   >
-                    {t('goAffiliate')} →
+                    {t('createProductPage')}
                   </Link>
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <p className="text-[11px] text-gray-500 mb-1.5">{t('noSalesSite')}</p>
+                    <Link
+                      href="/contact?topic=ecommerce-setup"
+                      className="text-xs text-amber-400 hover:text-amber-300"
+                    >
+                      {t('noSalesSiteCta')}
+                    </Link>
+                  </div>
                 </div>
               </section>
             </div>

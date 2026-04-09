@@ -107,6 +107,7 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
   const [countries, setCountries] = useState<CountryMapData[]>(SEED_COUNTRIES)
   const [mapReady, setMapReady] = useState(false)
   const [tileMode, setTileMode] = useState<'standard' | 'satellite' | 'night'>('standard')
+  const [totalMarkets, setTotalMarkets] = useState<number | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tileLayerRef = useRef<any>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,6 +121,12 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (Array.isArray(data) && data.length > 0) setCountries(data) })
       .catch(() => {/* keep seed data */})
+
+    // Aggregate stats (markets analyzed count) — separate endpoint
+    fetch('/api/stats/map')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.markets != null) setTotalMarkets(data.markets) })
+      .catch(() => {/* fallback to null, counter will hide */})
   }, [])
 
   // Init map once
@@ -266,8 +273,8 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
     <div className="relative w-full h-full">
       <div ref={mapRef} className="w-full h-full" />
 
-      {/* Tile mode switcher — hidden when country panel is open on mobile */}
-      <div className={`absolute top-4 right-4 z-[400] flex gap-1 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-xl p-1 backdrop-blur-sm ${selectedCountry ? 'hidden md:flex' : ''}`}>
+      {/* Tile mode switcher — compact (icon-only on mobile, icon+label on md+) */}
+      <div className={`absolute top-3 right-3 z-[400] flex gap-0.5 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-lg p-0.5 backdrop-blur-sm ${selectedCountry ? 'hidden md:flex' : ''}`}>
         {([
           { id: 'standard',  label: t('map.tile_standard'),  icon: '🗺️' },
           { id: 'satellite', label: t('map.tile_satellite'), icon: '🛰️' },
@@ -276,34 +283,46 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
           <button
             key={m.id}
             onClick={() => setTileMode(m.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            aria-label={m.label}
+            title={m.label}
+            className={`flex items-center justify-center gap-1 w-8 h-8 md:w-auto md:h-auto md:px-2.5 md:py-1.5 rounded text-[11px] font-medium transition-all ${
               tileMode === m.id
                 ? 'bg-[#C9A84C] text-[#07090F]'
                 : 'text-gray-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <span>{m.icon}</span>
-            <span>{m.label}</span>
+            <span className="text-sm">{m.icon}</span>
+            <span className="hidden md:inline">{m.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Stats bar — hidden when country panel is open on mobile */}
-      <div className={`absolute bottom-4 left-4 flex items-center gap-3 z-[400] ${selectedCountry ? 'hidden md:flex' : ''}`}>
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-lg px-3 py-2 text-xs text-gray-400">
-          <span className="text-[#C9A84C] font-semibold">{countries.length}</span> {t('map.countries_tracked')}
+      {/* Stats bar — stacked vertical on mobile, horizontal on md+; anchored bottom-left inside map */}
+      <div className={`absolute bottom-3 left-3 flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2 z-[400] pointer-events-none ${selectedCountry ? 'hidden md:flex' : ''}`}>
+        <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
+          <span className="text-[#C9A84C] font-semibold">{countries.length}</span>{' '}
+          <span className="hidden md:inline">{t('map.countries_tracked')}</span>
+          <span className="md:hidden">{t('map.countries_tracked_short') || 'pays'}</span>
         </div>
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-lg px-3 py-2 text-xs text-gray-400">
+        <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
           <span className="text-[#C9A84C] font-semibold">
             {countries.reduce((s, c) => s + c.opportunity_count, 0)}
-          </span> {t('map.opportunities')}
+          </span>{' '}
+          <span className="hidden md:inline">{t('map.opportunities_qualified') || t('map.opportunities')}</span>
+          <span className="md:hidden">{t('map.opportunities_short') || 'opps'}</span>
         </div>
+        {totalMarkets != null && totalMarkets > 0 && (
+          <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
+            <span className="text-[#C9A84C] font-semibold">{totalMarkets.toLocaleString()}</span>{' '}
+            <span className="hidden md:inline">{t('map.markets_analyzed') || 'marchés analysés'}</span>
+            <span className="md:hidden">{t('map.markets_short') || 'marchés'}</span>
+          </div>
+        )}
         {(activeCategories.length > 0 || activeSubs.length > 0) && (
-          <div className="bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg px-3 py-2 text-xs text-[#C9A84C]">
-            {t('map.filter')}: <span className="font-semibold">
-              {activeCategories.length > 0
-                ? activeCategories.join(', ')
-                : ''}
+          <div className="pointer-events-auto bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-md px-2 py-1 text-[10px] md:text-xs text-[#C9A84C] leading-tight whitespace-nowrap">
+            {t('map.filter')}:{' '}
+            <span className="font-semibold">
+              {activeCategories.length > 0 ? activeCategories.join(', ') : ''}
               {activeSubs.length > 0 ? ` · ${activeSubs.length} sub` : ''}
             </span>
           </div>
