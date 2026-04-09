@@ -341,6 +341,122 @@ IMPORTANT:
   }
 }
 
+// ─── 2b. LLM-native regulation generation (no web scraping) ──────────────
+/**
+ * Generate a comprehensive set of country regulations using LLM knowledge
+ * directly, without scraping flaky government websites. Covers all 9
+ * regulatory categories defined in the country_regulations schema check.
+ *
+ * Used by agents/regulatory-collector.ts as the primary ingestion path.
+ */
+export async function generateRegulationsForCountry(args: {
+  countryIso: string;
+  countryName: string;
+  productHints?: string[]; // e.g. ['cacao', 'cafe', 'textile']
+  language?: 'fr' | 'en';
+}): Promise<RegulationExtract[] | null> {
+  const lang = args.language ?? 'fr';
+  const productsLine = args.productHints?.length
+    ? `Concentre-toi sur ces produits/secteurs pilotes : ${args.productHints.join(', ')}`
+    : 'Couvre les secteurs transversaux (import general, fiscalite societe, droit du travail)';
+
+  const prompt = `Tu es un juriste international expert en commerce, douanes, fiscalite et reglementations pays. Tu produis des fiches reglementaires factuelles a destination d'entrepreneurs qui veulent importer, exporter ou produire localement.
+
+**Pays cible**: ${args.countryName} (${args.countryIso})
+**Langue**: ${lang}
+${productsLine}
+
+Produis un tableau JSON de 10 a 12 entrees couvrant TOUTES les categories suivantes (1 entree par categorie, 1 extra pour les 2-3 plus importantes):
+
+1. customs_tariff — droits de douane NPF moyens, regimes preferentiels (ALE, ZLECAF, APE UE), HS codes sensibles
+2. sanitary — normes SPS, phyto, halal, exigences d'etiquetage alimentaire, agrements abattoirs
+3. technical — normes ISO/locales, homologation equipements, certification produits (ex: COC, SONCAP, EAC)
+4. fiscal — taux TVA, impot societe (IS), retenue a la source, zones franches, taxe specifique
+5. labor — SMIC/salaire minimum, cotisations sociales employeur, duree legale du travail, licenciement
+6. environment — normes emissions, gestion dechets industriels, EIE obligatoire, taxe carbone eventuelle
+7. licensing — licence d'importation, agrement grossiste, autorisations sectorielles
+8. incoterms — regles locales particulieres (ex: obligation CIF Maroc, interdictions port)
+9. investment — code des investissements, incitations fiscales, zones economiques speciales, rapatriement profits
+
+Reponds UNIQUEMENT avec un JSON valide (tableau). Aucun markdown.
+
+Schema par entree:
+{
+  "title": "Titre court et precis (max 100 chars)",
+  "category": "customs_tariff|sanitary|technical|fiscal|labor|environment|licensing|incoterms|investment",
+  "subcategory": "optionnel — mot cle fin",
+  "summary": "Resume 2-3 phrases, lisible par un non-juriste",
+  "content": "Detail precis avec chiffres/taux/conditions (max 800 chars). Cite les autorites competentes et dates si possibles.",
+  "product_hs": "code HS si specifique, sinon omettre",
+  "published_date": "YYYY-MM-DD de la source de reference si connue, sinon omettre",
+  "tags": ["2-4 tags lowercase"],
+  "confidence": 0.6 a 0.95
+}
+
+IMPORTANT:
+- Donne des taux, seuils, montants PRECIS. Pas de "environ" vague.
+- Cite les autorites (ex: "Douanes senegalaises", "DGI Maroc", "ANSES", "SGS").
+- Si une regle recente (2024-2026) s'applique, mentionne-la explicitement.
+- confidence > 0.8 pour les regles majeures etablies (droits de douane NPF OMC, TVA standard), < 0.7 pour les regles sectorielles pointues qui varient.
+- NE JAMAIS inventer. Si tu n'es pas sur d'un chiffre, formule prudemment ou baisse la confidence.
+`;
+
+  try {
+    const text = await callLLM(prompt, 10000, true);
+    const cleaned = stripJsonFences(text).trim();
+
+    // Extract the array substring first (LLMs sometimes wrap with objects or prose)
+    const arrStart = cleaned.indexOf('[');
+    const arrEnd = cleaned.lastIndexOf(']');
+    const arrText = arrStart >= 0 && arrEnd > arrStart
+      ? cleaned.slice(arrStart, arrEnd + 1)
+      : cleaned;
+
+    try {
+      const parsed = JSON.parse(arrText);
+      if (!Array.isArray(parsed)) return [];
+      return parsed as RegulationExtract[];
+    } catch {
+      // Truncation recovery: iteratively walk back to the last complete entry
+      // by finding "}," boundaries. Also handle the case where the LAST entry
+      // is complete but the array close "]" is missing.
+      const candidates = [
+        arrText + ']', // missing closing bracket only
+        arrText.replace(/,\s*$/, '') + ']', // trailing comma
+      ];
+      for (const candidate of candidates) {
+        try {
+          const parsed = JSON.parse(candidate);
+          if (Array.isArray(parsed)) {
+            console.warn(`[insight-extractor] Fixed trailing JSON for ${args.countryIso}: ${parsed.length} entries`);
+            return parsed as RegulationExtract[];
+          }
+        } catch {}
+      }
+
+      // Walk back to last "}," and cut there
+      let cut = arrText.length;
+      for (let i = 0; i < 20; i++) {
+        const lastComma = arrText.lastIndexOf('},', cut - 1);
+        if (lastComma <= 0) break;
+        const salvaged = arrText.slice(0, lastComma + 1) + ']';
+        try {
+          const parsed = JSON.parse(salvaged);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.warn(`[insight-extractor] Salvaged ${parsed.length} entries from truncated JSON for ${args.countryIso}`);
+            return parsed as RegulationExtract[];
+          }
+        } catch {}
+        cut = lastComma;
+      }
+      throw new Error('JSON parse + salvage failed');
+    }
+  } catch (err) {
+    console.warn(`[insight-extractor] Country regulation generation failed for ${args.countryIso}: ${(err as Error).message}`);
+    return null;
+  }
+}
+
 // ─── 3. Text → cost benchmarks (3 scenarios) ──────────────────────────────
 export async function extractCostBenchmarks(args: {
   sourceText: string;
