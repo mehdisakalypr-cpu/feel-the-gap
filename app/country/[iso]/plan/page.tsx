@@ -676,25 +676,28 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
   return (
     <div className="space-y-0 overflow-hidden" ref={planRef}>
       {/* Hero */}
-      <div className="rounded-t-2xl overflow-hidden relative h-52">
+      <div className="rounded-t-2xl overflow-hidden relative h-56 md:h-52">
         <img
           src={categoryImage(country.top_import_category)}
           alt={country.name_fr}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#07090F] via-[#07090F]/50 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-5 flex items-end justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-4xl">{country.flag}</span>
-            <div>
-              <div className="text-white font-bold text-2xl">{country.name_fr}</div>
-              <div className="text-[#C9A84C] text-sm font-medium">{plan.product_focus}</div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#07090F] via-[#07090F]/60 to-transparent" />
+        {/* On mobile: stack vertically so "Marché adressable" and the amount
+            never compete for horizontal space with the country name.
+            On md+: keep the original two-column layout. */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-6 pb-4 md:pb-5 flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-3xl md:text-4xl shrink-0">{country.flag}</span>
+            <div className="min-w-0">
+              <div className="text-white font-bold text-xl md:text-2xl leading-tight">{country.name_fr}</div>
+              <div className="text-[#C9A84C] text-xs md:text-sm font-medium leading-tight">{plan.product_focus}</div>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-gray-400">Marché adressable</div>
-            <div className="text-xl font-bold text-white">{fmtEur(plan.market_size_eur)}</div>
-            <div className="text-xs text-emerald-400">+{plan.growth_rate_pct}%/an</div>
+          <div className="flex items-baseline md:block gap-2 md:text-right shrink-0">
+            <div className="text-[11px] md:text-xs text-gray-300 md:text-gray-400 leading-tight whitespace-nowrap">Marché adressable</div>
+            <div className="text-base md:text-xl font-bold text-white leading-tight whitespace-nowrap">{fmtEur(plan.market_size_eur)}</div>
+            <div className="text-[11px] md:text-xs text-emerald-400 leading-tight whitespace-nowrap">+{plan.growth_rate_pct}%/an</div>
           </div>
         </div>
       </div>

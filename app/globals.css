@@ -23,7 +23,20 @@
 }
 
 * { box-sizing: border-box; }
-p, span, div, td, li, h1, h2, h3, h4, h5, h6 { overflow-wrap: break-word; word-break: break-word; }
+
+/* No global word-break — the rule "no word ever broken mid-character" is absolute.
+   Labels/buttons MUST fit their content or the design must adapt (wider column,
+   smaller font, restructured layout). Rich text content areas opt-in to safe
+   breaking via the .prose-safe-break class below. */
+p, span, div, td, li, h1, h2, h3, h4, h5, h6 { overflow-wrap: normal; word-break: normal; }
+
+/* Opt-in class for user-generated / LLM-generated long HTML (reports, studies).
+   These blocks may contain long URLs or identifiers that WOULD overflow without a
+   safety net. Apply .prose-safe-break on the wrapper only. */
+.prose-safe-break, .prose-safe-break * {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
 
 body {
   background: var(--bg);

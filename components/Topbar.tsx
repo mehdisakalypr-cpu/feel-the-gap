@@ -9,10 +9,15 @@ import type { Lang } from '@/lib/i18n'
 
 const FLAG: Record<Lang, string> = { en: '🇬🇧', fr: '🇫🇷' }
 
+// Covers both the legacy tier keys (free/basic/standard) and the current DB
+// tier keys (explorer/data/strategy). Premium/enterprise are unchanged.
 const TIER_CONFIG: Record<string, { label: string; color: string }> = {
-  free:       { label: 'Explorer',   color: '#6B7280' },
+  free:       { label: 'Explorer',   color: '#9CA3AF' },
+  explorer:   { label: 'Explorer',   color: '#9CA3AF' },
   basic:      { label: 'Data',       color: '#60A5FA' },
+  data:       { label: 'Data',       color: '#60A5FA' },
   standard:   { label: 'Strategy',   color: '#C9A84C' },
+  strategy:   { label: 'Strategy',   color: '#C9A84C' },
   premium:    { label: 'Premium',    color: '#A78BFA' },
   enterprise: { label: 'Enterprise', color: '#64748B' },
 }
@@ -147,15 +152,19 @@ export default function Topbar() {
             ))}
           </div>
           {userInitial ? (
-            <Link href="/account" className="ml-1 flex items-center gap-2 group shrink-0">
-              {tier && tier !== 'free' && (
+            <Link href="/account" className="ml-1 flex items-center gap-1.5 group shrink-0" title={tier ? (TIER_CONFIG[tier]?.label ?? tier) + ' plan' : undefined}>
+              {tier && TIER_CONFIG[tier] && (
                 <span
-                  className="px-2 py-0.5 rounded-full text-[10px] font-bold hidden sm:inline-block"
-                  style={{ background: TIER_CONFIG[tier]?.color + '22', color: TIER_CONFIG[tier]?.color }}>
-                  {TIER_CONFIG[tier]?.label}
+                  className="px-1.5 py-0.5 md:px-2 rounded-full text-[9px] md:text-[10px] font-bold inline-block whitespace-nowrap leading-none"
+                  style={{
+                    background: TIER_CONFIG[tier].color + '22',
+                    color: TIER_CONFIG[tier].color,
+                    border: `1px solid ${TIER_CONFIG[tier].color}44`,
+                  }}>
+                  {TIER_CONFIG[tier].label}
                 </span>
               )}
-              <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors">
+              <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors shrink-0">
                 {userInitial}
               </div>
             </Link>
