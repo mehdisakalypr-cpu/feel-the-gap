@@ -304,16 +304,16 @@ function CountryPageInner() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
           {[
             { label: t('country.imports'), value: fmt(country.total_imports_usd), color: '#60A5FA' },
             { label: t('country.exports'), value: fmt(country.total_exports_usd), color: '#34D399' },
             { label: t('country.balance'), value: fmt(country.trade_balance_usd), color: balance < 0 ? '#F87171' : '#34D399' },
             { label: t('country.gdp'), value: fmt(country.gdp_usd), color: '#C9A84C' },
           ].map(k => (
-            <div key={k.label} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-4">
-              <div className="text-xs text-gray-500 mb-1">{k.label}</div>
-              <div className="text-xl font-bold" style={{ color: k.color }}>{k.value}</div>
+            <div key={k.label} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-2.5 md:p-4 min-w-0">
+              <div className="text-[10px] md:text-xs text-gray-500 mb-0.5 md:mb-1 truncate">{k.label}</div>
+              <div className="text-sm md:text-xl font-bold truncate" style={{ color: k.color }}>{k.value}</div>
             </div>
           ))}
         </div>

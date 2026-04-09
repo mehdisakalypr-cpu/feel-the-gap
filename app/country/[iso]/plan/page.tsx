@@ -688,11 +688,11 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
           { label: 'ROI 36 mois', value: '+' + plan.roi_36m_pct + '%', color: '#34D399', icon: '📊' },
           { label: 'Point mort', value: plan.breakeven_months + ' mois', color: '#C9A84C', icon: '⏱️' },
         ].map(k => (
-          <div key={k.label} className="bg-[#0D1117] px-4 py-3 flex items-center gap-3">
-            <span className="text-lg">{k.icon}</span>
-            <div>
-              <div className="text-base font-bold" style={{ color: k.color }}>{k.value}</div>
-              <div className="text-xs text-gray-500">{k.label}</div>
+          <div key={k.label} className="bg-[#0D1117] px-2.5 py-2.5 md:px-4 md:py-3 flex items-center gap-2 md:gap-3 min-w-0">
+            <span className="text-base md:text-lg shrink-0">{k.icon}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] md:text-base font-bold truncate" style={{ color: k.color }}>{k.value}</div>
+              <div className="text-[10px] md:text-xs text-gray-500 truncate">{k.label}</div>
             </div>
           </div>
         ))}

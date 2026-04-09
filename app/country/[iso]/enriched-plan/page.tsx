@@ -523,28 +523,28 @@ export default function EnrichedPlanPage() {
             {/* Market Study */}
             <section>
               <h2 className="text-2xl font-bold mb-4 text-amber-400">{t('marketStudy')}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-                  <div className="text-xs text-gray-400 uppercase">{t('marketSize')}</div>
-                  <div className="text-xl font-bold text-amber-400 mt-1">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-6">
+                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-2.5 md:p-4 min-w-0">
+                  <div className="text-[10px] md:text-xs text-gray-400 uppercase truncate">{t('marketSize')}</div>
+                  <div className="text-sm md:text-xl font-bold text-amber-400 mt-0.5 md:mt-1 truncate">
                     {fmtEur(plan.market_study.market_size_eur)}
                   </div>
                 </div>
-                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-                  <div className="text-xs text-gray-400 uppercase">{t('annualGrowth')}</div>
-                  <div className="text-xl font-bold text-green-400 mt-1">
+                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-2.5 md:p-4 min-w-0">
+                  <div className="text-[10px] md:text-xs text-gray-400 uppercase truncate">{t('annualGrowth')}</div>
+                  <div className="text-sm md:text-xl font-bold text-green-400 mt-0.5 md:mt-1 truncate">
                     +{plan.market_study.growth_rate_pct}%
                   </div>
                 </div>
-                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-                  <div className="text-xs text-gray-400 uppercase">{t('keyPlayers')}</div>
-                  <div className="text-xl font-bold mt-1">
+                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-2.5 md:p-4 min-w-0">
+                  <div className="text-[10px] md:text-xs text-gray-400 uppercase truncate">{t('keyPlayers')}</div>
+                  <div className="text-sm md:text-xl font-bold mt-0.5 md:mt-1 truncate">
                     {plan.market_study.key_players?.length ?? 0}
                   </div>
                 </div>
-                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
-                  <div className="text-xs text-gray-400 uppercase">{t('regulations')}</div>
-                  <div className="text-xl font-bold mt-1">
+                <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-2.5 md:p-4 min-w-0">
+                  <div className="text-[10px] md:text-xs text-gray-400 uppercase truncate">{t('regulations')}</div>
+                  <div className="text-sm md:text-xl font-bold mt-0.5 md:mt-1 truncate">
                     {plan.market_study.regulations?.length ?? 0}
                   </div>
                 </div>

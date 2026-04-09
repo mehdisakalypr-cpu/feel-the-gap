@@ -319,19 +319,19 @@ export default function ReportPage() {
         </div>
 
         {/* ── KPI Strip ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
           {[
             { label: 'Importations totales', value: fmt(country.total_imports_usd), icon: '📥', color: '#60A5FA' },
             { label: 'Exportations totales', value: fmt(country.total_exports_usd), icon: '📤', color: '#34D399' },
             { label: 'Balance commerciale', value: fmt(country.trade_balance_usd), icon: surplus ? '📈' : '📉', color: surplus ? '#34D399' : '#EF4444' },
             { label: 'PIB par habitant', value: country.gdp_per_capita ? `$${country.gdp_per_capita?.toLocaleString()}` : fmt(country.gdp_usd ? country.gdp_usd / (country.population ?? 1) : null), icon: '💰', color: '#C9A84C' },
           ].map(kpi => (
-            <div key={kpi.label} className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">{kpi.icon}</span>
-                <span className="text-xs text-gray-500">{kpi.label}</span>
+            <div key={kpi.label} className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-2.5 md:p-4 min-w-0">
+              <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
+                <span className="text-base md:text-lg shrink-0">{kpi.icon}</span>
+                <span className="text-[10px] md:text-xs text-gray-500 truncate">{kpi.label}</span>
               </div>
-              <div className="text-xl font-bold" style={{ color: kpi.color }}>{kpi.value}</div>
+              <div className="text-sm md:text-xl font-bold truncate" style={{ color: kpi.color }}>{kpi.value}</div>
             </div>
           ))}
         </div>
