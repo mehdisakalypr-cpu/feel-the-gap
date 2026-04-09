@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Topbar from '@/components/Topbar';
+import JourneySidebar from '@/components/JourneySidebar';
 import { useLang } from '@/components/LanguageProvider';
+import { supabase } from '@/lib/supabase';
 
 // ─── i18n strings ───────────────────────────────────────────────────────────
 type L = 'fr' | 'en';
@@ -90,6 +92,36 @@ const TR = {
   poweredBy: {
     fr: 'Propulsé par Gemini 2.5 Flash + recherche YouTube',
     en: 'Powered by Gemini 2.5 Flash + YouTube research',
+  },
+  chooseModesTitle: {
+    fr: 'Vous pouvez saisir cette opportunité de différentes manières',
+    en: 'You can seize this opportunity in several ways',
+  },
+  chooseModesSubtitle: {
+    fr: 'Sélectionnez au moins une approche — votre business plan sera adapté à vos choix.',
+    en: 'Select at least one approach — your business plan will be tailored to your choices.',
+  },
+  modeImportSellTitle: { fr: 'Importer & revendre', en: 'Import & sell' },
+  modeImportSellDesc: {
+    fr: 'Acheter à l\'international et distribuer sur le marché local',
+    en: 'Buy internationally and distribute on the local market',
+  },
+  modeProduceLocallyTitle: { fr: 'Produire localement', en: 'Produce locally' },
+  modeProduceLocallyDesc: {
+    fr: 'Installer une unité de production sur place avec main d\'œuvre locale',
+    en: 'Set up a local production unit with local workforce',
+  },
+  modeTrainLocalsTitle: { fr: 'Former les locaux', en: 'Train locals' },
+  modeTrainLocalsDesc: {
+    fr: 'Créer un programme de formation technique et transférer le savoir-faire',
+    en: 'Create a technical training program and transfer know-how',
+  },
+  generatePlan: { fr: 'Générer le business plan', en: 'Generate the business plan' },
+  changeModes: { fr: 'Changer mes choix', en: 'Change my choices' },
+  selectedModes: { fr: 'Modes choisis', en: 'Selected modes' },
+  atLeastOne: {
+    fr: 'Vous devez choisir au moins une approche',
+    en: 'You must choose at least one approach',
   },
 } as const;
 const tx = (l: L) => (k: keyof typeof TR) => TR[k][l];
@@ -236,6 +268,14 @@ const SCENARIO_META: Record<Scenario, { emoji: string; label: string; color: str
 
 const PRODUCT_SLUGS = ['cacao', 'cafe', 'textile', 'anacarde', 'huile_palme', 'mangue'];
 
+const OPERATION_MODES = [
+  { id: 'import_sell', icon: '📦', titleKey: 'modeImportSellTitle', descKey: 'modeImportSellDesc', color: 'from-blue-500/20 to-cyan-500/10 border-blue-500/40' },
+  { id: 'produce_locally', icon: '🏭', titleKey: 'modeProduceLocallyTitle', descKey: 'modeProduceLocallyDesc', color: 'from-amber-500/20 to-orange-500/10 border-amber-500/40' },
+  { id: 'train_locals', icon: '🎓', titleKey: 'modeTrainLocalsTitle', descKey: 'modeTrainLocalsDesc', color: 'from-purple-500/20 to-pink-500/10 border-purple-500/40' },
+] as const;
+
+type ModeKey = typeof OPERATION_MODES[number]['titleKey'] | typeof OPERATION_MODES[number]['descKey'];
+
 // ─── Page ───────────────────────────────────────────────────────────────────
 export default function EnrichedPlanPage() {
   const params = useParams();
@@ -252,6 +292,32 @@ export default function EnrichedPlanPage() {
   const [error, setError] = useState<string | null>(null);
   const [showPrecisionForm, setShowPrecisionForm] = useState(false);
   const [precision, setPrecision] = useState<PrecisionInputs>({});
+  const [userTier, setUserTier] = useState<string>('free');
+  const [selectedModes, setSelectedModes] = useState<Set<string>>(new Set());
+  const [modesConfirmed, setModesConfirmed] = useState(false);
+
+  // Fetch user tier
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: profile } = await supabase.from('profiles').select('tier').eq('id', data.user.id).single();
+      if (profile?.tier) setUserTier(profile.tier);
+    });
+  }, []);
+
+  // Restore modes from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`ftg_journey_${iso}`);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (Array.isArray(data.selected_modes) && data.selected_modes.length > 0) {
+          setSelectedModes(new Set(data.selected_modes));
+          setModesConfirmed(true);
+        }
+      }
+    } catch {}
+  }, [iso]);
 
   async function loadPlan(applyPrecision = false) {
     setLoading(true);
@@ -279,14 +345,43 @@ export default function EnrichedPlanPage() {
   }
 
   useEffect(() => {
+    if (!modesConfirmed) return;
     loadPlan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iso, productSlug, L]);
+  }, [iso, productSlug, L, modesConfirmed]);
+
+  const toggleMode = (id: string) => {
+    setSelectedModes((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const confirmModes = () => {
+    if (selectedModes.size === 0) return;
+    try {
+      const existing = JSON.parse(localStorage.getItem(`ftg_journey_${iso}`) ?? '{}');
+      localStorage.setItem(
+        `ftg_journey_${iso}`,
+        JSON.stringify({ ...existing, selected_modes: Array.from(selectedModes) }),
+      );
+    } catch {}
+    setModesConfirmed(true);
+  };
+
+  const resetModes = () => {
+    setModesConfirmed(false);
+    setPlan(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <Topbar />
+      <JourneySidebar iso={iso} currentStep="business_plan" userTier={userTier} />
 
+      <div className="lg:pl-64 w-full">
       <main className="max-w-7xl mx-auto px-4 py-6 sm:py-10">
         {/* Header */}
         <div className="mb-6">
@@ -317,6 +412,83 @@ export default function EnrichedPlanPage() {
             </button>
           ))}
         </div>
+
+        {/* Mode selection — shown before plan generation */}
+        {!modesConfirmed && (
+          <section className="mb-8">
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-amber-500/30 rounded-2xl p-6 sm:p-10">
+              <h2 className="text-2xl sm:text-3xl font-bold text-amber-400 mb-2 text-center">
+                {t('chooseModesTitle')}
+              </h2>
+              <p className="text-gray-400 text-center mb-8">{t('chooseModesSubtitle')}</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {OPERATION_MODES.map((mode) => {
+                  const checked = selectedModes.has(mode.id);
+                  return (
+                    <button
+                      key={mode.id}
+                      onClick={() => toggleMode(mode.id)}
+                      className={`relative text-left rounded-2xl p-5 border-2 transition-all bg-gradient-to-br ${mode.color} ${
+                        checked
+                          ? 'ring-2 ring-amber-400 scale-[1.02]'
+                          : 'border-white/10 hover:border-white/30'
+                      }`}
+                    >
+                      <div className="absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center"
+                        style={{
+                          background: checked ? '#C9A84C' : 'rgba(255,255,255,0.05)',
+                          border: checked ? '2px solid #C9A84C' : '2px solid rgba(255,255,255,0.15)',
+                        }}
+                      >
+                        {checked && <span className="text-gray-950 text-xs font-bold">✓</span>}
+                      </div>
+                      <div className="text-4xl mb-3">{mode.icon}</div>
+                      <h3 className="text-lg font-bold text-white mb-1">
+                        {TR[mode.titleKey][L]}
+                      </h3>
+                      <p className="text-xs text-gray-300 leading-relaxed">
+                        {TR[mode.descKey][L]}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="text-center">
+                {selectedModes.size === 0 ? (
+                  <p className="text-xs text-gray-500 mb-3">{t('atLeastOne')}</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mb-3">
+                    {t('selectedModes')}: <span className="text-amber-400 font-semibold">{selectedModes.size}</span>
+                  </p>
+                )}
+                <button
+                  onClick={confirmModes}
+                  disabled={selectedModes.size === 0}
+                  className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-gray-950 font-bold rounded-xl text-base hover:scale-[1.02] transition-transform disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                >
+                  ✨ {t('generatePlan')}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {modesConfirmed && (
+          <div className="mb-4 flex items-center justify-between bg-gray-900/40 border border-gray-800 rounded-lg px-4 py-2">
+            <div className="text-xs text-gray-400">
+              {t('selectedModes')}:{' '}
+              {Array.from(selectedModes).map((m) => {
+                const mode = OPERATION_MODES.find((o) => o.id === m);
+                return mode ? `${mode.icon} ${TR[mode.titleKey][L]}` : m;
+              }).join(' · ')}
+            </div>
+            <button onClick={resetModes} className="text-xs text-amber-400 hover:text-amber-300">
+              {t('changeModes')}
+            </button>
+          </div>
+        )}
 
         {loading && (
           <div className="text-center py-20">
@@ -670,6 +842,7 @@ export default function EnrichedPlanPage() {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }

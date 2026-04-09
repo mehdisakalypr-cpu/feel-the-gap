@@ -6,6 +6,7 @@ import Link from 'next/link'
 import DOMPurify from 'dompurify'
 import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
+import JourneySidebar from '@/components/JourneySidebar'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -279,6 +280,8 @@ export default function CountryPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F]">
       <Topbar />
+      <JourneySidebar iso={iso.toUpperCase()} currentStep="country" userTier={userTier} />
+      <div className="lg:pl-64 w-full">
       <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-6 overflow-hidden">
 
         {/* Header */}
@@ -448,6 +451,7 @@ export default function CountryPage() {
             <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-xs rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap">Business plan →</Link>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

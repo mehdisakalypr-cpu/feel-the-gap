@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
+import JourneySidebar from '@/components/JourneySidebar'
 import { supabase } from '@/lib/supabase'
 import DOMPurify from 'dompurify'
 
@@ -167,9 +168,11 @@ export default function ReportPage() {
   const [opps, setOpps] = useState<Opportunity[]>([])
   const [reportHtml, setReportHtml] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [userTier, setUserTier] = useState<string>('free')
   const [selectedOpps, setSelectedOpps] = useState<Set<string>>(new Set())
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set(['import_sell']))
   const [showModelPanel, setShowModelPanel] = useState(false)
+  const [showCheckboxHint, setShowCheckboxHint] = useState(false)
 
   const toggleOpp = (id: string) => setSelectedOpps(prev => {
     const next = new Set(prev)
@@ -195,13 +198,47 @@ export default function ReportPage() {
       supabase.from('countries').select('*').eq('id', iso).single(),
       supabase.from('opportunities').select('*, products(name, category)').eq('country_iso', iso).order('opportunity_score', { ascending: false }),
       supabase.from('reports').select('content_html').eq('country_iso', iso).limit(1).single(),
-    ]).then(([{ data: c }, { data: o }, { data: r }]) => {
+      supabase.auth.getUser(),
+    ]).then(async ([{ data: c }, { data: o }, { data: r }, { data: authData }]) => {
       if (c) setCountry(c as Country)
       setOpps((o ?? []) as Opportunity[])
       if (r?.content_html) setReportHtml(r.content_html)
+      if (authData.user) {
+        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', authData.user.id).single()
+        if (profile?.tier) setUserTier(profile.tier)
+      }
       setLoading(false)
     })
+
+    // Restore interested opportunities from localStorage
+    try {
+      const saved = localStorage.getItem(`ftg_journey_${iso}`)
+      if (saved) {
+        const data = JSON.parse(saved)
+        if (Array.isArray(data.interested_opp_ids)) {
+          setSelectedOpps(new Set(data.interested_opp_ids))
+        }
+      }
+    } catch {}
   }, [iso])
+
+  // Persist interested opportunities
+  useEffect(() => {
+    if (!iso) return
+    try {
+      const existing = JSON.parse(localStorage.getItem(`ftg_journey_${iso}`) ?? '{}')
+      localStorage.setItem(`ftg_journey_${iso}`, JSON.stringify({
+        ...existing,
+        interested_opp_ids: Array.from(selectedOpps),
+      }))
+    } catch {}
+  }, [selectedOpps, iso])
+
+  const scrollToOpps = () => {
+    document.getElementById('opportunities-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setShowCheckboxHint(true)
+    setTimeout(() => setShowCheckboxHint(false), 8000)
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-[#07090F] flex flex-col">
@@ -227,7 +264,9 @@ export default function ReportPage() {
   return (
     <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
       <Topbar />
+      <JourneySidebar iso={iso} currentStep="report" userTier={userTier} />
 
+      <div className="lg:pl-64 w-full">
       <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8 overflow-hidden">
 
         {/* ── Breadcrumb ── */}
@@ -236,6 +275,20 @@ export default function ReportPage() {
           <span>/</span>
           <span className="text-gray-300">{country.flag} {country.name_fr}</span>
         </div>
+
+        {/* ── CTA "Voir les opportunités" ── */}
+        {opps.length > 0 && (
+          <div className="flex justify-center">
+            <button
+              onClick={scrollToOpps}
+              className="group px-6 py-3 bg-gradient-to-r from-[#34D399] to-[#10B981] text-[#07090F] font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
+            >
+              <span className="text-lg">💡</span>
+              <span>Voir les {opps.length} opportunités</span>
+              <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
+            </button>
+          </div>
+        )}
 
         {/* ── Header ── */}
         <div className="flex items-start gap-4 md:gap-6 flex-wrap md:flex-nowrap">
@@ -388,7 +441,7 @@ export default function ReportPage() {
 
         {/* ── Opportunities ── */}
         {opps.length > 0 && (
-          <div>
+          <div id="opportunities-section" className="scroll-mt-20">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <span className="w-7 h-7 rounded-lg bg-[#34D399]/15 flex items-center justify-center text-sm">💡</span>
               Opportunités identifiées
@@ -436,16 +489,26 @@ export default function ReportPage() {
                           <span className="text-xs text-gray-500">Score : <span className="font-bold text-white">{opp.opportunity_score}/100</span></span>
                         </div>
                       </div>
-                      {/* Checkbox */}
-                      <div
-                        onClick={e => { e.stopPropagation(); toggleOpp(opp.id) }}
-                        className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer"
-                        style={{
-                          background: isSelected ? '#C9A84C' : 'rgba(255,255,255,0.05)',
-                          border: isSelected ? '2px solid #C9A84C' : '2px solid rgba(255,255,255,0.15)',
-                        }}
-                      >
-                        {isSelected && <span className="text-[#07090F] text-xs font-bold">✓</span>}
+                      {/* Checkbox + hint popup (first opportunity only) */}
+                      <div className="relative shrink-0">
+                        <div
+                          onClick={e => { e.stopPropagation(); toggleOpp(opp.id) }}
+                          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${showCheckboxHint && idx === 0 ? 'ring-4 ring-amber-400/50 animate-pulse' : ''}`}
+                          style={{
+                            background: isSelected ? '#C9A84C' : 'rgba(255,255,255,0.05)',
+                            border: isSelected ? '2px solid #C9A84C' : '2px solid rgba(255,255,255,0.15)',
+                          }}
+                        >
+                          {isSelected && <span className="text-[#07090F] text-xs font-bold">✓</span>}
+                        </div>
+                        {showCheckboxHint && idx === 0 && (
+                          <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 animate-in fade-in slide-in-from-right-2 pointer-events-none">
+                            <div className="relative bg-amber-500 text-gray-950 text-xs font-bold px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                              👆 Cochez si cette opportunité vous intéresse
+                              <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-l-[6px] border-l-amber-500" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {/* Score ring */}
                       <div className="shrink-0 relative w-14 h-14">
@@ -655,6 +718,7 @@ export default function ReportPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Spacer when panel is visible */}
