@@ -114,12 +114,12 @@ function ReportsContent() {
               </button>
             )}
           </div>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {REGION_KEYS.map(r => (
               <button
                 key={r}
                 onClick={() => setRegion(r)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${region === r ? 'bg-[#C9A84C] text-[#07090F]' : 'bg-[#111827] text-gray-400 border border-[rgba(201,168,76,.15)] hover:border-[#C9A84C]/40'}`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${region === r ? 'bg-[#C9A84C] text-[#07090F]' : 'bg-[#111827] text-gray-400 border border-[rgba(201,168,76,.15)] hover:border-[#C9A84C]/40'}`}
               >
                 {r === 'All' ? t('reports.all_regions') : r}
               </button>

@@ -1192,22 +1192,37 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
 
   function toggleSub(id: string, catId: string) {
     const nextSubs = new Set(selectedSubs)
-    if (nextSubs.has(id)) {
+    const wasChecked = nextSubs.has(id)
+
+    if (wasChecked) {
       nextSubs.delete(id)
     } else {
       nextSubs.add(id)
-      // Auto-select parent category if not already
-      if (!selectedCats.has(catId)) {
-        const nextCats = new Set(selectedCats)
-        nextCats.add(catId)
-        setSelectedCats(nextCats)
-        emit(nextCats, nextSubs)
-        setSelectedSubs(nextSubs)
-        return
-      }
     }
+
+    // Compute how many subs remain in THIS category after the toggle.
+    const groups = SUBCATEGORIES[catId as TradeCategory] ?? []
+    const allCatSubIds = new Set<string>()
+    for (const g of groups) for (const item of g.items) {
+      allCatSubIds.add(item.id)
+      item.variants?.forEach(v => allCatSubIds.add(v.id))
+    }
+    let remainingInCat = 0
+    for (const s of nextSubs) if (allCatSubIds.has(s)) remainingInCat++
+
+    const nextCats = new Set(selectedCats)
+    if (remainingInCat > 0) {
+      // Ensure parent cat is active so the map filter reflects the sub selection
+      nextCats.add(catId)
+    } else if (wasChecked) {
+      // Last sub of this cat was just unchecked → remove the parent cat so the
+      // map filter resets and will pick up whatever the user checks next.
+      nextCats.delete(catId)
+    }
+
     setSelectedSubs(nextSubs)
-    emit(selectedCats, nextSubs)
+    setSelectedCats(nextCats)
+    emit(nextCats, nextSubs)
   }
 
   function clearAll() {
