@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLang } from '@/components/LanguageProvider'
 import type { TradeCategory } from '@/types/database'
 
@@ -1044,6 +1044,9 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
   const [search, setSearch] = useState('')
   const normalizedSearch = useMemo(() => normalize(search.trim()), [search])
   const hasSearch = normalizedSearch.length > 0
+  // Refs for scroll-to-result and input blur
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const matchAnchorRef = useRef<HTMLDivElement>(null)
 
   // When the user types a search, auto-find the first matching (cat, group, item) triple
   // and navigate to it so the user sees the matches immediately.
@@ -1111,6 +1114,40 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
       if (normalize(L(item, lang)).includes(normalizedSearch)) return true
       return item.variants?.some(v => normalize(L(v, lang)).includes(normalizedSearch)) ?? false
     })
+  }
+
+  // Explicit search trigger — finds match, force-expands variants if any,
+  // scrolls to the result, and blurs the input (closes mobile keyboard).
+  function runSearch() {
+    if (!hasSearch) return
+    // Force-expand the first matched item even if no variants exist, so the
+    // user sees the check box immediately after pressing Go.
+    for (const cat of CATEGORIES) {
+      if (cat.id === 'all') continue
+      const catId = cat.id as TradeCategory
+      const groups = SUBCATEGORIES[catId]
+      if (!groups) continue
+      for (const group of groups) {
+        for (const item of group.items) {
+          const itemMatches = normalize(L(item, lang)).includes(normalizedSearch)
+          const variantMatch = item.variants?.find(v =>
+            normalize(L(v, lang)).includes(normalizedSearch),
+          )
+          const groupMatches = normalize(G(group, lang)).includes(normalizedSearch)
+          if (itemMatches || variantMatch || groupMatches) {
+            setNavCat(catId)
+            setExpandedGroup(group.group)
+            if (item.variants) setExpandedItem(item.id)
+            // Blur input to close mobile keyboard, scroll into view shortly after
+            searchInputRef.current?.blur()
+            setTimeout(() => {
+              matchAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }, 120)
+            return
+          }
+        }
+      }
+    }
   }
 
   function emit(cats: Set<string>, subs: Set<string>) {
@@ -1232,40 +1269,55 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
         </div>
       )}
 
-      {/* Search — auto-expands matching category/group/item */}
+      {/* Search — auto-expands matching category/group/item + Go button */}
       <div className="px-3 pt-3 pb-2 border-b border-[rgba(201,168,76,.1)]">
-        <div className="relative">
-          <svg
-            className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-            width="12"
-            height="12"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={lang === 'fr' ? 'Rechercher (ex: gold)' : 'Search (e.g. gold)'}
-            className="w-full pl-7 pr-7 h-8 text-[11px] bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A84C] transition-colors"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              aria-label="Clear"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-500 hover:text-white text-base leading-none"
+        <form
+          onSubmit={(e) => { e.preventDefault(); runSearch() }}
+          className="relative flex items-center gap-1.5"
+        >
+          <div className="relative flex-1 min-w-0">
+            <svg
+              className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              width="12"
+              height="12"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
-              ×
-            </button>
-          )}
-        </div>
+              <path
+                fillRule="evenodd"
+                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={lang === 'fr' ? 'Rechercher (ex: gold)' : 'Search (e.g. gold)'}
+              className="w-full pl-7 pr-7 h-8 text-[11px] bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A84C] transition-colors"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-500 hover:text-white text-base leading-none"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={!hasSearch}
+            aria-label={lang === 'fr' ? 'Lancer la recherche' : 'Search'}
+            title={lang === 'fr' ? 'Lancer la recherche' : 'Search'}
+            className="shrink-0 h-8 px-2.5 rounded-md bg-[#C9A84C] text-[#07090F] text-[10px] font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E8C97A]"
+          >
+            GO
+          </button>
+        </form>
       </div>
 
       {/* Top-level categories */}
@@ -1314,6 +1366,7 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
       {/* Sub-items panel */}
       {subGroups.length > 0 && (
         <div className="p-3 flex-1">
+          <div ref={matchAnchorRef} />
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{lang === 'fr' ? 'Matières' : 'Commodities'}</p>
             {!hasSearch && (

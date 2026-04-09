@@ -142,13 +142,18 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
         zoom: 2.5,
         minZoom: 2,
         maxZoom: 18,
-        zoomControl: true,
+        zoomControl: false, // manual placement below (topright, away from stats & sidebar)
         zoomSnap: 0.5,
         zoomDelta: 0.5,
         touchZoom: true,
         attributionControl: false,
         worldCopyJump: true,
       })
+      // Mount zoom controls at topright on desktop (below tile switcher),
+      // and bottom-right on mobile so they never overlap the CategoryFilter
+      // toggle button (left), topbar, or the bottom-left stats bar.
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+      L.control.zoom({ position: isMobile ? 'bottomright' : 'topright' }).addTo(map)
       leafletMapRef.current = map
       leafletRef.current = L
 
@@ -329,7 +334,18 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
         )}
       </div>
 
-      {/* Hide zoom controls on mobile when panel is open */}
+      {/* Zoom control placement — ensure no overlap with tile switcher (topright desktop)
+          or the CategoryFilter toggle button (left) and stats bar (bottom-left) on mobile */}
+      <style>{`
+        /* Desktop: tile switcher lives at top:12 right:12; push zoom below it */
+        .leaflet-top.leaflet-right { top: 56px !important; right: 12px !important; }
+        /* Mobile: zoom is at bottom-right, safe distance from stats bar (bottom-left) */
+        @media (max-width: 767px) {
+          .leaflet-top.leaflet-right { top: unset !important; }
+          .leaflet-bottom.leaflet-right { bottom: 12px !important; right: 12px !important; }
+        }
+      `}</style>
+      {/* Hide zoom controls on mobile when country panel is open (panel covers map) */}
       {selectedCountry && (
         <style>{`@media (max-width: 767px) { .leaflet-control-zoom { display: none !important; } }`}</style>
       )}
