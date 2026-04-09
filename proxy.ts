@@ -30,6 +30,8 @@ const PUBLIC_API = new Set([
   '/api/stripe/webhook',              // Stripe signature-verified
   '/api/track',                       // Lightweight analytics
   '/api/cron/collect',                // Cron secret-verified internally
+  '/api/cron/research',               // Cron secret-verified internally
+  '/api/reports/enriched-plan',       // Public consumer of /country/[iso]/enriched-plan
 ])
 
 const PUBLIC_API_PREFIXES = [
