@@ -327,11 +327,11 @@ export default function ReportPage() {
             { label: 'PIB par habitant', value: country.gdp_per_capita ? `$${country.gdp_per_capita?.toLocaleString()}` : fmt(country.gdp_usd ? country.gdp_usd / (country.population ?? 1) : null), icon: '💰', color: '#C9A84C' },
           ].map(kpi => (
             <div key={kpi.label} className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-2.5 md:p-4 min-w-0">
-              <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2">
+              <div className="flex items-start gap-1.5 md:gap-2 mb-1 md:mb-2">
                 <span className="text-base md:text-lg shrink-0">{kpi.icon}</span>
-                <span className="text-[10px] md:text-xs text-gray-500 truncate">{kpi.label}</span>
+                <span className="text-[10px] md:text-xs text-gray-500 leading-tight">{kpi.label}</span>
               </div>
-              <div className="text-sm md:text-xl font-bold truncate" style={{ color: kpi.color }}>{kpi.value}</div>
+              <div className="text-sm md:text-xl font-bold leading-tight" style={{ color: kpi.color }}>{kpi.value}</div>
             </div>
           ))}
         </div>

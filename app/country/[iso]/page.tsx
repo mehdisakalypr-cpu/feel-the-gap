@@ -312,8 +312,8 @@ function CountryPageInner() {
             { label: t('country.gdp'), value: fmt(country.gdp_usd), color: '#C9A84C' },
           ].map(k => (
             <div key={k.label} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-2.5 md:p-4 min-w-0">
-              <div className="text-[10px] md:text-xs text-gray-500 mb-0.5 md:mb-1 truncate">{k.label}</div>
-              <div className="text-sm md:text-xl font-bold truncate" style={{ color: k.color }}>{k.value}</div>
+              <div className="text-[10px] md:text-xs text-gray-500 mb-0.5 md:mb-1 leading-tight">{k.label}</div>
+              <div className="text-sm md:text-xl font-bold leading-tight" style={{ color: k.color }}>{k.value}</div>
             </div>
           ))}
         </div>

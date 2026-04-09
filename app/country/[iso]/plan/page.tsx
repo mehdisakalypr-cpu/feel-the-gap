@@ -375,12 +375,28 @@ function BuyerCard({ buyer }: { buyer: Buyer }) {
 function BusinessPlanContent({ country, opps, userTier }: { country: Country; opps: Opportunity[]; userTier: string }) {
   const { lang } = useLang()
   const isPremium = TIER_RANK[userTier] >= TIER_RANK['premium']
+  // Cache key scoped by country + lang so regenerating after a lang switch still works.
+  const cacheKey = `ftg_plan_${country.id}_${lang}`
   const [plan, setPlan] = useState<PlanData | null>(null)
   const [generating, setGenerating] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rawBuffer, setRawBuffer] = useState('')
   const planRef = useRef<HTMLDivElement>(null)
+
+  // Restore cached plan from localStorage on mount/lang change — zero tokens.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(cacheKey)
+      if (raw) {
+        const parsed = JSON.parse(raw) as PlanData
+        setPlan(parsed)
+      } else {
+        setPlan(null)
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey])
 
   const downloadPDF = useCallback(async () => {
     if (!planRef.current || !plan) return
@@ -505,6 +521,9 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
       if (!jsonMatch) throw new Error('Invalid response format')
       const parsed = JSON.parse(jsonMatch[0]) as PlanData
       setPlan(parsed)
+      // Persist to localStorage so refreshing or navigating back never
+      // triggers a new LLM call — download PDF/txt uses this cached state.
+      try { localStorage.setItem(cacheKey, JSON.stringify(parsed)) } catch {}
     } catch (err) {
       setError(lang === 'fr' ? 'Erreur de génération. Réessayez.' : 'Generation failed. Please retry.')
       console.error(err)
@@ -691,8 +710,8 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
           <div key={k.label} className="bg-[#0D1117] px-2.5 py-2.5 md:px-4 md:py-3 flex items-center gap-2 md:gap-3 min-w-0">
             <span className="text-base md:text-lg shrink-0">{k.icon}</span>
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] md:text-base font-bold truncate" style={{ color: k.color }}>{k.value}</div>
-              <div className="text-[10px] md:text-xs text-gray-500 truncate">{k.label}</div>
+              <div className="text-[13px] md:text-base font-bold leading-tight" style={{ color: k.color }}>{k.value}</div>
+              <div className="text-[10px] md:text-xs text-gray-500 leading-tight">{k.label}</div>
             </div>
           </div>
         ))}
@@ -923,7 +942,18 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
         {/* Download */}
         <div className="flex gap-3 justify-end pt-2 border-t border-white/5">
           <button
-            onClick={() => setPlan(null)}
+            onClick={() => {
+              // Explicit regenerate: clear cache + reset state. Tokens will be
+              // consumed by the next generate() call — confirmed via UI intent.
+              if (typeof window !== 'undefined') {
+                const ok = confirm(lang === 'fr'
+                  ? 'Régénérer le business plan consommera des crédits IA. Continuer ?'
+                  : 'Regenerating the business plan will consume AI credits. Continue?')
+                if (!ok) return
+                try { localStorage.removeItem(cacheKey) } catch {}
+              }
+              setPlan(null)
+            }}
             className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl text-sm hover:bg-white/10 transition-colors"
           >
             {lang === 'fr' ? '↺ Regénérer' : '↺ Regenerate'}
