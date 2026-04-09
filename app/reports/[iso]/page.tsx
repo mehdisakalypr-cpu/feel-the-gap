@@ -260,7 +260,7 @@ export default function ReportPage() {
               Fiche pays
             </Link>
             <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors whitespace-nowrap">
-              Plan d'affaires →
+              Business plan →
             </Link>
           </div>
         </div>
@@ -544,7 +544,7 @@ export default function ReportPage() {
         {/* ── CTA ── */}
         <div className="bg-gradient-to-r from-[#C9A84C]/10 to-[#A78BFA]/10 border border-[#C9A84C]/20 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
           <div className="flex-1">
-            <h3 className="font-bold text-white mb-1">Générer un plan d'affaires personnalisé</h3>
+            <h3 className="font-bold text-white mb-1">Générer un business plan personnalisé</h3>
             <p className="text-sm text-gray-400">Notre IA analyse les opportunités ci-dessus et génère un business plan complet avec stratégie d'entrée, projections financières et feuille de route.</p>
           </div>
           <Link

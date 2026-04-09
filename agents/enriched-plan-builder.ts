@@ -161,8 +161,10 @@ function buildPlanPrompt(args: {
   productSlug: string;
   research: Awaited<ReturnType<typeof loadResearchData>>;
   precision: PrecisionInputs | null;
+  lang?: 'fr' | 'en';
 }): string {
   const { research, precision, countryName, productName } = args;
+  const lang = args.lang ?? 'fr';
 
   const regBrief = research.regulations.slice(0, 10).map((r) =>
     `- [${r.category}] ${r.title}: ${r.summary ?? r.content?.slice(0, 200)}`,
@@ -190,12 +192,17 @@ function buildPlanPrompt(args: {
         .join('\n')}`
     : '';
 
+  const langInstruction =
+    lang === 'en'
+      ? '\n\n**LANGUAGE**: Write ALL free-text fields (executive_summary, descriptions, labels, advantages, disadvantages, market_study strings, action_plan milestones, risks, precision_form_prompts) strictly in ENGLISH. Keep JSON keys unchanged.\n'
+      : '\n\n**LANGUE**: Redige TOUS les champs texte libres en FRANCAIS. Garde les cles JSON inchangees.\n';
+
   return `Tu es un consultant senior en commerce international et en montage de projets industriels/agricoles dans les pays emergents.
 
 Genere un business plan enrichi pour:
 - Pays: ${countryName} (${args.countryIso})
 - Produit: ${productName}
-
+${langInstruction}
 Utilise les DONNEES DE RECHERCHE ci-dessous (issues de videos terrain, sites gouvernementaux et benchmarks) comme source primaire.
 
 **Reglementation recente (${research.regulations.length} entrees):**
@@ -320,12 +327,14 @@ export async function buildEnrichedPlan(args: {
   productName: string;      // affichage
   opportunityId?: string;
   precision?: PrecisionInputs;
+  lang?: 'fr' | 'en';
 }): Promise<EnrichedBusinessPlan> {
   const admin = supabaseAdmin();
+  const lang = args.lang ?? 'fr';
   const { data: country } = await admin.from('countries').select('name, name_fr').eq('id', args.countryIso).single();
-  const countryName = country?.name_fr ?? country?.name ?? args.countryIso;
+  const countryName = (lang === 'en' ? country?.name : country?.name_fr) ?? country?.name_fr ?? country?.name ?? args.countryIso;
 
-  console.log(`[enriched-plan] Loading research for ${args.countryIso}/${args.productSlug}…`);
+  console.log(`[enriched-plan] Loading research for ${args.countryIso}/${args.productSlug} (lang=${lang})…`);
   const research = await loadResearchData(admin, args.countryIso, args.productSlug);
   console.log(
     `  regs=${research.regulations.length} yt=${research.youtube_insights.length} costs=${research.cost_benchmarks.length} logi=${research.logistics.length}`,
@@ -338,6 +347,7 @@ export async function buildEnrichedPlan(args: {
     productSlug: args.productSlug,
     research,
     precision: args.precision ?? null,
+    lang,
   });
 
   console.log('[enriched-plan] Calling LLM…');

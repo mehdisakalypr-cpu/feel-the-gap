@@ -445,7 +445,7 @@ export default function CountryPage() {
           <div className="flex gap-2 shrink-0">
             <Link href={`/reports/${iso}`} className="px-4 py-2 bg-[#34D399]/15 text-[#34D399] font-semibold text-xs rounded-xl border border-[#34D399]/30 hover:bg-[#34D399]/25 transition-colors whitespace-nowrap">{lang === 'fr' ? 'Opportunités' : 'Opportunities'}</Link>
             <Link href={`/country/${iso}/enriched-plan`} className="px-4 py-2 bg-purple-500/15 text-purple-300 font-semibold text-xs rounded-xl border border-purple-500/30 hover:bg-purple-500/25 transition-colors whitespace-nowrap">{lang === 'fr' ? '3 scénarios ★' : '3 scenarios ★'}</Link>
-            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-xs rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap">{lang === 'fr' ? 'Plan d\'affaires →' : 'Business plan →'}</Link>
+            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-xs rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap">Business plan →</Link>
           </div>
         </div>
       </div>
