@@ -45,7 +45,17 @@ function fmt(v: number | null) {
 
 const TYPE_LABEL: Record<string, string> = { direct_trade: 'Direct Trade', local_production: 'Local Production' }
 const CATEGORY_ICON: Record<string, string> = { agriculture: '🌾', energy: '⚡', materials: '🪨', manufactured: '🏭', resources: '💧' }
-const TIER_RANK: Record<string, number> = { free: 0, basic: 1, standard: 2, premium: 3, enterprise: 4 }
+// Ranks support both legacy tiers (free/basic/standard) and current DB tiers (explorer/data/strategy).
+const TIER_RANK: Record<string, number> = {
+  free: 0,
+  explorer: 0,
+  basic: 1,
+  data: 1,
+  standard: 2,
+  strategy: 2,
+  premium: 3,
+  enterprise: 4,
+}
 
 // ── AI Chat ───────────────────────────────────────────────────────────────────
 
@@ -407,7 +417,7 @@ export default function CountryPage() {
                     {opp.summary && <p className="text-xs text-gray-400 line-clamp-2">{opp.summary}</p>}
                     <div className="mt-2 flex gap-3">
                       <Link href={`/reports/${iso}`} className="text-[10px] text-[#34D399] hover:underline">{lang === 'fr' ? 'Rapport détaillé →' : 'Detailed report →'}</Link>
-                      <Link href={TIER_RANK[userTier] >= TIER_RANK['standard'] ? `/country/${iso}/plan` : '/pricing'} className="text-[10px] text-[#C9A84C] hover:underline">{t('country.full_plan')}</Link>
+                      <Link href={`/country/${iso}/plan`} className="text-[10px] text-[#C9A84C] hover:underline">{t('country.full_plan')}</Link>
                     </div>
                   </div>
                 ))}
@@ -417,8 +427,8 @@ export default function CountryPage() {
             <div className="bg-gradient-to-r from-[#C9A84C]/10 to-transparent border border-[#C9A84C]/25 rounded-xl p-4">
               <div className="font-semibold text-white text-sm mb-1">{t('country.full_report', { country: country.name_fr })}</div>
               <div className="text-xs text-gray-400 mb-3">{t('country.full_report_desc')}</div>
-              <Link href={TIER_RANK[userTier] >= TIER_RANK['standard'] ? `/country/${iso}/plan` : '/pricing'} className="block w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold text-sm text-center rounded-xl hover:bg-[#E8C97A] transition-colors">
-                {TIER_RANK[userTier] >= TIER_RANK['standard'] ? t('country.full_plan') : t('country.upgrade_btn')}
+              <Link href={`/country/${iso}/plan`} className="block w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold text-sm text-center rounded-xl hover:bg-[#E8C97A] transition-colors">
+                {t('country.full_plan')}
               </Link>
             </div>
           </div>
@@ -434,7 +444,8 @@ export default function CountryPage() {
           <div className="flex items-center gap-3 min-w-0"><span className="text-2xl shrink-0">{country.flag}</span><div className="min-w-0"><div className="text-sm font-semibold text-white truncate">{country.name_fr}</div><div className="text-[11px] text-gray-500">{opps.length} {t('country.opportunities').toLowerCase()}</div></div></div>
           <div className="flex gap-2 shrink-0">
             <Link href={`/reports/${iso}`} className="px-4 py-2 bg-[#34D399]/15 text-[#34D399] font-semibold text-xs rounded-xl border border-[#34D399]/30 hover:bg-[#34D399]/25 transition-colors whitespace-nowrap">{lang === 'fr' ? 'Opportunités' : 'Opportunities'}</Link>
-            <Link href={TIER_RANK[userTier] >= TIER_RANK['standard'] ? `/country/${iso}/plan` : '/pricing'} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-xs rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap">{lang === 'fr' ? 'Plan d\'affaires →' : 'Business plan →'}</Link>
+            <Link href={`/country/${iso}/enriched-plan`} className="px-4 py-2 bg-purple-500/15 text-purple-300 font-semibold text-xs rounded-xl border border-purple-500/30 hover:bg-purple-500/25 transition-colors whitespace-nowrap">{lang === 'fr' ? '3 scénarios ★' : '3 scenarios ★'}</Link>
+            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-xs rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap">{lang === 'fr' ? 'Plan d\'affaires →' : 'Business plan →'}</Link>
           </div>
         </div>
       </div>

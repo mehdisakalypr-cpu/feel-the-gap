@@ -288,7 +288,17 @@ ${lang === 'fr' ? 'Tous les textes en français.' : 'All text in English.'}`
 
 // ── Main business plan renderer ───────────────────────────────────────────────
 
-const TIER_RANK: Record<string, number> = { free: 0, basic: 1, standard: 2, premium: 3, enterprise: 4 }
+// Ranks support both legacy tiers (free/basic/standard) and current DB tiers (explorer/data/strategy).
+const TIER_RANK: Record<string, number> = {
+  free: 0,
+  explorer: 0,
+  basic: 1,
+  data: 1,
+  standard: 2,
+  strategy: 2,
+  premium: 3,
+  enterprise: 4,
+}
 
 const BUYER_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   manufacturer: { label: 'Industriel',      color: '#F97316' },

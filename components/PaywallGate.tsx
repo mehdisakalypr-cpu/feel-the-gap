@@ -4,9 +4,19 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
-type Tier = 'free' | 'basic' | 'standard' | 'premium' | 'enterprise'
+type Tier = 'free' | 'explorer' | 'basic' | 'data' | 'standard' | 'strategy' | 'premium' | 'enterprise'
 
-const TIER_RANK: Record<Tier, number> = { free: 0, basic: 1, standard: 2, premium: 3, enterprise: 4 }
+// Ranks support both legacy tiers (free/basic/standard) and current DB tiers (explorer/data/strategy).
+const TIER_RANK: Record<Tier, number> = {
+  free: 0,
+  explorer: 0,
+  basic: 1,
+  data: 1,
+  standard: 2,
+  strategy: 2,
+  premium: 3,
+  enterprise: 4,
+}
 
 const TIER_LABELS: Record<'basic' | 'standard' | 'premium', string> = {
   basic:    'Data',
