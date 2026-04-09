@@ -38,6 +38,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/auth/callback',
   '/api/countries',       // Public data
   '/api/opportunities',   // Public data
+  '/api/stats',           // Public aggregate stats (map counters)
 ]
 
 // ── Admin routes — require admin role ────────────────────────────────────────
