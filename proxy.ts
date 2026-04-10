@@ -27,6 +27,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/go/',        // affiliate redirect links
   '/reports/',   // country reports (tier-gated in page)
   '/country/',   // country detail pages (tier-gated in page)
+  '/demo/',      // demo tour pages (public access)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
@@ -39,6 +40,8 @@ const PUBLIC_API = new Set([
   '/api/cron/collect',                // Cron secret-verified internally
   '/api/cron/research',               // Cron secret-verified internally
   '/api/reports/enriched-plan',       // Public consumer of /country/[iso]/enriched-plan
+  '/api/demo/request',                // Public demo request (create + check status)
+  '/api/demo/tour',                   // Public tour steps
 ])
 
 const PUBLIC_API_PREFIXES = [
