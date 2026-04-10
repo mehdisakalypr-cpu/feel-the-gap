@@ -18,7 +18,6 @@ export default function LoginPage() {
   const [biometricEmail, setBiometricEmail] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  // Check biometric availability when email changes (debounced)
   useEffect(() => {
     if (!window.PublicKeyCredential) return
     const saved = localStorage.getItem('ftg_biometric_email')
@@ -61,8 +60,8 @@ export default function LoginPage() {
         body: JSON.stringify({ action: 'start', email: biometricEmail || email }),
       })
       const startData = await startRes.json()
-      if (!startData.available) {
-        setError('Biométrie non disponible pour ce compte.')
+      if (!startData.options) {
+        setError('Biométrie non disponible pour ce compte. Connectez-vous avec votre mot de passe puis reconfigurez la biométrie dans Mon compte.')
         setBiometricLoading(false)
         return
       }
@@ -96,21 +95,24 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
-      if (!msg.includes('AbortError') && !msg.includes('NotAllowedError')) {
-        setError('biometric_error')
+      // NotAllowedError = user cancelled, AbortError = user cancelled
+      if (msg.includes('AbortError') || msg.includes('NotAllowedError')) {
+        setBiometricLoading(false)
+        return
       }
+      // If the browser says no matching credential found, the credential was
+      // registered on a different domain. Guide user to re-register.
+      setError('biometric_domain_mismatch')
     }
     setBiometricLoading(false)
   }, [email, biometricEmail, router])
 
   async function resetBiometric() {
-    // Clear local biometric data and server credentials
     localStorage.removeItem('ftg_biometric_email')
     localStorage.removeItem('ftg_biometric_offered')
     setBiometricAvailable(false)
     setBiometricEmail('')
     setError(null)
-    // Try to delete server-side credentials
     try {
       await fetch('/api/auth/webauthn/check', {
         method: 'DELETE',
@@ -131,9 +133,8 @@ export default function LoginPage() {
     // Save email for biometric quick-access
     localStorage.setItem('ftg_biometric_email', email)
 
-    // Offer biometric setup only ONCE (never re-ask if already offered or configured)
-    const biometricOffered = localStorage.getItem('ftg_biometric_offered')
-    if (!biometricOffered && window.PublicKeyCredential) {
+    // Offer biometric setup if not configured yet for this domain
+    if (window.PublicKeyCredential) {
       try {
         const platformOk = typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
           ? await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
@@ -148,8 +149,7 @@ export default function LoginPage() {
           const checkData = await checkRes.json()
 
           if (!checkData.available) {
-            // Mark as offered so we never ask again
-            localStorage.setItem('ftg_biometric_offered', 'true')
+            // No credentials registered (or wrong domain) — offer setup
             setLoading(false)
             router.push('/auth/biometric-setup')
             return
@@ -189,9 +189,13 @@ export default function LoginPage() {
 
           {error && (
             <div className="mb-4 px-3 py-2.5 bg-red-500/10 border border-red-500/25 rounded-lg text-red-400 text-sm">
-              {error === 'biometric_error' ? (
+              {error === 'biometric_error' || error === 'biometric_domain_mismatch' ? (
                 <div>
-                  <p>Erreur biométrique. Utilisez le mot de passe.</p>
+                  <p>
+                    {error === 'biometric_domain_mismatch'
+                      ? 'Biométrie configurée sur un autre domaine. Connectez-vous avec votre mot de passe — la biométrie sera reconfigurée automatiquement.'
+                      : 'Erreur biométrique. Utilisez le mot de passe.'}
+                  </p>
                   <button onClick={resetBiometric} className="mt-2 text-xs text-[#C9A84C] underline hover:text-[#E8C97A]">
                     Réinitialiser la biométrie
                   </button>

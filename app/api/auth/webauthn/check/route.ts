@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCredentials } from "@/lib/webauthn";
+import { checkCredentialsForEmail } from "@/lib/webauthn";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // Check if an email has biometric credentials registered
@@ -8,13 +8,8 @@ export async function POST(req: NextRequest) {
   if (!email) return NextResponse.json({ available: false, count: 0 });
 
   try {
-    const sb = supabaseAdmin();
-    const { data } = await sb.auth.admin.listUsers();
-    const user = data?.users?.find((u) => u.email === email);
-    if (!user) return NextResponse.json({ available: false, count: 0 });
-
-    const creds = await getCredentials(user.id);
-    return NextResponse.json({ available: creds.length > 0, count: creds.length });
+    const result = await checkCredentialsForEmail(email);
+    return NextResponse.json(result);
   } catch {
     return NextResponse.json({ available: false, count: 0 });
   }
@@ -27,12 +22,14 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const sb = supabaseAdmin();
-    const { data } = await sb.auth.admin.listUsers();
-    const user = data?.users?.find((u) => u.email === email);
-    if (!user) return NextResponse.json({ ok: true });
+    const { data } = await sb
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .single();
+    if (!data) return NextResponse.json({ ok: true });
 
-    // Delete all webauthn credentials for this user
-    await sb.from("webauthn_credentials").delete().eq("user_id", user.id);
+    await sb.from("webauthn_credentials").delete().eq("user_id", data.id);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false });
