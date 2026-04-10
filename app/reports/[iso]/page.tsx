@@ -308,14 +308,6 @@ export default function ReportPage() {
               les écarts de production et les opportunités d'investissement identifiées pour {country.name_fr}.
             </p>
           </div>
-          <div className="flex gap-2 shrink-0 w-full md:w-auto">
-            <Link href={`/country/${iso}`} className="px-4 py-2 bg-white/5 text-gray-400 border border-white/10 rounded-xl text-sm hover:bg-white/10 transition-colors whitespace-nowrap">
-              Fiche pays
-            </Link>
-            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl text-sm hover:bg-[#E8C97A] transition-colors whitespace-nowrap">
-              Business plan →
-            </Link>
-          </div>
         </div>
 
         {/* ── KPI Strip ── */}
@@ -614,19 +606,6 @@ export default function ReportPage() {
           </div>
         </div>
 
-        {/* ── CTA ── */}
-        <div className="bg-gradient-to-r from-[#C9A84C]/10 to-[#A78BFA]/10 border border-[#C9A84C]/20 rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-          <div className="flex-1">
-            <h3 className="font-bold text-white mb-1">Générer un business plan personnalisé</h3>
-            <p className="text-sm text-gray-400">Notre IA analyse les opportunités ci-dessus et génère un business plan complet avec stratégie d'entrée, projections financières et feuille de route.</p>
-          </div>
-          <Link
-            href={`/country/${iso}/plan`}
-            className="shrink-0 px-6 py-3 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap"
-          >
-            Générer le plan →
-          </Link>
-        </div>
 
         <div className="text-center text-xs text-gray-600 pb-4">
           Rapport Feel The Gap · {country.data_year ?? 2023}
