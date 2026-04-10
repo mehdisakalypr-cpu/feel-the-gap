@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/demo-accounts', label: 'Comptes démo',   icon: '🎭' },
   { href: '/admin/demo-parcours', label: 'Parcours démo',  icon: '🎯' },
   { href: '/admin/growth',        label: 'Growth Plan',    icon: '🚀' },
+  { href: '/admin/prospection',   label: 'Prospection',    icon: '📡' },
 ]
 
 // Demo accounts for the quick-switch menu in the sidebar footer.
