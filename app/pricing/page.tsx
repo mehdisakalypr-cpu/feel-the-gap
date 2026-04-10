@@ -100,27 +100,6 @@ const PLANS = [
     popular: false,
     note: 'L\'AI Advisor prospection consomme des crédits IA (inclus dans le plan, rechargeables).',
   },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: null,
-    period: null,
-    badge: null,
-    description: 'Recherche sur-mesure et solutions white-label pour organisations.',
-    color: '#64748B',
-    features: [
-      'Tout Premium',
-      'Recherche pays / secteur personnalisée',
-      'Rapports white-label',
-      'Accès API REST',
-      'Analyste dédié',
-      'SLA & contrats sur mesure',
-    ],
-    cta: 'Nous contacter',
-    href: 'mailto:hello@feelthegap.com',
-    priceId: null,
-    popular: false,
-  },
 ]
 
 const CREDIT_PACKS = [
@@ -259,13 +238,7 @@ export default function PricingPage() {
                 </p>
               )}
 
-              {plan.id === 'enterprise' ? (
-                <a href={plan.href}
-                  className="w-full py-2.5 text-sm font-semibold text-center rounded-xl transition-colors block"
-                  style={{ background: plan.color + '18', color: plan.color, border: `1px solid ${plan.color}33` }}>
-                  {plan.cta}
-                </a>
-              ) : plan.id === 'free' ? (
+              {plan.id === 'free' ? (
                 <Link href={plan.href}
                   className="w-full py-2.5 text-sm font-semibold text-center rounded-xl transition-colors block"
                   style={{ background: plan.color + '18', color: plan.color, border: `1px solid ${plan.color}33` }}>

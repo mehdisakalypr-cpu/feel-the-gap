@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getAuthUser } from '@/lib/supabase-server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export const runtime = 'nodejs'
+export const maxDuration = 120
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,6 +27,9 @@ interface UserContext {
   notes?: string
 }
 
+// All 3 commercial modes — ALWAYS generated together and cached.
+const ALL_MODES = ['import_sell', 'produce_locally', 'train_locals'] as const
+
 // ── System prompt ──────────────────────────────────────────────────────────────
 
 const SYSTEM = `Tu es un consultant senior en commerce international et développement des affaires, spécialisé sur l'Afrique subsaharienne et les marchés émergents.
@@ -37,34 +44,25 @@ Règles absolues :
 - Les projections financières doivent être cohérentes entre elles
 - Réponds UNIQUEMENT en JSON valide, aucun texte avant ou après`
 
-// ── Build prompt ───────────────────────────────────────────────────────────────
+// ── Build prompt (always ALL 3 modes) ─────────────────────────────────────────
 
 function buildPrompt(
   countryName: string,
   iso: string,
   opps: OppInput[],
-  models: string[],
   ctx: UserContext,
 ): string {
-  const modelLabels: Record<string, string> = {
-    import_sell:     'Import & Revente — acheter à l\'étranger, importer et distribuer localement',
-    produce_locally: 'Production locale — installer une capacité de fabrication/transformation sur place',
-    train_locals:    'Former les locaux — modèle services/consulting, transfert de compétences',
-  }
-
   const oppsText = opps.map(o =>
-    `• ${o.product} (${o.category}) — Gap estimé: $${o.gap_value_usd ? (o.gap_value_usd/1e6).toFixed(1) + 'M' : 'N/A'}/an, Score: ${o.score}/100, Type: ${o.type}${o.summary ? `. ${o.summary}` : ''}`
+    `• ${o.product} (${o.category}) — Gap estimé: $${o.gap_value_usd ? (o.gap_value_usd / 1e6).toFixed(1) + 'M' : 'N/A'}/an, Score: ${o.score}/100, Type: ${o.type}${o.summary ? `. ${o.summary}` : ''}`,
   ).join('\n')
 
-  const modelsText = models.map(m => `• ${modelLabels[m] ?? m}`).join('\n')
-
   const ctxLines = [
-    ctx.qty_tons    ? `• Volume visé : ${ctx.qty_tons} tonnes/mois` : '',
+    ctx.qty_tons ? `• Volume visé : ${ctx.qty_tons} tonnes/mois` : '',
     ctx.price_eur_kg ? `• Prix de vente cible : ${ctx.price_eur_kg} €/kg` : '',
-    ctx.budget_eur  ? `• Budget disponible : ${ctx.budget_eur} €` : '',
-    ctx.timeline    ? `• Horizon de temps : ${ctx.timeline}` : '',
-    ctx.sector      ? `• Secteur actuel de l'investisseur : ${ctx.sector}` : '',
-    ctx.notes       ? `• Notes supplémentaires : ${ctx.notes}` : '',
+    ctx.budget_eur ? `• Budget disponible : ${ctx.budget_eur} €` : '',
+    ctx.timeline ? `• Horizon de temps : ${ctx.timeline}` : '',
+    ctx.sector ? `• Secteur actuel de l'investisseur : ${ctx.sector}` : '',
+    ctx.notes ? `• Notes supplémentaires : ${ctx.notes}` : '',
   ].filter(Boolean).join('\n') || '• Aucun contexte spécifique fourni — utilise des hypothèses raisonnables'
 
   return `Génère un business plan complet pour les opportunités suivantes en ${countryName} (${iso}).
@@ -72,11 +70,15 @@ function buildPrompt(
 OPPORTUNITÉS SÉLECTIONNÉES :
 ${oppsText}
 
-MODÈLES COMMERCIAUX RETENUS :
-${modelsText}
-
 CONTEXTE DE L'INVESTISSEUR :
 ${ctxLines}
+
+Tu dois générer **les TROIS modes de commercialisation** ci-dessous dans le même plan. L'utilisateur filtrera ensuite côté UI ce qu'il veut voir.
+
+MODÈLES COMMERCIAUX À COUVRIR (les trois, exhaustivement) :
+• import_sell — Import & Revente : acheter à l'étranger, importer et distribuer localement
+• produce_locally — Production locale : installer une capacité de fabrication/transformation sur place
+• train_locals — Former les locaux : modèle services/consulting, transfert de compétences
 
 Retourne EXACTEMENT ce JSON (complète chaque champ avec du vrai contenu, pas de placeholder) :
 
@@ -89,8 +91,8 @@ Retourne EXACTEMENT ce JSON (complète chaque champ avec du vrai contenu, pas de
   "opportunity_rationale": "Pourquoi ces opportunités maintenant, 2-3 phrases convaincantes",
   "strategies": [
     {
-      "model": "import_sell|produce_locally|train_locals",
-      "title": "Titre de la stratégie",
+      "model": "import_sell",
+      "title": "Titre de la stratégie Import & Revente",
       "description": "Description détaillée 3-4 phrases",
       "pros": ["avantage 1", "avantage 2", "avantage 3"],
       "cons": ["inconvénient 1", "inconvénient 2"],
@@ -99,42 +101,44 @@ Retourne EXACTEMENT ce JSON (complète chaque champ avec du vrai contenu, pas de
       "timeline_months": 18,
       "margin_pct_min": 20,
       "margin_pct_max": 35,
-      "breakeven_months": 14
-    }
-  ],
-  "action_plan": [
-    {
-      "phase": 1,
-      "title": "Titre de la phase",
-      "duration": "ex: Mois 1-3",
-      "actions": ["action 1", "action 2", "action 3", "action 4"],
-      "milestones": ["livrable 1", "livrable 2"],
-      "budget_eur": 25000,
-      "icon": "🔍"
-    }
-  ],
-  "financials": {
-    "initial_investment_min": 80000,
-    "initial_investment_max": 250000,
-    "monthly_revenue_y1": 18000,
-    "monthly_revenue_y3": 55000,
-    "monthly_costs_y1": 13000,
-    "monthly_costs_y3": 35000,
-    "margin_pct": 28,
-    "breakeven_months": 16,
-    "roi_3y_pct": 165,
-    "notes": "note sur les hypothèses financières"
-  },
-  "b2b_targets": [
-    {
-      "segment": "Nom du segment",
-      "description": "Description du segment en 1-2 phrases",
-      "potential": "Volume ou valeur estimée du segment",
-      "examples": ["Nom entreprise 1 (pays)", "Nom entreprise 2 (pays)", "Nom entreprise 3 (pays)"],
-      "approach": "Comment approcher ce segment en 1 phrase",
-      "decision_cycle": "court|moyen|long",
-      "volume_per_client": "ex: 5-20 tonnes/mois"
-    }
+      "breakeven_months": 14,
+      "action_plan": [
+        {
+          "phase": 1,
+          "title": "Titre de la phase",
+          "duration": "Mois 1-3",
+          "actions": ["action 1", "action 2", "action 3"],
+          "milestones": ["livrable 1", "livrable 2"],
+          "budget_eur": 25000,
+          "icon": "🔍"
+        }
+      ],
+      "financials": {
+        "initial_investment_min": 80000,
+        "initial_investment_max": 250000,
+        "monthly_revenue_y1": 18000,
+        "monthly_revenue_y3": 55000,
+        "monthly_costs_y1": 13000,
+        "monthly_costs_y3": 35000,
+        "margin_pct": 28,
+        "breakeven_months": 16,
+        "roi_3y_pct": 165,
+        "notes": "note sur les hypothèses"
+      },
+      "b2b_targets": [
+        {
+          "segment": "Nom du segment",
+          "description": "Description 1-2 phrases",
+          "potential": "Volume ou valeur estimée",
+          "examples": ["Entreprise 1 (pays)", "Entreprise 2 (pays)"],
+          "approach": "Comment approcher en 1 phrase",
+          "decision_cycle": "court|moyen|long",
+          "volume_per_client": "ex: 5-20 tonnes/mois"
+        }
+      ]
+    },
+    { "model": "produce_locally", "title": "...", "description": "...", "pros": [...], "cons": [...], "investment_min_eur": ..., "investment_max_eur": ..., "timeline_months": ..., "margin_pct_min": ..., "margin_pct_max": ..., "breakeven_months": ..., "action_plan": [...], "financials": {...}, "b2b_targets": [...] },
+    { "model": "train_locals",    "title": "...", "description": "...", "pros": [...], "cons": [...], "investment_min_eur": ..., "investment_max_eur": ..., "timeline_months": ..., "margin_pct_min": ..., "margin_pct_max": ..., "breakeven_months": ..., "action_plan": [...], "financials": {...}, "b2b_targets": [...] }
   ],
   "risks": [
     {
@@ -148,15 +152,12 @@ Retourne EXACTEMENT ce JSON (complète chaque champ avec du vrai contenu, pas de
   "key_success_factors": ["facteur 1", "facteur 2", "facteur 3"],
   "quick_wins": ["action rapide 1", "action rapide 2", "action rapide 3"],
   "useful_resources": [
-    {
-      "name": "Nom de la ressource",
-      "description": "Ce qu'on y trouve",
-      "url": "url si connue sinon null",
-      "type": "institution|marketplace|database|tool"
-    }
+    { "name": "Nom", "description": "Ce qu'on y trouve", "url": "url si connue sinon null", "type": "institution|marketplace|database|tool" }
   ],
   "products_focus": ["produit 1", "produit 2"]
-}`
+}
+
+IMPORTANT : strategies[] doit contenir exactement 3 entrées, une par mode (import_sell, produce_locally, train_locals), chacune avec son propre action_plan, financials et b2b_targets.`
 }
 
 // ── Providers ─────────────────────────────────────────────────────────────────
@@ -168,111 +169,174 @@ function parseJson(text: string) {
   throw new Error('Invalid JSON in response')
 }
 
-/** Groq — 100% gratuit, 14 400 req/jour, Llama 3.3 70B */
 async function generateWithGroq(prompt: string): Promise<string> {
   const key = process.env.GROQ_API_KEY
   if (!key) throw new Error('GROQ_API_KEY not set')
-
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user',   content: prompt },
+        { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 12000,
       response_format: { type: 'json_object' },
     }),
   })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Groq ${res.status}: ${err}`)
-  }
-
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
   const data = await res.json()
   return data.choices[0].message.content
 }
 
-/** Gemini — Google AI Studio (nécessite billing ou nouveau projet) */
 async function generateWithGemini(prompt: string): Promise<string> {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY
   if (!key) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
-
   const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
-    generationConfig: { temperature: 0.7, maxOutputTokens: 8192, responseMimeType: 'application/json' },
+    generationConfig: { temperature: 0.7, maxOutputTokens: 16000, responseMimeType: 'application/json' },
     systemInstruction: SYSTEM,
   })
   const result = await model.generateContent(prompt)
   return result.response.text()
 }
 
-/** Mistral — tier gratuit limité mais fonctionnel */
 async function generateWithMistral(prompt: string): Promise<string> {
   const key = process.env.MISTRAL_API_KEY
   if (!key) throw new Error('MISTRAL_API_KEY not set')
-
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'mistral-small-latest',
       messages: [
         { role: 'system', content: SYSTEM },
-        { role: 'user',   content: prompt },
+        { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 8000,
+      max_tokens: 12000,
       response_format: { type: 'json_object' },
     }),
   })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Mistral ${res.status}: ${err}`)
-  }
-
+  if (!res.ok) throw new Error(`Mistral ${res.status}: ${await res.text()}`)
   const data = await res.json()
   return data.choices[0].message.content
 }
 
-// ── Route handler ─────────────────────────────────────────────────────────────
+// ── Supabase helpers ──────────────────────────────────────────────────────────
 
+async function getSupabase() {
+  const cookieStore = await cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(toSet) {
+          toSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          )
+        },
+      },
+    },
+  )
+}
+
+// Sort opp IDs to get a stable cache key regardless of selection order.
+function normalizeOppIds(oppIds: string[]): string[] {
+  return [...oppIds].sort()
+}
+
+// ── GET: cache lookup ──────────────────────────────────────────────────────────
+// GET /api/reports/business-plan?iso=CIV&opps=id1,id2
+// Returns { plan, cached: true } if hit, { cached: false } otherwise.
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const iso = (searchParams.get('iso') ?? '').toUpperCase()
+    const oppIds = (searchParams.get('opps') ?? '').split(',').filter(Boolean)
+    if (!iso || oppIds.length === 0) {
+      return Response.json({ error: 'Missing iso or opps' }, { status: 400 })
+    }
+    const sortedIds = normalizeOppIds(oppIds)
+
+    const supabase = await getSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data, error } = await supabase
+      .from('cached_business_plans')
+      .select('plan, scope_reduction_pct, updated_at')
+      .eq('user_id', user.id)
+      .eq('country_iso', iso)
+      .eq('opp_ids', sortedIds)
+      .maybeSingle()
+
+    if (error) {
+      console.error('[business-plan GET] cache lookup error', error)
+      return Response.json({ cached: false })
+    }
+    if (!data) return Response.json({ cached: false })
+    return Response.json({ cached: true, plan: data.plan, scope_reduction_pct: data.scope_reduction_pct, updated_at: data.updated_at })
+  } catch (err) {
+    console.error('[business-plan GET]', err)
+    return Response.json({ error: String(err) }, { status: 500 })
+  }
+}
+
+// ── POST: generate (always 3 modes) + cache ─────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser()
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    const supabase = await getSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const body = await req.json()
+    const { countryName, iso, opportunities, userContext } = body as {
+      countryName?: string
+      iso: string
+      opportunities: OppInput[]
+      userContext?: UserContext
     }
 
-    const { countryName, iso, opportunities, models, userContext } = await req.json()
-
-    if (!iso || !opportunities?.length || !models?.length) {
+    if (!iso || !opportunities?.length) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    const sortedIds = normalizeOppIds(opportunities.map((o) => o.id))
+
+    // Double-check cache before calling LLM (race between tabs)
+    const { data: existing } = await supabase
+      .from('cached_business_plans')
+      .select('plan, scope_reduction_pct')
+      .eq('user_id', user.id)
+      .eq('country_iso', iso.toUpperCase())
+      .eq('opp_ids', sortedIds)
+      .maybeSingle()
+
+    if (existing?.plan) {
+      return Response.json({ plan: existing.plan, scope_reduction_pct: existing.scope_reduction_pct, cached: true })
+    }
+
+    // Always build prompt for ALL 3 modes
     const prompt = buildPrompt(
       countryName ?? iso,
       iso,
-      opportunities as OppInput[],
-      models as string[],
+      opportunities,
       (userContext ?? {}) as UserContext,
     )
 
-    // Try providers in order: Groq (free) → Gemini → Mistral
     const providers: { name: string; fn: () => Promise<string> }[] = [
-      ...(process.env.GROQ_API_KEY   ? [{ name: 'Groq',    fn: () => generateWithGroq(prompt)    }] : []),
+      ...(process.env.GROQ_API_KEY ? [{ name: 'Groq', fn: () => generateWithGroq(prompt) }] : []),
       ...(process.env.GOOGLE_GENERATIVE_AI_API_KEY ? [{ name: 'Gemini', fn: () => generateWithGemini(prompt) }] : []),
       ...(process.env.MISTRAL_API_KEY ? [{ name: 'Mistral', fn: () => generateWithMistral(prompt) }] : []),
     ]
-
     if (!providers.length) {
-      return Response.json({ error: 'Aucune clé API configurée (GROQ_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY ou MISTRAL_API_KEY)' }, { status: 503 })
+      return Response.json({ error: 'Aucune clé API configurée' }, { status: 503 })
     }
 
     let text = ''
@@ -288,15 +352,69 @@ export async function POST(req: NextRequest) {
         lastError = String(e)
       }
     }
-
     if (!text) {
       return Response.json({ error: `Tous les providers ont échoué. Dernier: ${lastError}` }, { status: 503 })
     }
 
     const plan = parseJson(text)
-    return Response.json({ plan })
+
+    // Persist to cache (upsert on conflict)
+    const { error: upsertError } = await supabase
+      .from('cached_business_plans')
+      .upsert({
+        user_id: user.id,
+        country_iso: iso.toUpperCase(),
+        opp_ids: sortedIds,
+        plan,
+        scope_reduction_pct: 0,
+      }, { onConflict: 'user_id,country_iso,opp_ids' })
+
+    if (upsertError) {
+      console.error('[business-plan] cache upsert failed', upsertError)
+    }
+
+    return Response.json({ plan, cached: false })
   } catch (err) {
     console.error('[business-plan API]', err)
+    return Response.json({ error: String(err) }, { status: 500 })
+  }
+}
+
+// ── PATCH: scope reduction (option 1 "réduire budget") ──────────────────────
+// PATCH /api/reports/business-plan?iso=CIV&opps=id1,id2  body: { scope_reduction_pct: 30 }
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const iso = (searchParams.get('iso') ?? '').toUpperCase()
+    const oppIds = (searchParams.get('opps') ?? '').split(',').filter(Boolean)
+    if (!iso || oppIds.length === 0) {
+      return Response.json({ error: 'Missing iso or opps' }, { status: 400 })
+    }
+    const sortedIds = normalizeOppIds(oppIds)
+
+    const body = await req.json()
+    const pct = Number(body.scope_reduction_pct ?? 0)
+    if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+      return Response.json({ error: 'Invalid scope_reduction_pct' }, { status: 400 })
+    }
+
+    const supabase = await getSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data, error } = await supabase
+      .from('cached_business_plans')
+      .update({ scope_reduction_pct: Math.round(pct) })
+      .eq('user_id', user.id)
+      .eq('country_iso', iso)
+      .eq('opp_ids', sortedIds)
+      .select('plan, scope_reduction_pct')
+      .maybeSingle()
+
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    if (!data) return Response.json({ error: 'Not found' }, { status: 404 })
+    return Response.json({ plan: data.plan, scope_reduction_pct: data.scope_reduction_pct })
+  } catch (err) {
     return Response.json({ error: String(err) }, { status: 500 })
   }
 }

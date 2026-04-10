@@ -1,23 +1,82 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { createSupabaseBrowser } from '@/lib/supabase'
 
 const NAV = [
-  { href: '/admin',           label: 'Overview',  icon: '📊' },
-  { href: '/admin/analytics', label: 'Analytics', icon: '📈' },
-  { href: '/admin/crm',       label: 'CRM',       icon: '👥' },
-  { href: '/admin/plans',     label: 'Plans',     icon: '💳' },
-  { href: '/admin/tickets',   label: 'Tickets',   icon: '🎫' },
-  { href: '/admin/data',      label: 'Data',      icon: '🗄️' },
-  { href: '/admin/sources',   label: 'Sources',   icon: '🔌' },
-  { href: '/admin/cms',       label: 'CMS',       icon: '✏️' },
+  { href: '/admin',               label: 'Overview',       icon: '📊' },
+  { href: '/admin/analytics',     label: 'Analytics',      icon: '📈' },
+  { href: '/admin/crm',           label: 'CRM',            icon: '👥' },
+  { href: '/admin/plans',         label: 'Plans',          icon: '💳' },
+  { href: '/admin/tickets',       label: 'Tickets',        icon: '🎫' },
+  { href: '/admin/data',          label: 'Data',           icon: '🗄️' },
+  { href: '/admin/sources',       label: 'Sources',        icon: '🔌' },
+  { href: '/admin/cms',           label: 'CMS',            icon: '✏️' },
+  { href: '/admin/demo-accounts', label: 'Comptes démo',   icon: '🎭' },
+]
+
+// Demo accounts for the quick-switch menu in the sidebar footer.
+// Keep in sync with /admin/demo-accounts/page.tsx and scripts/seed-demo-accounts.ts.
+const DEMO_SWITCH = [
+  { email: 'demo.entrepreneur@feelthegap.app', role: 'Entrepreneur',  icon: '🧭', color: '#C9A84C' },
+  { email: 'demo.influenceur@feelthegap.app',  role: 'Influenceur',   icon: '🎤', color: '#A78BFA' },
+  { email: 'demo.financeur@feelthegap.app',    role: 'Financeur',     icon: '🏦', color: '#34D399' },
+  { email: 'demo.investisseur@feelthegap.app', role: 'Investisseur',  icon: '📈', color: '#60A5FA' },
 ]
 
 export default function AdminSidebar() {
   const [open, setOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [showSwitcher, setShowSwitcher] = useState(false)
+  const [adminName, setAdminName] = useState<string>('Admin')
+  const [adminInitial, setAdminInitial] = useState<string>('A')
+  const [switching, setSwitching] = useState<string | null>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+
+  // Load admin identity
+  useEffect(() => {
+    const sb = createSupabaseBrowser()
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data.user?.email) return
+      const email = data.user.email
+      setAdminInitial(email[0].toUpperCase())
+      const { data: profile } = await sb.from('profiles').select('full_name').eq('id', data.user.id).single()
+      setAdminName(profile?.full_name ?? email.split('@')[0])
+    })
+  }, [])
+
+  // Close user menu on outside click
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (!userMenuRef.current?.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+        setShowSwitcher(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [userMenuOpen])
+
+  async function switchToDemo(email: string) {
+    setSwitching(email)
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error ?? 'Erreur')
+      window.location.href = j.redirect ?? '/map'
+    } catch (err) {
+      alert(`Échec du switch : ${(err as Error).message}`)
+      setSwitching(null)
+    }
+  }
 
   const sidebar = (
     <>
@@ -58,10 +117,90 @@ export default function AdminSidebar() {
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
           <span>🌍</span> View Live Site ↗
         </Link>
-        <Link href="/account" onClick={() => setOpen(false)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
-          <span>👤</span> Mon compte
-        </Link>
+
+        {/* User menu: click name → popover with "Mon profil" / "Changer de compte" */}
+        <div ref={userMenuRef} className="relative mt-1">
+          <button
+            onClick={() => setUserMenuOpen((v) => !v)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-white/5 transition-colors"
+          >
+            <div className="w-7 h-7 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center shrink-0">
+              {adminInitial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-white truncate">{adminName}</div>
+              <div className="text-[10px] text-gray-500">Admin</div>
+            </div>
+            <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
+              <path d="M5 8l5 5 5-5H5z" />
+            </svg>
+          </button>
+
+          {userMenuOpen && (
+            <div
+              className="absolute bottom-full left-0 right-0 mb-2 rounded-xl overflow-hidden shadow-2xl z-50"
+              style={{ background: '#0D1117', border: '1px solid rgba(201,168,76,0.25)' }}
+            >
+              {!showSwitcher ? (
+                <>
+                  <Link
+                    href="/account"
+                    onClick={() => { setUserMenuOpen(false); setOpen(false) }}
+                    className="flex items-center gap-2 px-3 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <span>👤</span> Mon profil
+                  </Link>
+                  <button
+                    onClick={() => setShowSwitcher(true)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors border-t border-white/5"
+                  >
+                    <span>🎭</span>
+                    <span className="flex-1 text-left">Changer de compte</span>
+                    <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500">
+                      <path d="M7 5l5 5-5 5V5z" />
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase tracking-wide border-b border-white/5">
+                    <button
+                      onClick={() => setShowSwitcher(false)}
+                      className="text-gray-500 hover:text-white"
+                      aria-label="Retour"
+                    >
+                      ←
+                    </button>
+                    <span>Basculer sur</span>
+                  </div>
+                  {DEMO_SWITCH.map((d) => (
+                    <button
+                      key={d.email}
+                      onClick={() => switchToDemo(d.email)}
+                      disabled={switching !== null}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs hover:bg-white/5 transition-colors disabled:opacity-50"
+                      style={{ color: d.color }}
+                    >
+                      <span>{d.icon}</span>
+                      <span className="flex-1 text-left font-medium">{d.role}</span>
+                      {switching === d.email && (
+                        <div className="w-3 h-3 border-2 border-t-transparent rounded-full animate-spin"
+                          style={{ borderColor: d.color + ' transparent transparent transparent' }} />
+                      )}
+                    </button>
+                  ))}
+                  <Link
+                    href="/admin/demo-accounts"
+                    onClick={() => { setUserMenuOpen(false); setOpen(false) }}
+                    className="block px-3 py-2 text-[10px] text-gray-500 hover:text-white hover:bg-white/5 border-t border-white/5"
+                  >
+                    Voir tous les credentials →
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   )

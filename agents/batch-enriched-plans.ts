@@ -13,8 +13,31 @@
  *   npx tsx agents/batch-enriched-plans.ts --force        # overwrite existing
  */
 
-import { buildEnrichedPlan } from './enriched-plan-builder';
-import { supabaseAdmin } from '@/lib/supabase';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load .env.local manually (tsx doesn't auto-load env files).
+// MUST run before any module that captures process.env at load time.
+function loadEnv() {
+  const envPath = path.join(process.cwd(), '.env.local');
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const idx = trimmed.indexOf('=');
+    if (idx < 0) continue;
+    const key = trimmed.slice(0, idx).trim();
+    const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+loadEnv();
+
+// Dynamic imports inside main — run AFTER loadEnv() so lib/supabase captures
+// the real env values instead of placeholder fallbacks.
+type BuildEnrichedPlanFn = (opts: { countryIso: string; productSlug: string; productName: string }) => Promise<any>;
+let buildEnrichedPlan: BuildEnrichedPlanFn;
+let supabaseAdmin: any;
 
 const args = process.argv.slice(2);
 function getArg(flag: string): string | undefined {
@@ -36,6 +59,10 @@ const PILOT_PRODUCTS = [
 ];
 
 async function main() {
+  // Dynamic imports AFTER loadEnv() so the supabase module captures the real env
+  ({ buildEnrichedPlan } = await import('./enriched-plan-builder'));
+  ({ supabaseAdmin } = await import('@/lib/supabase'));
+
   const admin = supabaseAdmin();
   const isoList = argIso ?? PILOT_COUNTRIES;
   const products = argProduct

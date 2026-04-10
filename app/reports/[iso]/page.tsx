@@ -170,7 +170,7 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true)
   const [userTier, setUserTier] = useState<string>('free')
   const [selectedOpps, setSelectedOpps] = useState<Set<string>>(new Set())
-  const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set(['import_sell']))
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set())
   const [showModelPanel, setShowModelPanel] = useState(false)
   const [showCheckboxHint, setShowCheckboxHint] = useState(false)
 
@@ -182,7 +182,7 @@ export default function ReportPage() {
 
   const toggleModel = (id: string) => setSelectedModels(prev => {
     const next = new Set(prev)
-    if (next.has(id) && next.size > 1) next.delete(id); else next.add(id)
+    if (next.has(id)) next.delete(id); else next.add(id)
     return next
   })
 
@@ -679,10 +679,11 @@ export default function ReportPage() {
           ) : (
             /* Model selection panel */
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-bold text-white">Choisissez vos modèles commerciaux</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-sm font-bold text-white">Sous quelle forme souhaitez-vous commercialiser&nbsp;?</div>
                 <button onClick={() => setShowModelPanel(false)} className="text-gray-500 hover:text-gray-300 text-sm">✕</button>
               </div>
+              <div className="text-xs text-gray-500 mb-3">Cochez au moins une méthode pour générer votre business plan.</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                 {MODELS.map(m => {
                   const active = selectedModels.has(m.id)
@@ -712,15 +713,18 @@ export default function ReportPage() {
                   )
                 })}
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-xs text-gray-500">
-                  {selectedModels.size} modèle{selectedModels.size > 1 ? 's' : ''} · {selectedOpps.size} opportunité{selectedOpps.size > 1 ? 's' : ''}
+                  {selectedModels.size === 0
+                    ? 'Sélectionnez au moins une méthode'
+                    : `${selectedModels.size} méthode${selectedModels.size > 1 ? 's' : ''} · ${selectedOpps.size} opportunité${selectedOpps.size > 1 ? 's' : ''}`}
                 </span>
                 <button
                   onClick={goToPlan}
                   disabled={selectedModels.size === 0}
-                  className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
-                  style={{ background: 'linear-gradient(135deg,#C9A84C,#E8C97A)', color: '#07090F', opacity: selectedModels.size === 0 ? 0.5 : 1 }}
+                  title={selectedModels.size === 0 ? 'Cochez au moins une méthode de commercialisation' : undefined}
+                  className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:cursor-not-allowed"
+                  style={{ background: 'linear-gradient(135deg,#C9A84C,#E8C97A)', color: '#07090F', opacity: selectedModels.size === 0 ? 0.4 : 1 }}
                 >
                   ✨ Générer le Business Plan →
                 </button>

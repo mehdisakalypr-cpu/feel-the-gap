@@ -15,8 +15,29 @@
  *   npx tsx agents/production-costs.ts --dry-run
  */
 
-import { supabaseAdmin } from '@/lib/supabase';
-import { extractCostBenchmarks } from '@/lib/insight-extractor';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load .env.local manually (tsx doesn't auto-load env files).
+// MUST run before any module that captures process.env at load time.
+function loadEnv() {
+  const envPath = path.join(process.cwd(), '.env.local');
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const idx = trimmed.indexOf('=');
+    if (idx < 0) continue;
+    const key = trimmed.slice(0, idx).trim();
+    const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+loadEnv();
+
+// Dynamic imports below (inside main) — run AFTER loadEnv() so module-level
+// env reads in lib/supabase.ts hit the correct values instead of placeholders.
+type SupabaseAdmin = any;
 
 const args = process.argv.slice(2);
 function getArg(flag: string): string | undefined {
@@ -40,7 +61,7 @@ const PILOT_PRODUCTS = [
 
 // ─── Aggregation: join YouTube insights → text corpus for LLM ────────────
 async function buildCorpusFromInsights(
-  admin: ReturnType<typeof supabaseAdmin>,
+  admin: SupabaseAdmin,
   countryIso: string,
   productSlug: string,
 ): Promise<string> {
@@ -74,6 +95,10 @@ async function buildCorpusFromInsights(
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 async function main() {
+  // Dynamic imports after loadEnv() so lib/supabase captures the real env values
+  const { supabaseAdmin } = await import('@/lib/supabase');
+  const { extractCostBenchmarks } = await import('@/lib/insight-extractor');
+
   const admin = supabaseAdmin();
   const isoList = argIso ?? PILOT_COUNTRIES;
   const products = argProduct

@@ -22,6 +22,19 @@ const TIER_CONFIG: Record<string, { label: string; color: string }> = {
   enterprise: { label: 'Enterprise', color: '#64748B' },
 }
 
+// Multi-role support: a user can cumulate entrepreneur / financeur /
+// investisseur / influenceur and switch between them via the topbar.
+type UserRole = 'entrepreneur' | 'financeur' | 'investisseur' | 'influenceur'
+
+const ROLE_CONFIG: Record<UserRole, { label: string; icon: string; color: string; home: string }> = {
+  entrepreneur: { label: 'Entrepreneur',  icon: '🧭', color: '#C9A84C', home: '/map' },
+  financeur:    { label: 'Financeur',      icon: '🏦', color: '#34D399', home: '/finance' },
+  investisseur: { label: 'Investisseur',   icon: '📈', color: '#60A5FA', home: '/invest' },
+  influenceur:  { label: 'Influenceur',    icon: '🎤', color: '#A78BFA', home: '/influencer' },
+}
+
+const ALL_ROLES: UserRole[] = ['entrepreneur', 'financeur', 'investisseur', 'influenceur']
+
 export default function Topbar() {
   const router = useRouter()
   const [search, setSearch] = useState('')
@@ -29,7 +42,11 @@ export default function Topbar() {
   const [tier, setTier] = useState<string | null>(null)
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [roles, setRoles] = useState<UserRole[]>([])
+  const [activeRole, setActiveRole] = useState<UserRole>('entrepreneur')
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
+  const roleMenuRef = useRef<HTMLDivElement>(null)
   const { lang, setLang, t } = useLang()
   const fr = lang === 'fr'
 
@@ -39,12 +56,39 @@ export default function Topbar() {
       const email = data.user?.email
       if (email) {
         setUserInitial(email[0].toUpperCase())
-        const { data: profile } = await sb.from('profiles').select('tier, is_admin, is_delegate_admin').eq('id', data.user!.id).single()
+        const { data: profile } = await sb.from('profiles').select('tier, is_admin, is_delegate_admin, roles, active_role').eq('id', data.user!.id).single()
         setTier(profile?.tier ?? 'free')
         if (profile?.is_admin || profile?.is_delegate_admin) setIsAdminUser(true)
+        const userRoles = ((profile?.roles ?? ['entrepreneur']) as string[]).filter((r): r is UserRole => ALL_ROLES.includes(r as UserRole))
+        setRoles(userRoles.length ? userRoles : ['entrepreneur'])
+        const active = (profile?.active_role as UserRole | null) ?? userRoles[0] ?? 'entrepreneur'
+        setActiveRole(active)
       }
     })
   }, [])
+
+  // Close role menu on outside click
+  useEffect(() => {
+    if (!roleMenuOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (!roleMenuRef.current?.contains(e.target as Node)) setRoleMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [roleMenuOpen])
+
+  async function switchRole(role: UserRole) {
+    setRoleMenuOpen(false)
+    if (role === activeRole) return
+    setActiveRole(role)
+    // Persist + redirect to the role's home
+    const sb = createSupabaseBrowser()
+    const { data } = await sb.auth.getUser()
+    if (data.user) {
+      await sb.from('profiles').update({ active_role: role }).eq('id', data.user.id)
+    }
+    router.push(ROLE_CONFIG[role].home)
+  }
 
   // Detect if nav can scroll right
   const checkScroll = useCallback(() => {
@@ -152,22 +196,88 @@ export default function Topbar() {
             ))}
           </div>
           {userInitial ? (
-            <Link href="/account" className="ml-1 flex items-center gap-1.5 group shrink-0" title={tier ? (TIER_CONFIG[tier]?.label ?? tier) + ' plan' : undefined}>
-              {tier && TIER_CONFIG[tier] && (
-                <span
-                  className="px-1.5 py-0.5 md:px-2 rounded-full text-[9px] md:text-[10px] font-bold inline-block whitespace-nowrap leading-none"
-                  style={{
-                    background: TIER_CONFIG[tier].color + '22',
-                    color: TIER_CONFIG[tier].color,
-                    border: `1px solid ${TIER_CONFIG[tier].color}44`,
-                  }}>
-                  {TIER_CONFIG[tier].label}
-                </span>
+            <>
+              {/* Role switcher — only shows the dropdown if user has >1 role */}
+              {roles.length > 0 && (
+                <div ref={roleMenuRef} className="relative ml-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setRoleMenuOpen((v) => !v)}
+                    title={`Rôle actif : ${ROLE_CONFIG[activeRole].label}${roles.length > 1 ? ' — cliquer pour changer' : ''}`}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg transition-colors"
+                    style={{
+                      background: ROLE_CONFIG[activeRole].color + '15',
+                      border: `1px solid ${ROLE_CONFIG[activeRole].color}40`,
+                    }}
+                  >
+                    <span className="text-xs">{ROLE_CONFIG[activeRole].icon}</span>
+                    <span className="text-[10px] font-bold hidden sm:inline" style={{ color: ROLE_CONFIG[activeRole].color }}>
+                      {ROLE_CONFIG[activeRole].label}
+                    </span>
+                    {roles.length > 1 && (
+                      <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor" style={{ color: ROLE_CONFIG[activeRole].color }}>
+                        <path d="M5 8l5 5 5-5H5z"/>
+                      </svg>
+                    )}
+                  </button>
+                  {roleMenuOpen && roles.length > 1 && (
+                    <div
+                      className="absolute right-0 top-full mt-1 w-52 rounded-xl overflow-hidden z-50 shadow-2xl"
+                      style={{ background: '#0D1117', border: '1px solid rgba(201,168,76,0.25)' }}
+                    >
+                      <div className="text-[10px] text-gray-500 px-3 pt-2 pb-1 uppercase tracking-wide">Basculer vers</div>
+                      {roles.map((role) => {
+                        const cfg = ROLE_CONFIG[role]
+                        const active = role === activeRole
+                        return (
+                          <button
+                            key={role}
+                            onClick={() => switchRole(role)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-white/5 transition-colors"
+                            style={{ color: active ? cfg.color : '#d1d5db' }}
+                          >
+                            <span className="text-sm">{cfg.icon}</span>
+                            <span className="flex-1 font-medium">{cfg.label}</span>
+                            {active && <span className="text-[#34D399] text-[11px]">●</span>}
+                          </button>
+                        )
+                      })}
+                      <div className="border-t border-white/5">
+                        {ALL_ROLES.filter((r) => !roles.includes(r)).map((role) => {
+                          const cfg = ROLE_CONFIG[role]
+                          return (
+                            <Link
+                              key={role}
+                              href={cfg.home}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-gray-500 hover:bg-white/5 hover:text-gray-300 transition-colors"
+                            >
+                              <span className="text-sm opacity-60">{cfg.icon}</span>
+                              <span className="flex-1">+ Découvrir {cfg.label}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
-              <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors shrink-0">
-                {userInitial}
-              </div>
-            </Link>
+              <Link href="/account" className="ml-1 flex items-center gap-1.5 group shrink-0" title={tier ? (TIER_CONFIG[tier]?.label ?? tier) + ' plan' : undefined}>
+                {tier && TIER_CONFIG[tier] && (
+                  <span
+                    className="px-1.5 py-0.5 md:px-2 rounded-full text-[9px] md:text-[10px] font-bold inline-block whitespace-nowrap leading-none"
+                    style={{
+                      background: TIER_CONFIG[tier].color + '22',
+                      color: TIER_CONFIG[tier].color,
+                      border: `1px solid ${TIER_CONFIG[tier].color}44`,
+                    }}>
+                    {TIER_CONFIG[tier].label}
+                  </span>
+                )}
+                <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors shrink-0">
+                  {userInitial}
+                </div>
+              </Link>
+            </>
           ) : (
             <Link href="/auth/login" className="ml-1 px-3 py-1.5 bg-[#C9A84C] text-[#07090F] font-semibold rounded-lg hover:bg-[#E8C97A] transition-colors text-xs whitespace-nowrap shrink-0">
               {t('nav.signin')}

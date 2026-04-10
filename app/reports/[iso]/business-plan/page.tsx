@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
+import BudgetShortfallNotice from '@/components/BudgetShortfallNotice'
 import { supabase } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -17,14 +18,6 @@ interface OppRow {
 interface UserContext {
   qty_tons: string; price_eur_kg: string; budget_eur: string
   timeline: string; sector: string; notes: string
-}
-
-interface Strategy {
-  model: string; title: string; description: string
-  pros: string[]; cons: string[]
-  investment_min_eur: number; investment_max_eur: number
-  timeline_months: number; margin_pct_min: number; margin_pct_max: number
-  breakeven_months: number
 }
 
 interface ActionPhase {
@@ -42,6 +35,19 @@ interface Financials {
 interface B2BTarget {
   segment: string; description: string; potential: string
   examples: string[]; approach: string; decision_cycle: string; volume_per_client: string
+}
+
+interface Strategy {
+  model: string; title: string; description: string
+  pros: string[]; cons: string[]
+  investment_min_eur: number; investment_max_eur: number
+  timeline_months: number; margin_pct_min: number; margin_pct_max: number
+  breakeven_months: number
+  // Mode-specific sub-plan (new schema since 3-modes generation).
+  // Optional for backwards compat with older cached plans.
+  action_plan?: ActionPhase[]
+  financials?: Financials
+  b2b_targets?: B2BTarget[]
 }
 
 interface Risk {
@@ -68,6 +74,55 @@ function fmtEur(v: number) {
   if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M €'
   if (v >= 1e3) return (v / 1e3).toFixed(0) + 'K €'
   return v.toLocaleString() + ' €'
+}
+
+// Filter plan.strategies by checked modes + apply scope reduction (prorata).
+// We keep the other sections (executive_summary, market_context, risks…) intact.
+// The aggregated top-level sections (action_plan, financials, b2b_targets) used by
+// PlanDisplay are sourced from the first selected strategy's mode-specific data.
+// If no modes are checked, we show all 3 as a safety fallback.
+function filterPlanByModes(plan: Plan, selectedModels: string[], scopePct: number): Plan {
+  const modes = selectedModels.length ? selectedModels : ['import_sell', 'produce_locally', 'train_locals']
+  const factor = 1 - Math.min(Math.max(scopePct, 0), 100) / 100
+
+  const filteredStrategies = (plan.strategies ?? []).filter((s) => modes.includes(s.model))
+
+  // Apply factor to the investment fields of each filtered strategy
+  const adjustedStrategies: Strategy[] = filteredStrategies.map((s) => ({
+    ...s,
+    investment_min_eur: Math.round(s.investment_min_eur * factor),
+    investment_max_eur: Math.round(s.investment_max_eur * factor),
+  }))
+
+  const lead = adjustedStrategies[0]
+
+  // Aggregated sections come from the lead strategy (new schema) or plan top-level (legacy cache).
+  const baseActionPlan = lead?.action_plan ?? plan.action_plan ?? []
+  const baseFinancials: Financials | undefined = lead?.financials ?? plan.financials
+  const baseB2B = lead?.b2b_targets ?? plan.b2b_targets ?? []
+
+  const scaledFinancials: Financials | undefined = baseFinancials && factor !== 1 ? {
+    ...baseFinancials,
+    initial_investment_min: Math.round(baseFinancials.initial_investment_min * factor),
+    initial_investment_max: Math.round(baseFinancials.initial_investment_max * factor),
+    monthly_revenue_y1: Math.round(baseFinancials.monthly_revenue_y1 * factor),
+    monthly_revenue_y3: Math.round(baseFinancials.monthly_revenue_y3 * factor),
+    monthly_costs_y1: Math.round(baseFinancials.monthly_costs_y1 * factor),
+    monthly_costs_y3: Math.round(baseFinancials.monthly_costs_y3 * factor),
+  } : baseFinancials
+
+  const scaledActionPlan: ActionPhase[] = baseActionPlan.map((p) => ({
+    ...p,
+    budget_eur: Math.round(p.budget_eur * factor),
+  }))
+
+  return {
+    ...plan,
+    strategies: adjustedStrategies,
+    action_plan: scaledActionPlan,
+    financials: scaledFinancials ?? plan.financials,
+    b2b_targets: baseB2B,
+  }
 }
 
 const MODEL_META: Record<string, { label: string; icon: string; color: string }> = {
@@ -553,8 +608,11 @@ function heroImageUrl(query: string | undefined, category: string | undefined): 
 
 // ── Plan display ──────────────────────────────────────────────────────────────
 
-function PlanDisplay({ plan, opps, country, iso, userTier }: {
+function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChangeBudget, scopePct }: {
   plan: Plan; opps: OppRow[]; country: string; iso: string; userTier: string
+  userBudgetEur: number | null
+  onChangeBudget: (v: number | null) => void
+  scopePct: number
 }) {
   const isPremium = ['premium', 'enterprise'].includes(userTier)
 
@@ -563,6 +621,49 @@ function PlanDisplay({ plan, opps, country, iso, userTier }: {
 
   return (
     <div className="space-y-8 overflow-hidden break-words">
+
+      {/* ── Scope reduction banner ── */}
+      {scopePct > 0 && (
+        <div
+          className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm"
+          style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.25)' }}
+        >
+          <span className="text-lg">📉</span>
+          <div className="flex-1">
+            <span className="text-white font-semibold">Plan adapté à votre budget : </span>
+            <span className="text-[#60A5FA]">
+              ampleur réduite de {scopePct} % — vous adresserez {100 - scopePct} % de l'opportunité initiale.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Complementary info: budget input ── */}
+      <div
+        className="flex flex-col md:flex-row md:items-center gap-3 rounded-2xl px-4 py-3 text-sm"
+        style={{ background: '#0D1117', border: '1px solid rgba(201,168,76,0.15)' }}
+      >
+        <span className="text-lg">💼</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-white font-semibold">Votre budget disponible</div>
+          <div className="text-[11px] text-gray-500">
+            Indiquez combien vous pouvez investir — nous vérifions si c'est suffisant pour couvrir 100 % de l'opportunité.
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <input
+            type="number"
+            value={userBudgetEur ?? ''}
+            onChange={(e) => {
+              const v = e.target.value === '' ? null : Number(e.target.value)
+              onChangeBudget(v)
+            }}
+            placeholder="ex : 150000"
+            className="w-36 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A84C]/50"
+          />
+          <span className="text-sm text-gray-400">€</span>
+        </div>
+      </div>
 
       {/* ── Hero ── */}
       <div className="relative rounded-3xl overflow-hidden" style={{ height: 280 }}>
@@ -1007,15 +1108,36 @@ export default function BusinessPlanPage() {
   const iso = (params?.iso as string ?? '').toUpperCase()
 
   const selectedOppIds = (searchParams?.get('opps') ?? '').split(',').filter(Boolean)
-  const selectedModels = (searchParams?.get('models') ?? 'import_sell').split(',').filter(Boolean)
+  const selectedModels = (searchParams?.get('models') ?? 'import_sell,produce_locally,train_locals').split(',').filter(Boolean)
 
   const [opps, setOpps] = useState<OppRow[]>([])
   const [countryName, setCountryName] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [plan, setPlan] = useState<Plan | null>(null)
+  const [loading, setLoading] = useState(false)       // LLM generation in progress
+  const [cacheChecked, setCacheChecked] = useState(false)
+  const [plan, setPlan] = useState<Plan | null>(null) // plan "brut" avec les 3 stratégies
+  const [scopePct, setScopePct] = useState(0)         // 0 = pas de réduction, 30 = -30%, etc.
   const [error, setError] = useState('')
   const [userTier, setUserTier] = useState('free')
+  // User budget (persisted in localStorage per iso+opps) — drives BudgetShortfallNotice
+  const budgetKey = `ftg_bp_budget_${iso}_${[...selectedOppIds].sort().join(',')}`
+  const [userBudgetEur, setUserBudgetEur] = useState<number | null>(null)
 
+  // Load persisted budget
+  useEffect(() => {
+    if (!iso || !selectedOppIds.length) return
+    try {
+      const raw = localStorage.getItem(budgetKey)
+      if (raw) setUserBudgetEur(Number(raw))
+    } catch {}
+  }, [budgetKey, iso, selectedOppIds.length])
+
+  // Persist budget on change
+  useEffect(() => {
+    if (userBudgetEur == null) return
+    try { localStorage.setItem(budgetKey, String(userBudgetEur)) } catch {}
+  }, [userBudgetEur, budgetKey])
+
+  // Load opps + country, then check cache
   useEffect(() => {
     if (!iso || !selectedOppIds.length) return
     Promise.all([
@@ -1034,9 +1156,26 @@ export default function BusinessPlanPage() {
       supabase.from('profiles').select('tier').eq('id', user.id).single()
         .then(({ data }) => { if (data?.tier) setUserTier(data.tier) })
     })
+
+    // Cache lookup — if hit, skip generation entirely.
+    const oppsParam = [...selectedOppIds].sort().join(',')
+    fetch(`/api/reports/business-plan?iso=${iso}&opps=${encodeURIComponent(oppsParam)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.cached && json.plan) {
+          setPlan(json.plan as Plan)
+          setScopePct(json.scope_reduction_pct ?? 0)
+        }
+      })
+      .catch(() => { /* fall through to form */ })
+      .finally(() => setCacheChecked(true))
   }, [iso])
 
   const generate = async (ctx: UserContext) => {
+    // Capture budget from the context form → drives BudgetShortfallNotice
+    const parsedBudget = Number((ctx.budget_eur ?? '').replace(/[^\d.]/g, ''))
+    if (!Number.isNaN(parsedBudget) && parsedBudget > 0) setUserBudgetEur(parsedBudget)
+
     setLoading(true)
     setError('')
     try {
@@ -1050,6 +1189,8 @@ export default function BusinessPlanPage() {
         summary: o.summary,
       }))
 
+      // API ignores `models` and always generates the 3 modes.
+      // userContext is still sent as a hint but doesn't change the shape of the plan.
       const res = await fetch('/api/reports/business-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1057,13 +1198,13 @@ export default function BusinessPlanPage() {
           countryName,
           iso,
           opportunities: oppsPayload,
-          models: selectedModels,
           userContext: ctx,
         }),
       })
       const json = await res.json()
       if (json.error) throw new Error(json.error)
       setPlan(json.plan)
+      setScopePct(json.scope_reduction_pct ?? 0)
     } catch (e) {
       setError(String(e))
     } finally {
@@ -1153,10 +1294,38 @@ export default function BusinessPlanPage() {
 
         {loading ? (
           <GeneratingScreen opps={opps} models={selectedModels} country={countryName} />
+        ) : !cacheChecked ? (
+          // Brief skeleton while we check the cache — avoids showing the form
+          // then hiding it if the cache is a hit.
+          <div className="max-w-2xl mx-auto py-16 text-center text-gray-500 text-sm">
+            <div className="w-10 h-10 mx-auto mb-4 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
+            Chargement de votre business plan…
+          </div>
         ) : !plan ? (
           <ContextForm opps={opps} models={selectedModels} onSubmit={generate} loading={loading} countryName={countryName} />
         ) : (
-          <PlanDisplay plan={plan} opps={opps} country={countryName} iso={iso} userTier={userTier} />
+          <>
+            <PlanDisplay
+              plan={filterPlanByModes(plan, selectedModels, scopePct)}
+              opps={opps}
+              country={countryName}
+              iso={iso}
+              userTier={userTier}
+              userBudgetEur={userBudgetEur}
+              onChangeBudget={setUserBudgetEur}
+              scopePct={scopePct}
+            />
+            {/* Budget shortfall notice — floats on the right when budget < required_min */}
+            <BudgetShortfallNotice
+              userBudgetEur={userBudgetEur}
+              requiredMinEur={(filterPlanByModes(plan, selectedModels, scopePct).strategies ?? [])
+                .reduce((sum, s) => sum + (s.investment_min_eur ?? 0), 0)}
+              requiredMaxEur={(filterPlanByModes(plan, selectedModels, scopePct).strategies ?? [])
+                .reduce((sum, s) => sum + (s.investment_max_eur ?? 0), 0)}
+              iso={iso}
+              oppIds={selectedOppIds}
+            />
+          </>
         )}
       </div>
     </div>

@@ -13,6 +13,13 @@ const PUBLIC_PAGES = new Set([
   '/onboarding',
   '/seller',
   '/influencer',
+  '/influencer/welcome',  // Influencer landing "vendre du rêve" (public)
+  '/influencer/catalog',  // Product catalog Apple-style (public browse, save needs auth)
+  '/influencer/map',      // Public view of product countries
+  '/finance',          // Financeur landing page (public)
+  '/finance/signup',   // Financeur signup (public — auth check inside page)
+  '/invest',           // Investisseur landing page (public)
+  '/invest/signup',    // Investisseur signup (public — auth check inside page)
 ])
 
 const PUBLIC_PAGE_PREFIXES = [
@@ -39,6 +46,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/countries',       // Public data
   '/api/opportunities',   // Public data
   '/api/stats',           // Public aggregate stats (map counters)
+  '/api/catalog',         // Public catalogue (opt-in products only, enforced by RLS)
 ]
 
 // ── Admin routes — require admin role ────────────────────────────────────────

@@ -13,9 +13,33 @@
  *   npx tsx agents/logistics-collector.ts --dry-run
  */
 
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
-import { supabaseAdmin } from '@/lib/supabase';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load .env.local manually (tsx doesn't auto-load env files).
+// MUST run before any module that captures process.env at load time.
+function loadEnv() {
+  const envPath = path.join(process.cwd(), '.env.local');
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const idx = trimmed.indexOf('=');
+    if (idx < 0) continue;
+    const key = trimmed.slice(0, idx).trim();
+    const val = trimmed.slice(idx + 1).trim().replace(/^["']|["']$/g, '');
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+loadEnv();
+
+// Dynamic imports inside main — run AFTER loadEnv() so lib/supabase captures
+// the real env values instead of placeholder fallbacks. These module-level
+// handles are populated at the start of main() before any call site runs.
+type SupabaseAdmin = any;
+let google: any;
+let generateText: any;
+let supabaseAdmin: any;
 
 const args = process.argv.slice(2);
 function getArg(flag: string): string | undefined {
@@ -27,14 +51,43 @@ const argDest = getArg('--dest')?.split(',');
 const dryRun = args.includes('--dry-run');
 
 // ─── Config ────────────────────────────────────────────────────────────────
-// Main export corridors for pilot countries
+// Main export corridors for pilot countries + extended producer set
 const DEFAULT_CORRIDORS: Array<{ origin: string; destinations: string[]; modes: string[] }> = [
+  // Original 6 pilots (2026-04-09)
   { origin: 'CIV', destinations: ['FRA', 'NLD', 'DEU', 'USA', 'CHN'], modes: ['sea', 'air'] },
   { origin: 'SEN', destinations: ['FRA', 'ESP', 'NLD', 'USA'], modes: ['sea', 'air'] },
   { origin: 'MAR', destinations: ['FRA', 'ESP', 'DEU', 'NLD'], modes: ['sea', 'road'] },
   { origin: 'VNM', destinations: ['USA', 'DEU', 'FRA', 'NLD'], modes: ['sea', 'air'] },
   { origin: 'COL', destinations: ['USA', 'DEU', 'NLD', 'FRA'], modes: ['sea', 'air'] },
   { origin: 'GIN', destinations: ['FRA', 'BEL', 'CHN'], modes: ['sea'] },
+  // Extended producer set (2026-04-09 industrialisation phase 3)
+  // Africa
+  { origin: 'GHA', destinations: ['NLD', 'DEU', 'USA', 'BEL'], modes: ['sea', 'air'] },
+  { origin: 'NGA', destinations: ['NLD', 'ESP', 'USA', 'CHN'], modes: ['sea', 'air'] },
+  { origin: 'ETH', destinations: ['DEU', 'USA', 'ITA', 'NLD'], modes: ['sea', 'air'] },
+  { origin: 'TZA', destinations: ['IND', 'NLD', 'DEU', 'CHN'], modes: ['sea'] },
+  { origin: 'MOZ', destinations: ['IND', 'NLD', 'ZAF'], modes: ['sea'] },
+  { origin: 'BFA', destinations: ['FRA', 'CIV', 'NLD'], modes: ['sea', 'road'] },
+  { origin: 'BEN', destinations: ['FRA', 'NLD', 'IND'], modes: ['sea'] },
+  { origin: 'EGY', destinations: ['FRA', 'ITA', 'DEU', 'NLD'], modes: ['sea', 'air'] },
+  // Asia
+  { origin: 'IDN', destinations: ['CHN', 'USA', 'NLD', 'DEU'], modes: ['sea', 'air'] },
+  { origin: 'IND', destinations: ['USA', 'DEU', 'NLD', 'GBR'], modes: ['sea', 'air'] },
+  { origin: 'CHN', destinations: ['USA', 'DEU', 'NLD', 'FRA'], modes: ['sea', 'air'] },
+  { origin: 'BGD', destinations: ['USA', 'DEU', 'FRA', 'NLD'], modes: ['sea', 'air'] },
+  { origin: 'PAK', destinations: ['USA', 'DEU', 'GBR', 'NLD'], modes: ['sea', 'air'] },
+  { origin: 'KHM', destinations: ['USA', 'DEU', 'JPN', 'NLD'], modes: ['sea', 'air'] },
+  { origin: 'PHL', destinations: ['USA', 'JPN', 'NLD', 'DEU'], modes: ['sea', 'air'] },
+  { origin: 'THA', destinations: ['USA', 'CHN', 'NLD', 'JPN'], modes: ['sea', 'air'] },
+  { origin: 'MYS', destinations: ['CHN', 'USA', 'NLD', 'IND'], modes: ['sea', 'air'] },
+  { origin: 'TUR', destinations: ['DEU', 'GBR', 'ITA', 'FRA'], modes: ['sea', 'road'] },
+  // Middle East + South America
+  { origin: 'BRA', destinations: ['USA', 'DEU', 'NLD', 'CHN'], modes: ['sea', 'air'] },
+  { origin: 'ECU', destinations: ['USA', 'DEU', 'NLD', 'BEL'], modes: ['sea', 'air'] },
+  { origin: 'PER', destinations: ['USA', 'DEU', 'NLD', 'BEL'], modes: ['sea', 'air'] },
+  { origin: 'MEX', destinations: ['USA', 'DEU', 'NLD', 'ESP'], modes: ['sea', 'road', 'air'] },
+  { origin: 'HND', destinations: ['USA', 'DEU', 'BEL', 'NLD'], modes: ['sea', 'air'] },
+  { origin: 'GTM', destinations: ['USA', 'DEU', 'BEL', 'NLD'], modes: ['sea', 'air'] },
 ];
 
 // ─── LLM estimation ────────────────────────────────────────────────────────
@@ -168,7 +221,7 @@ Donne au maximum 5 entrees. Utilise des estimations 2026 realistes. Pour ${args.
 }
 
 async function getYouTubeContext(
-  admin: ReturnType<typeof supabaseAdmin>,
+  admin: SupabaseAdmin,
   origin: string,
 ): Promise<string> {
   const { data } = await admin
@@ -192,6 +245,12 @@ async function getYouTubeContext(
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 async function main() {
+  // Populate dynamic-import handles after loadEnv() so provider modules
+  // capture the real env values.
+  ({ google } = await import('@ai-sdk/google'));
+  ({ generateText } = await import('ai'));
+  ({ supabaseAdmin } = await import('@/lib/supabase'));
+
   const admin = supabaseAdmin();
 
   const corridors = DEFAULT_CORRIDORS.filter((c) => {

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
-import { supabase } from '@/lib/supabase'
+import { supabase, createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -382,6 +382,7 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rawBuffer, setRawBuffer] = useState('')
+  const [checkingCache, setCheckingCache] = useState(true)
   const planRef = useRef<HTMLDivElement>(null)
 
   // Restore cached plan from localStorage on mount/lang change — zero tokens.
@@ -395,6 +396,7 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
         setPlan(null)
       }
     } catch {}
+    setCheckingCache(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cacheKey])
 
@@ -473,10 +475,11 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
     }
   }, [plan, country])
 
-  async function generate() {
+  async function generate(isRefresh = false) {
+    // Set generating FIRST to avoid flashing the "generate" screen
     setGenerating(true)
     setError(null)
-    setPlan(null)
+    if (!isRefresh) setPlan(null)
     setRawBuffer('')
 
     try {
@@ -577,6 +580,15 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
     URL.revokeObjectURL(url)
   }
 
+  // ── Loading cache ────────────────────────────────────────────────────────────
+  if (checkingCache) {
+    return (
+      <div className="rounded-2xl border border-[rgba(201,168,76,.15)] p-10 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   // ── Generate screen ─────────────────────────────────────────────────────────
   if (!plan && !generating) {
     return (
@@ -622,7 +634,7 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
           </p>
 
           <button
-            onClick={generate}
+            onClick={() => generate()}
             className="px-8 py-3.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm inline-flex items-center gap-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -636,8 +648,8 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
     )
   }
 
-  // ── Generating screen ───────────────────────────────────────────────────────
-  if (generating) {
+  // ── Generating screen (only for first generation, not refresh) ─────────────
+  if (generating && !plan) {
     return (
       <div className="rounded-2xl border border-[rgba(201,168,76,.15)] p-10 flex flex-col items-center gap-5">
         <div className="relative w-16 h-16">
@@ -943,24 +955,7 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
         </section>
 
         {/* Download */}
-        <div className="flex gap-3 justify-end pt-2 border-t border-white/5">
-          <button
-            onClick={() => {
-              // Explicit regenerate: clear cache + reset state. Tokens will be
-              // consumed by the next generate() call — confirmed via UI intent.
-              if (typeof window !== 'undefined') {
-                const ok = confirm(lang === 'fr'
-                  ? 'Régénérer le business plan consommera des crédits IA. Continuer ?'
-                  : 'Regenerating the business plan will consume AI credits. Continue?')
-                if (!ok) return
-                try { localStorage.removeItem(cacheKey) } catch {}
-              }
-              setPlan(null)
-            }}
-            className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl text-sm hover:bg-white/10 transition-colors"
-          >
-            {lang === 'fr' ? '↺ Regénérer' : '↺ Regenerate'}
-          </button>
+        <div className="flex flex-wrap gap-3 justify-end pt-2 border-t border-white/5">
           <button
             onClick={downloadTxt}
             className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl text-sm hover:bg-white/10 transition-colors flex items-center gap-1.5"
@@ -998,6 +993,38 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
             )}
           </button>
         </div>
+
+        {/* Refresh button — bottom of plan */}
+        <div className="flex justify-center pt-6 pb-2">
+          <button
+            onClick={() => {
+              const ok = confirm(lang === 'fr'
+                ? 'Actualiser le business plan consommera des crédits IA. Continuer ?'
+                : 'Refreshing the business plan will consume AI credits. Continue?')
+              if (!ok) return
+              try { localStorage.removeItem(cacheKey) } catch {}
+              generate(true)
+            }}
+            disabled={generating}
+            className="px-5 py-2.5 bg-white/5 border border-white/10 text-gray-400 rounded-xl text-sm hover:bg-white/10 hover:text-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {generating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                {lang === 'fr' ? 'Actualisation…' : 'Refreshing…'}
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <polyline points="1 20 1 14 7 14"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                {lang === 'fr' ? 'Actualiser le business plan' : 'Refresh business plan'}
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -1025,6 +1052,7 @@ export default function PlanPage() {
 
   useEffect(() => {
     if (!iso) return
+    const browserSupabase = createSupabaseBrowser()
     Promise.all([
       supabase.from('countries').select('*').eq('id', iso.toUpperCase()).single(),
       supabase.from('opportunities')
@@ -1032,7 +1060,7 @@ export default function PlanPage() {
         .eq('country_iso', iso.toUpperCase())
         .order('opportunity_score', { ascending: false })
         .limit(10),
-      supabase.auth.getUser(),
+      browserSupabase.auth.getUser(),
     ]).then(async ([{ data: c }, { data: o }, { data: authData }]) => {
       if (!c) { router.push('/reports'); return }
       setCountry(c as Country)
@@ -1041,7 +1069,7 @@ export default function PlanPage() {
         products: Array.isArray(x.products) ? x.products[0] ?? null : x.products,
       })) as Opportunity[])
       if (authData.user) {
-        const { data: profile } = await supabase.from('profiles').select('tier').eq('id', authData.user.id).single()
+        const { data: profile } = await browserSupabase.from('profiles').select('tier').eq('id', authData.user.id).single()
         if (profile?.tier) setUserTier(profile.tier)
       }
       setLoading(false)

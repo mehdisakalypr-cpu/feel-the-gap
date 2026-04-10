@@ -63,12 +63,38 @@ const DEFAULT_PILOT = ['CIV', 'SEN', 'MAR', 'VNM', 'COL', 'GIN'];
 // Product hints per country — passed to the LLM so it prioritises the
 // sectors we actually enrich in the business plans.
 const PRODUCT_HINTS_BY_ISO: Record<string, string[]> = {
+  // Original pilots (2026-04-09)
   CIV: ['cacao', 'cafe', 'anacarde', 'huile_palme'],
   SEN: ['cacao', 'textile', 'anacarde', 'mangue'],
   MAR: ['textile', 'huile_olive', 'mangue', 'cafe'],
   VNM: ['cafe', 'cacao', 'textile', 'anacarde'],
   COL: ['cafe', 'cacao', 'textile', 'huile_palme'],
   GIN: ['cacao', 'anacarde', 'mangue', 'textile'],
+  // Extended producer set (2026-04-09 industrialisation phase 3)
+  GHA: ['cacao', 'huile_palme', 'anacarde'],
+  NGA: ['cacao', 'anacarde', 'huile_palme', 'textile'],
+  BRA: ['cacao', 'cafe', 'mangue'],
+  ECU: ['cacao', 'cafe', 'mangue'],
+  ETH: ['cafe', 'textile'],
+  IDN: ['cafe', 'huile_palme', 'cacao', 'textile'],
+  HND: ['cafe', 'textile'],
+  MEX: ['cafe', 'mangue', 'textile'],
+  PER: ['cafe', 'cacao', 'mangue'],
+  GTM: ['cafe', 'textile'],
+  IND: ['textile', 'anacarde', 'mangue', 'cafe'],
+  CHN: ['textile', 'mangue'],
+  BGD: ['textile', 'mangue'],
+  TUR: ['textile', 'mangue'],
+  PAK: ['textile', 'mangue'],
+  KHM: ['textile'],
+  TZA: ['anacarde', 'cafe', 'cacao'],
+  MOZ: ['anacarde', 'cacao'],
+  BFA: ['anacarde', 'textile'],
+  BEN: ['anacarde', 'huile_palme', 'textile'],
+  MYS: ['huile_palme', 'textile', 'cacao'],
+  THA: ['huile_palme', 'mangue', 'textile'],
+  EGY: ['mangue', 'textile'],
+  PHL: ['mangue', 'huile_palme'],
 };
 
 // ─── Country resolution ────────────────────────────────────────────────────
