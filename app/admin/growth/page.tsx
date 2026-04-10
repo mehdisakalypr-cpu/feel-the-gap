@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 // ── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -533,11 +534,20 @@ export default function GrowthPlanPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white mb-1">Growth Execution Plan</h1>
-        <p className="text-sm text-gray-400">
-          95% AI-agent executable strategy. Last updated: 2026-04-10.
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Growth Execution Plan</h1>
+          <p className="text-sm text-gray-400">
+            95% AI-agent executable strategy. Last updated: 2026-04-10.
+          </p>
+        </div>
+        <Link
+          href="/admin/growth/scale"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-gradient-to-r from-[#C9A84C]/20 to-[#EF4444]/20 border border-[#C9A84C]/30 text-[#C9A84C] hover:border-[#C9A84C]/60"
+        >
+          Paliers 6-10: Scaling Strategy
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </Link>
       </div>
 
       {/* Executive Summary Cards */}
