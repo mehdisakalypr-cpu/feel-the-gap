@@ -24,18 +24,20 @@ export default function BiometricSetupPage() {
       const optRes = await fetch('/api/auth/webauthn/register')
       if (!optRes.ok) throw new Error('Not authenticated')
       const options = await optRes.json()
+      const { challengeToken, ...optionsJSON } = options
 
       // 2. Trigger fingerprint via browser
       const { startRegistration } = await import('@simplewebauthn/browser')
-      const regResponse = await startRegistration({ optionsJSON: options })
+      const regResponse = await startRegistration({ optionsJSON })
 
-      // 3. Verify with server
+      // 3. Verify with server (pass challengeToken back for stateless verification)
       const verifyRes = await fetch('/api/auth/webauthn/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           response: regResponse,
           deviceName: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+          challengeToken,
         }),
       })
 

@@ -71,11 +71,11 @@ export default function LoginPage() {
       const { startAuthentication } = await import('@simplewebauthn/browser')
       const authResponse = await startAuthentication({ optionsJSON: startData.options })
 
-      // 3. Finish authentication
+      // 3. Finish authentication (pass challengeToken back for stateless verification)
       const finishRes = await fetch('/api/auth/webauthn/authenticate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'finish', userId: startData.userId, response: authResponse }),
+        body: JSON.stringify({ action: 'finish', userId: startData.userId, response: authResponse, challengeToken: startData.challengeToken }),
       })
       const finishData = await finishRes.json()
 

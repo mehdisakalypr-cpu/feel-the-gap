@@ -73,19 +73,36 @@ async function updateCounter(credId: string, newCounter: number) {
     .eq("app", APP_ID);
 }
 
-// ── Challenge store (in-memory, short-lived) ─────────────────────────────────────
+// ── Stateless challenge (HMAC-signed, no server storage needed) ──────────────────
+// Fixes: in-memory Map lost between Vercel serverless invocations
 
-const challenges = new Map<string, { challenge: string; expires: number }>();
+import crypto from "crypto";
 
-function storeChallenge(userId: string, challenge: string) {
-  challenges.set(userId, { challenge, expires: Date.now() + 5 * 60 * 1000 });
+const CHALLENGE_SECRET =
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 32) ?? "fallback-secret-key-for-dev-only";
+const CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function signChallenge(userId: string, challenge: string): string {
+  const expires = Date.now() + CHALLENGE_TTL_MS;
+  const payload = `${userId}:${challenge}:${expires}`;
+  const hmac = crypto.createHmac("sha256", CHALLENGE_SECRET).update(payload).digest("base64url");
+  return `${Buffer.from(payload).toString("base64url")}.${hmac}`;
 }
 
-function getAndDeleteChallenge(userId: string): string | null {
-  const entry = challenges.get(userId);
-  challenges.delete(userId);
-  if (!entry || entry.expires < Date.now()) return null;
-  return entry.challenge;
+function verifyAndExtractChallenge(userId: string, token: string): string | null {
+  try {
+    const [payloadB64, hmac] = token.split(".");
+    if (!payloadB64 || !hmac) return null;
+    const payload = Buffer.from(payloadB64, "base64url").toString();
+    const expected = crypto.createHmac("sha256", CHALLENGE_SECRET).update(payload).digest("base64url");
+    if (hmac !== expected) return null;
+    const [storedUserId, challenge, expiresStr] = payload.split(":");
+    if (storedUserId !== userId) return null;
+    if (Number(expiresStr) < Date.now()) return null;
+    return challenge;
+  } catch {
+    return null;
+  }
 }
 
 // ── Registration ─────────────────────────────────────────────────────────────────
@@ -111,18 +128,21 @@ export async function startRegistration(userId: string, userEmail: string, host?
     excludeCredentials,
   });
 
-  storeChallenge(userId, options.challenge);
-  return options;
+  const challengeToken = signChallenge(userId, options.challenge);
+  return { ...options, challengeToken };
 }
 
 export async function finishRegistration(
   userId: string,
   response: RegistrationResponseJSON,
   deviceName?: string,
-  host?: string | null
+  host?: string | null,
+  challengeToken?: string
 ) {
   const { rpId, origin } = getWebAuthnConfig(host);
-  const expectedChallenge = getAndDeleteChallenge(userId);
+  const expectedChallenge = challengeToken
+    ? verifyAndExtractChallenge(userId, challengeToken)
+    : null;
   if (!expectedChallenge) throw new Error("Challenge expired or missing");
 
   const verification = await verifyRegistrationResponse({
@@ -173,16 +193,19 @@ export async function startAuthenticationForEmail(email: string, host?: string |
     userVerification: "required",
   });
 
-  storeChallenge(user.id, options.challenge);
-  return { options, userId: user.id };
+  const challengeToken = signChallenge(user.id, options.challenge);
+  return { options, userId: user.id, challengeToken };
 }
 
 export async function finishAuthentication(
   userId: string,
   response: AuthenticationResponseJSON,
-  host?: string | null
+  host?: string | null,
+  challengeToken?: string
 ) {
-  const expectedChallenge = getAndDeleteChallenge(userId);
+  const expectedChallenge = challengeToken
+    ? verifyAndExtractChallenge(userId, challengeToken)
+    : null;
   if (!expectedChallenge) throw new Error("Challenge expired or missing");
 
   const credentials = await getCredentials(userId);

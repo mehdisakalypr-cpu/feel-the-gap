@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
 
   const h = await headers();
   const host = h.get("host");
-  const { response, deviceName } = await req.json();
+  const { response, deviceName, challengeToken } = await req.json();
   try {
-    const result = await finishRegistration(user.id, response, deviceName, host);
+    const result = await finishRegistration(user.id, response, deviceName, host, challengeToken);
     return NextResponse.json(result);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Registration failed";

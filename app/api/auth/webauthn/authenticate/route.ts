@@ -17,14 +17,14 @@ export async function POST(req: NextRequest) {
     const result = await startAuthenticationForEmail(email, host);
     if (!result) return NextResponse.json({ available: false });
 
-    return NextResponse.json({ available: true, options: result.options, userId: result.userId });
+    return NextResponse.json({ available: true, options: result.options, userId: result.userId, challengeToken: result.challengeToken });
   }
 
   // Step 2: Finish authentication — client sends { action: "finish", userId, response }
   if (body.action === "finish") {
-    const { userId, response } = body;
+    const { userId, response, challengeToken } = body;
     try {
-      const result = await finishAuthentication(userId, response, host);
+      const result = await finishAuthentication(userId, response, host, challengeToken);
       if (!result.verified) {
         return NextResponse.json({ error: "Verification failed" }, { status: 401 });
       }
