@@ -1,368 +1,375 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { useState, useEffect, useCallback } from 'react'
+import { CMS_SITES, type SiteDef, type CollectionDef, type SlotDef } from '@/lib/cms-collections'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-)
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type CmsPage = {
+type CmsRow = {
   id: string
+  site: string
+  collection: string
   slug: string
-  title: string
-  sections: Section[]
+  field_type: string
+  value_en: string
+  value_fr: string
+  metadata: Record<string, unknown>
+  order: number
   published: boolean
   updated_at: string
 }
 
-type Section = {
+type HistoryEntry = {
   id: string
-  type: 'hero' | 'text' | 'video' | 'feature'
-  title?: string
-  body?: string
-  video_url?: string
-  video_type?: 'youtube' | 'vimeo' | 'native'
+  content_id: string
+  value_en: string
+  value_fr: string
+  changed_at: string
 }
 
-type CmsMedia = {
-  id: string
-  type: 'video_url' | 'video_upload' | 'image'
-  url: string
-  title: string
-  thumbnail?: string
-  created_at: string
-}
+// ── Main CMS Page ───────────────────────────────────────────────────────────
 
-// ── Video embed helper ────────────────────────────────────────────────────────
-
-function getEmbedUrl(url: string): { type: 'youtube' | 'vimeo' | 'native', embed: string } | null {
-  if (!url) return null
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-  if (yt) return { type: 'youtube', embed: `https://www.youtube.com/embed/${yt[1]}` }
-  const vm = url.match(/vimeo\.com\/(\d+)/)
-  if (vm) return { type: 'vimeo', embed: `https://player.vimeo.com/video/${vm[1]}` }
-  if (url.match(/\.(mp4|webm|ogg)(\?|$)/i)) return { type: 'native', embed: url }
-  return null
-}
-
-function VideoPlayer({ url }: { url: string }) {
-  const info = getEmbedUrl(url)
-  if (!info) return <p className="text-xs text-gray-500">Invalid video URL</p>
-  if (info.type === 'native') {
-    return (
-      <video src={info.embed} controls className="w-full rounded-lg aspect-video bg-black" />
-    )
-  }
-  return (
-    <iframe
-      src={info.embed}
-      className="w-full rounded-lg aspect-video"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowFullScreen
-    />
-  )
-}
-
-// ── Main ─────────────────────────────────────────────────────────────────────
-
-export default function CMSPage() {
-  const [pages, setPages] = useState<CmsPage[]>([])
-  const [media, setMedia] = useState<CmsMedia[]>([])
-  const [activeTab, setActiveTab] = useState<'pages' | 'media'>('pages')
-  const [editingPage, setEditingPage] = useState<CmsPage | null>(null)
+export default function CmsPage() {
+  const [activeSite, setActiveSite] = useState<SiteDef>(CMS_SITES[0])
+  const [activeCollection, setActiveCollection] = useState<CollectionDef>(CMS_SITES[0].collections[0])
+  const [rows, setRows] = useState<CmsRow[]>([])
+  const [drafts, setDrafts] = useState<Record<string, { value_en: string; value_fr: string }>>({})
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
+  const [historySlug, setHistorySlug] = useState<string | null>(null)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [previewSlug, setPreviewSlug] = useState<string | null>(null)
 
-  // Media form
-  const [newMediaUrl, setNewMediaUrl] = useState('')
-  const [newMediaTitle, setNewMediaTitle] = useState('')
-  const [newMediaType, setNewMediaType] = useState<'video_url' | 'image'>('video_url')
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500) }
 
-  useEffect(() => {
-    loadPages()
-    loadMedia()
-  }, [])
+  // Fetch rows for current site+collection
+  const fetchRows = useCallback(async () => {
+    const res = await fetch(`/api/admin/cms?site=${activeSite.key}&collection=${activeCollection.key}`)
+    const data = await res.json()
+    if (Array.isArray(data)) setRows(data)
+  }, [activeSite.key, activeCollection.key])
 
-  async function loadPages() {
-    const { data } = await supabase.from('cms_pages').select('*').order('slug')
-    setPages((data as any) ?? [])
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  // Get value for a slot (draft > db > default)
+  function getValue(slot: SlotDef, lang: 'en' | 'fr'): string {
+    const draft = drafts[slot.slug]
+    if (draft) return lang === 'en' ? draft.value_en : draft.value_fr
+    const row = rows.find(r => r.slug === slot.slug)
+    if (row) return lang === 'en' ? row.value_en : row.value_fr
+    return lang === 'en' ? slot.default_en : slot.default_fr
   }
 
-  async function loadMedia() {
-    const { data } = await supabase.from('cms_media').select('*').order('created_at', { ascending: false })
-    setMedia((data as any) ?? [])
+  // Check if slot has unsaved changes
+  function isDirty(slot: SlotDef): boolean {
+    return !!drafts[slot.slug]
   }
 
-  function show(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 3000)
-  }
-
-  async function savePage(page: CmsPage) {
-    setSaving(true)
-    await supabase.from('cms_pages').upsert({ ...page, updated_at: new Date().toISOString() })
-    await loadPages()
-    setSaving(false)
-    show('Saved!')
-  }
-
-  async function togglePublish(page: CmsPage) {
-    await supabase.from('cms_pages').update({ published: !page.published }).eq('id', page.id)
-    await loadPages()
-  }
-
-  async function addMedia() {
-    if (!newMediaUrl || !newMediaTitle) return
-    await supabase.from('cms_media').insert({
-      type: newMediaType,
-      url: newMediaUrl,
-      title: newMediaTitle,
+  // Update draft
+  function setDraft(slug: string, lang: 'en' | 'fr', val: string) {
+    setDrafts(prev => {
+      const current = prev[slug] ?? {
+        value_en: rows.find(r => r.slug === slug)?.value_en ?? findSlotDef(slug)?.default_en ?? '',
+        value_fr: rows.find(r => r.slug === slug)?.value_fr ?? findSlotDef(slug)?.default_fr ?? '',
+      }
+      return { ...prev, [slug]: { ...current, [lang === 'en' ? 'value_en' : 'value_fr']: val } }
     })
-    setNewMediaUrl('')
-    setNewMediaTitle('')
-    await loadMedia()
-    show('Media added!')
   }
 
-  async function deleteMedia(id: string) {
-    await supabase.from('cms_media').delete().eq('id', id)
-    await loadMedia()
+  function findSlotDef(slug: string): SlotDef | undefined {
+    return activeCollection.slots.find(s => s.slug === slug)
   }
 
-  function updateSection(page: CmsPage, secId: string, patch: Partial<Section>): CmsPage {
-    return {
-      ...page,
-      sections: page.sections.map(s => s.id === secId ? { ...s, ...patch } : s),
+  // Save all dirty entries
+  async function saveAll() {
+    setSaving(true)
+    const dirtyEntries = Object.entries(drafts)
+    for (const [slug, vals] of dirtyEntries) {
+      const slot = findSlotDef(slug)
+      await fetch('/api/admin/cms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          site: activeSite.key,
+          collection: activeCollection.key,
+          slug,
+          field_type: slot?.field_type ?? 'text',
+          value_en: vals.value_en,
+          value_fr: vals.value_fr,
+          order: activeCollection.slots.findIndex(s => s.slug === slug),
+        }),
+      })
     }
+    setDrafts({})
+    await fetchRows()
+    setSaving(false)
+    showToast(`${dirtyEntries.length} entrée(s) sauvegardée(s)`)
   }
 
-  function addSection(page: CmsPage, type: Section['type']): CmsPage {
-    const sec: Section = { id: crypto.randomUUID(), type }
-    return { ...page, sections: [...(page.sections ?? []), sec] }
+  // Save single entry
+  async function saveSingle(slug: string) {
+    const vals = drafts[slug]
+    if (!vals) return
+    const slot = findSlotDef(slug)
+    setSaving(true)
+    await fetch('/api/admin/cms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        site: activeSite.key,
+        collection: activeCollection.key,
+        slug,
+        field_type: slot?.field_type ?? 'text',
+        value_en: vals.value_en,
+        value_fr: vals.value_fr,
+        order: activeCollection.slots.findIndex(s => s.slug === slug),
+      }),
+    })
+    setDrafts(prev => { const n = { ...prev }; delete n[slug]; return n })
+    await fetchRows()
+    setSaving(false)
+    showToast(`"${slot?.label}" sauvegardé`)
   }
 
-  function removeSection(page: CmsPage, secId: string): CmsPage {
-    return { ...page, sections: page.sections.filter(s => s.id !== secId) }
+  // Load history for a slug
+  async function loadHistory(slug: string) {
+    const row = rows.find(r => r.slug === slug)
+    if (!row) { setHistory([]); setHistorySlug(slug); return }
+    const res = await fetch(`/api/admin/cms/history?content_id=${row.id}`)
+    const data = await res.json()
+    setHistory(Array.isArray(data) ? data : [])
+    setHistorySlug(slug)
   }
+
+  // Rollback to a history version
+  async function rollback(historyId: string) {
+    setSaving(true)
+    await fetch('/api/admin/cms/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history_id: historyId }),
+    })
+    setHistorySlug(null)
+    setHistory([])
+    setDrafts(prev => { const n = { ...prev }; if (historySlug) delete n[historySlug]; return n })
+    await fetchRows()
+    setSaving(false)
+    showToast('Version restaurée')
+  }
+
+  // Seed defaults for current collection
+  async function seedDefaults() {
+    setSaving(true)
+    for (const slot of activeCollection.slots) {
+      const existing = rows.find(r => r.slug === slot.slug)
+      if (!existing) {
+        await fetch('/api/admin/cms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            site: activeSite.key,
+            collection: activeCollection.key,
+            slug: slot.slug,
+            field_type: slot.field_type,
+            value_en: slot.default_en,
+            value_fr: slot.default_fr,
+            order: activeCollection.slots.indexOf(slot),
+          }),
+        })
+      }
+    }
+    await fetchRows()
+    setSaving(false)
+    showToast('Valeurs par défaut initialisées')
+  }
+
+  const hasDirty = Object.keys(drafts).length > 0
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-full">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-[#22C55E] text-white text-sm px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed top-4 right-4 z-50 px-4 py-2 bg-emerald-500/90 text-white text-sm rounded-lg shadow-lg animate-fade-in">
           {toast}
         </div>
       )}
 
-      <div>
-        <h1 className="text-2xl font-bold text-white">CMS</h1>
-        <p className="text-sm text-gray-500 mt-1">Edit page content · manage media</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2">
-        {(['pages', 'media'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className="px-4 py-2 text-xs font-semibold rounded-lg transition-colors capitalize"
-            style={{
-              background: activeTab === tab ? '#C9A84C22' : 'transparent',
-              color: activeTab === tab ? '#C9A84C' : '#6B7280',
-              border: `1px solid ${activeTab === tab ? '#C9A84C44' : '#374151'}`,
-            }}>
-            {tab}
+      {/* Site tabs */}
+      <div className="flex items-center gap-1 border-b border-white/10 px-4 pt-3 pb-0">
+        {CMS_SITES.map(site => (
+          <button
+            key={site.key}
+            onClick={() => { setActiveSite(site); setActiveCollection(site.collections[0]); setDrafts({}); setHistorySlug(null) }}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeSite.key === site.key
+                ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-b-0 border-[#C9A84C]/30'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {site.label}
           </button>
         ))}
       </div>
 
-      {/* Pages tab */}
-      {activeTab === 'pages' && !editingPage && (
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-white mb-4">Pages</h2>
-          {pages.length === 0 ? (
-            <p className="text-xs text-gray-500">No CMS pages yet. Run the SQL migration to seed defaults.</p>
-          ) : (
-            <div className="space-y-2">
-              {pages.map(page => (
-                <div key={page.id}
-                  className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                  <div>
-                    <p className="text-sm text-white font-medium">{page.title}</p>
-                    <p className="text-xs text-gray-500">/{page.slug} · {(page.sections ?? []).length} sections</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => togglePublish(page)}
-                      className="text-[10px] px-2 py-1 rounded-full font-semibold"
-                      style={{
-                        color: page.published ? '#22C55E' : '#6B7280',
-                        background: page.published ? '#22C55E22' : '#6B728022',
-                      }}>
-                      {page.published ? 'published' : 'draft'}
-                    </button>
-                    <button onClick={() => setEditingPage(page)}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-[rgba(201,168,76,.3)] text-[#C9A84C] hover:bg-[#C9A84C11] transition-colors">
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Page editor */}
-      {activeTab === 'pages' && editingPage && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setEditingPage(null)}
-              className="text-xs text-gray-500 hover:text-white transition-colors">
-              ← Back
+      <div className="flex flex-1 min-h-0">
+        {/* Left panel — collections */}
+        <div className="w-48 border-r border-white/10 p-3 flex flex-col gap-1 shrink-0">
+          {activeSite.collections.map(coll => (
+            <button
+              key={coll.key}
+              onClick={() => { setActiveCollection(coll); setDrafts({}); setHistorySlug(null) }}
+              className={`px-3 py-2 text-sm rounded-lg text-left transition-colors ${
+                activeCollection.key === coll.key
+                  ? 'bg-white/10 text-white font-medium'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {coll.label}
             </button>
-            <h2 className="text-sm font-semibold text-white">{editingPage.title}</h2>
-            <button onClick={() => savePage(editingPage)} disabled={saving}
-              className="ml-auto px-4 py-2 text-xs font-semibold rounded-lg bg-[#C9A84C] text-black hover:opacity-90 transition-opacity disabled:opacity-50">
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-          </div>
-
-          {/* Page meta */}
-          <div className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5 space-y-3">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Page Title</label>
-              <input value={editingPage.title} onChange={e => setEditingPage({ ...editingPage, title: e.target.value })}
-                className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]" />
-            </div>
-          </div>
-
-          {/* Sections */}
-          {(editingPage.sections ?? []).map((sec, i) => (
-            <div key={sec.id} className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#C9A84C] uppercase">{sec.type} block</span>
-                <button onClick={() => setEditingPage(removeSection(editingPage, sec.id))}
-                  className="text-xs text-gray-600 hover:text-red-400 transition-colors">✕ Remove</button>
-              </div>
-
-              {sec.type !== 'video' && (
-                <>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Title</label>
-                    <input value={sec.title ?? ''} onChange={e => setEditingPage(updateSection(editingPage, sec.id, { title: e.target.value }))}
-                      className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]" />
-                  </div>
-                  {sec.type !== 'feature' && (
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Body</label>
-                      <textarea value={sec.body ?? ''} rows={4}
-                        onChange={e => setEditingPage(updateSection(editingPage, sec.id, { body: e.target.value }))}
-                        className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C] resize-none" />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {sec.type === 'video' && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Video URL (YouTube, Vimeo, or direct .mp4)</label>
-                    <input value={sec.video_url ?? ''} placeholder="https://youtube.com/watch?v=…"
-                      onChange={e => setEditingPage(updateSection(editingPage, sec.id, { video_url: e.target.value }))}
-                      className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Caption</label>
-                    <input value={sec.title ?? ''} onChange={e => setEditingPage(updateSection(editingPage, sec.id, { title: e.target.value }))}
-                      className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]" />
-                  </div>
-                  {sec.video_url && (
-                    <div>
-                      <label className="text-xs text-gray-500 mb-2 block">Preview</label>
-                      <VideoPlayer url={sec.video_url} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           ))}
-
-          {/* Add section */}
-          <div className="bg-[#0D1117] border border-dashed border-[rgba(201,168,76,.2)] rounded-xl p-4">
-            <p className="text-xs text-gray-500 mb-3">Add a new block</p>
-            <div className="flex flex-wrap gap-2">
-              {(['hero', 'text', 'video', 'feature'] as Section['type'][]).map(type => (
-                <button key={type} onClick={() => setEditingPage(addSection(editingPage, type))}
-                  className="px-3 py-1.5 text-xs rounded-lg border border-[rgba(201,168,76,.3)] text-[#C9A84C] hover:bg-[#C9A84C11] transition-colors capitalize">
-                  + {type}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Media tab */}
-      {activeTab === 'media' && (
-        <div className="space-y-4">
-          {/* Add media form */}
-          <div className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-white">Add Media</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Type</label>
-                <select value={newMediaType} onChange={e => setNewMediaType(e.target.value as any)}
-                  className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]">
-                  <option value="video_url">Video URL</option>
-                  <option value="image">Image URL</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">URL</label>
-                <input value={newMediaUrl} onChange={e => setNewMediaUrl(e.target.value)}
-                  placeholder="https://…"
-                  className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Title</label>
-                <input value={newMediaTitle} onChange={e => setNewMediaTitle(e.target.value)}
-                  placeholder="Demo overview…"
-                  className="w-full bg-[#1F2937] text-white text-sm px-3 py-2 rounded-lg border border-white/10 outline-none focus:border-[#C9A84C]" />
-              </div>
-            </div>
-            <button onClick={addMedia}
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#C9A84C] text-black hover:opacity-90 transition-opacity">
-              Add
+          <div className="mt-auto pt-3 border-t border-white/10">
+            <button onClick={seedDefaults} disabled={saving}
+              className="w-full px-3 py-2 text-xs text-gray-500 hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 rounded-lg transition-colors disabled:opacity-50">
+              Initialiser les défauts
             </button>
           </div>
+        </div>
 
-          {/* Media grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {media.length === 0 ? (
-              <p className="text-xs text-gray-500 col-span-3">No media yet.</p>
-            ) : media.map(m => (
-              <div key={m.id} className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl overflow-hidden">
-                {m.type === 'video_url' && (
-                  <div className="aspect-video">
-                    <VideoPlayer url={m.url} />
+        {/* Right panel — editor */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-white">{activeCollection.label}</h2>
+              <p className="text-xs text-gray-500">{activeSite.label} · {activeCollection.slots.length} champs</p>
+            </div>
+            <div className="flex gap-2">
+              {hasDirty && (
+                <button onClick={saveAll} disabled={saving}
+                  className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-sm rounded-lg hover:bg-[#E8C97A] transition-colors disabled:opacity-50">
+                  {saving ? 'Enregistrement...' : `Publier (${Object.keys(drafts).length})`}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Slots */}
+          <div className="space-y-4">
+            {activeCollection.slots.map(slot => {
+              const isPreview = previewSlug === slot.slug
+              return (
+                <div key={slot.slug} className={`bg-[#0D1117] border rounded-xl p-4 transition-colors ${isDirty(slot) ? 'border-[#C9A84C]/50' : 'border-white/10'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">{slot.label}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-white/5 text-gray-500 rounded">{slot.field_type}</span>
+                      {isDirty(slot) && <span className="text-[10px] px-1.5 py-0.5 bg-[#C9A84C]/20 text-[#C9A84C] rounded">modifié</span>}
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => setPreviewSlug(isPreview ? null : slot.slug)}
+                        className="px-2 py-1 text-[10px] text-gray-500 hover:text-white bg-white/5 rounded transition-colors">
+                        {isPreview ? 'Fermer' : 'Aperçu'}
+                      </button>
+                      <button onClick={() => loadHistory(slot.slug)}
+                        className="px-2 py-1 text-[10px] text-gray-500 hover:text-white bg-white/5 rounded transition-colors">
+                        Historique
+                      </button>
+                      {isDirty(slot) && (
+                        <button onClick={() => saveSingle(slot.slug)} disabled={saving}
+                          className="px-2 py-1 text-[10px] text-[#C9A84C] bg-[#C9A84C]/10 rounded hover:bg-[#C9A84C]/20 transition-colors disabled:opacity-50">
+                          Publier
+                        </button>
+                      )}
+                    </div>
                   </div>
-                )}
-                {m.type === 'image' && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.url} alt={m.title} className="w-full aspect-video object-cover" />
-                )}
-                <div className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-white font-medium">{m.title}</p>
-                    <p className="text-[10px] text-gray-500">{new Date(m.created_at).toLocaleDateString()}</p>
+
+                  {/* Preview */}
+                  {isPreview && (
+                    <div className="mb-3 p-3 bg-white/5 rounded-lg border border-dashed border-white/10">
+                      <div className="text-[10px] text-gray-500 mb-1 uppercase tracking-wide">Aperçu FR</div>
+                      <div className="text-sm text-white whitespace-pre-wrap">{getValue(slot, 'fr')}</div>
+                      <div className="text-[10px] text-gray-500 mb-1 mt-2 uppercase tracking-wide">Aperçu EN</div>
+                      <div className="text-sm text-gray-300 whitespace-pre-wrap">{getValue(slot, 'en')}</div>
+                    </div>
+                  )}
+
+                  {/* Editor fields */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-wide mb-1 block">FR</label>
+                      {slot.field_type === 'richtext' || slot.field_type === 'json' ? (
+                        <textarea
+                          value={getValue(slot, 'fr')}
+                          onChange={e => setDraft(slot.slug, 'fr', e.target.value)}
+                          rows={slot.field_type === 'json' ? 4 : 3}
+                          className="w-full px-3 py-2 bg-[#111827] border border-white/10 rounded-lg text-white text-sm resize-y focus:outline-none focus:border-[#C9A84C]/50 font-mono"
+                        />
+                      ) : (
+                        <input
+                          type={slot.field_type === 'number' ? 'number' : 'text'}
+                          value={getValue(slot, 'fr')}
+                          onChange={e => setDraft(slot.slug, 'fr', e.target.value)}
+                          className="w-full px-3 py-2 bg-[#111827] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-[#C9A84C]/50"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-wide mb-1 block">EN</label>
+                      {slot.field_type === 'richtext' || slot.field_type === 'json' ? (
+                        <textarea
+                          value={getValue(slot, 'en')}
+                          onChange={e => setDraft(slot.slug, 'en', e.target.value)}
+                          rows={slot.field_type === 'json' ? 4 : 3}
+                          className="w-full px-3 py-2 bg-[#111827] border border-white/10 rounded-lg text-white text-sm resize-y focus:outline-none focus:border-[#C9A84C]/50 font-mono"
+                        />
+                      ) : (
+                        <input
+                          type={slot.field_type === 'number' ? 'number' : 'text'}
+                          value={getValue(slot, 'en')}
+                          onChange={e => setDraft(slot.slug, 'en', e.target.value)}
+                          className="w-full px-3 py-2 bg-[#111827] border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-[#C9A84C]/50"
+                        />
+                      )}
+                    </div>
                   </div>
-                  <button onClick={() => deleteMedia(m.id)}
-                    className="text-xs text-gray-600 hover:text-red-400 transition-colors ml-2">✕</button>
                 </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* History modal */}
+      {historySlug && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setHistorySlug(null)}>
+          <div className="bg-[#0D1117] border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold">Historique — {findSlotDef(historySlug)?.label}</h3>
+              <button onClick={() => setHistorySlug(null)} className="text-gray-500 hover:text-white text-lg">&times;</button>
+            </div>
+            {history.length === 0 ? (
+              <p className="text-gray-500 text-sm">Aucun historique pour ce champ.</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map(h => (
+                  <div key={h.id} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">
+                        {new Date(h.changed_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <button onClick={() => rollback(h.id)} disabled={saving}
+                        className="px-3 py-1 text-xs bg-[#C9A84C]/10 text-[#C9A84C] rounded-lg hover:bg-[#C9A84C]/20 transition-colors disabled:opacity-50">
+                        Restaurer
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      <span className="text-gray-600">FR:</span> {h.value_fr?.substring(0, 100)}{h.value_fr?.length > 100 ? '...' : ''}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      <span className="text-gray-600">EN:</span> {h.value_en?.substring(0, 100)}{h.value_en?.length > 100 ? '...' : ''}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
