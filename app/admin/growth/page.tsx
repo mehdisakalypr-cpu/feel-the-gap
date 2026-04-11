@@ -62,11 +62,18 @@ const CURRENT_SCORE = {
 const CURRENT_MRR = 1_200_000
 const PROJECTED_MRR = 3_628_000
 const LANGUAGES_DEPLOYED = 15
-const AGENTS_DEPLOYED = 17
-const PRODUCTS_CATALOG = 600
-const DEAL_FLOWS = 120
+const AGENTS_DEPLOYED = 34
+const PRODUCTS_CATALOG = 3_879
+const DEAL_FLOWS = 206
 const AI_PERSONAS = 300
 const SEO_PAGES_TARGET = 300_000
+const PRODUCTION_COST_BENCHMARKS = 3_947
+const LOGISTICS_CORRIDORS = 1_202
+const COUNTRY_REGULATIONS = 327
+const BUSINESS_PLANS = 385
+const MARKET_TRENDS = 99
+const SOCIAL_POSTS = 333
+const YOUTUBE_INSIGHTS = 63
 
 const PHASES: Phase[] = [
   {
@@ -576,6 +583,11 @@ export default function GrowthPlanPage() {
             { label: 'Products', value: `${PRODUCTS_CATALOG}+`, unit: 'in catalog', color: '#60A5FA' },
             { label: 'Deal Flows', value: `${DEAL_FLOWS}+`, unit: 'for investors', color: '#34D399' },
             { label: 'AI Personas', value: String(AI_PERSONAS), unit: 'influencers', color: '#A78BFA' },
+            { label: 'Cost Benchmarks', value: `${(PRODUCTION_COST_BENCHMARKS / 1000).toFixed(1)}K`, unit: 'data points', color: '#F472B6' },
+            { label: 'Logistics', value: `${(LOGISTICS_CORRIDORS / 1000).toFixed(1)}K`, unit: 'corridors', color: '#38BDF8' },
+            { label: 'Regulations', value: String(COUNTRY_REGULATIONS), unit: 'rules', color: '#FB923C' },
+            { label: 'Biz Plans', value: String(BUSINESS_PLANS), unit: 'generated', color: '#4ADE80' },
+            { label: 'Trends', value: String(MARKET_TRENDS), unit: 'detected', color: '#E879F9' },
             { label: 'SEO Target', value: `${(SEO_PAGES_TARGET / 1000).toFixed(0)}K`, unit: 'pages', color: '#EF4444' },
           ].map(item => (
             <div key={item.label} className="text-center">
@@ -593,7 +605,7 @@ export default function GrowthPlanPage() {
               { lever: '15 Languages', impact: '+936K', pct: '+78%' },
               { lever: 'SEO Factory (300K pages)', impact: '+85K', pct: '+7%' },
               { lever: 'Social Autopilot (135 posts/day)', impact: '+65K', pct: '+5%' },
-              { lever: 'Rich Demos (600+ products)', impact: '+183K', pct: '+8%' },
+              { lever: 'Rich Demos (3,879+ products)', impact: '+183K', pct: '+8%' },
               { lever: 'AI Influencers (300 personas)', impact: '+311K', pct: '+12%' },
               { lever: 'Churn Reduction (5% to 2.5%)', impact: '+73K', pct: '+3%' },
               { lever: 'Geo-Pricing PPP (4 tiers)', impact: '+446K', pct: '+15%' },
