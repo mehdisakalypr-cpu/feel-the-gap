@@ -21,6 +21,7 @@ import { generateText } from 'ai'
 import type { LanguageModelV1 } from 'ai'
 import { google } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
+import { createMistral } from '@ai-sdk/mistral'
 
 function loadEnv() {
   const p = path.join(process.cwd(), '.env.local')
@@ -41,6 +42,7 @@ function buildProviders(): Provider[] {
   const p: Provider[] = []
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) p.push({ name: 'Gemini', model: google('gemini-2.5-flash'), exhausted: false })
   if (process.env.GROQ_API_KEY) { const g = createGroq({ apiKey: process.env.GROQ_API_KEY }); p.push({ name: 'Groq', model: g('llama-3.3-70b-versatile'), exhausted: false }) }
+  if (process.env.MISTRAL_API_KEY) { const m = createMistral({ apiKey: process.env.MISTRAL_API_KEY }); p.push({ name: 'Mistral', model: m('mistral-small-latest'), exhausted: false }) }
   if (!p.length) throw new Error('No AI API keys configured')
   return p
 }
