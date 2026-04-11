@@ -71,11 +71,11 @@ const PALIERS: Palier[] = [
       {
         id: 'p6-products',
         title: 'Expand Product Catalog to 50+ HS4 Categories',
-        desc: 'Scale from 6 pilot products to 50+ using HS4 codes: agriculture (cereals, oilseeds, fruits), minerals (ores, fuels), chemicals (fertilizers, pharmaceuticals), textiles (cotton, synthetics), machinery (industrial, agricultural), electronics (components, consumer). Each product gets trade flow data, production costs, and demand indicators from UN Comtrade.',
+        desc: '3,778 products across 9 categories (agriculture 1,664, fashion 705, cosmetics 425, food 410, energy 170, raw_materials 114, cultural 110, cooperative 90, services 40). 44 countries d\'origine. Product-enricher-10k en cours vers 10,000.',
         tag: 'AGENT',
         effort: '12h agent (data scraping + structuring)',
         impact: 'Critical',
-        status: 'todo',
+        status: 'in-progress',
       },
       {
         id: 'p6-countries',
@@ -99,11 +99,11 @@ const PALIERS: Palier[] = [
       {
         id: 'p6-bizplans',
         title: 'Auto-Generate 2,000 Business Plans (Score > 70)',
-        desc: 'For each opportunity scoring above 70/100, generate a complete business plan: executive summary, market analysis, competitive landscape, financial projections, risk assessment, implementation timeline. Uses Gemini with structured output. Each plan is 3,000-5,000 words.',
+        desc: '385 business plans générés (3 scénarios: artisanal/mechanized/AI). Agent: enriched-plan-builder.ts + batch-enriched-plans.ts. 30 pays × 6 produits pilotes complétés.',
         tag: 'AGENT',
         effort: '48h agent (heavy AI generation, batched)',
         impact: 'Critical',
-        status: 'todo',
+        status: 'in-progress',
         dependencies: 'p6-opportunities',
       },
       {
@@ -128,20 +128,20 @@ const PALIERS: Palier[] = [
       {
         id: 'p6-logistics',
         title: 'Add Logistics Corridor Data',
-        desc: 'For each country pair: shipping routes (sea, air, land), estimated transit times, average freight costs per TEU, port efficiency scores, customs clearance times. Data from World Bank Logistics Performance Index + SeaRates API.',
+        desc: '1,202 corridors logistiques (sea/air/road) pour 30 pays producteurs. Agents: logistics-collector.ts avec fallback Gemini→Groq→OpenAI.',
         tag: 'AGENT',
         effort: '12h agent (data aggregation)',
         impact: 'High',
-        status: 'todo',
+        status: 'done',
       },
       {
         id: 'p6-regulatory',
         title: 'Add Regulatory & Tariff Data',
-        desc: 'Per country: import duty rates by HS code, required certifications (ISO, HACCP, CE), trade agreements coverage (which products get preferential rates), sanitary/phytosanitary requirements. Source: WTO Tariff Database + national customs databases.',
+        desc: '327 réglementations sur 30 pays (9 catégories par pays). Agent: regulatory-collector.ts LLM-native avec fallback triple Gemini→Groq→OpenAI.',
         tag: 'AGENT',
         effort: '16h agent (complex data structuring)',
         impact: 'High',
-        status: 'todo',
+        status: 'done',
       },
       {
         id: 'p6-enterprise-api',
@@ -317,12 +317,12 @@ const PALIERS: Palier[] = [
     tasks: [
       {
         id: 'p8-languages',
-        title: 'Add 10 Languages (12 total)',
-        desc: 'Expand from FR/EN/ES to: Portuguese (Brazil, Lusophone Africa), Arabic (MENA, 22 countries), Chinese Simplified (massive B2B market), Swahili (East Africa trade hub), Hindi (India subcontinent), Turkish (Turkey, Central Asia), Vietnamese (Southeast Asia growth), Japanese (high-value market), German (EU industrial), Russian (CIS markets). Use Gemini for translation + local trade terminology.',
+        title: '15 Languages Deployed',
+        desc: '15 langues complètes : en, fr, es, pt, ar, zh, de, tr, ja, ko, hi, ru, id, sw, it. 276 clés × 15 = 4,140 traductions. Support RTL arabe. Sélecteur dropdown + détection auto navigateur.',
         tag: 'AGENT',
         effort: '80h agent (translation pipeline)',
         impact: 'Critical',
-        status: 'todo',
+        status: 'done',
       },
       {
         id: 'p8-multiply-pages',
@@ -336,12 +336,12 @@ const PALIERS: Palier[] = [
       },
       {
         id: 'p8-pricing',
-        title: 'Local Pricing in 40+ Currencies',
-        desc: 'Implement PPP-adjusted pricing for 40+ currencies. Auto-detect user location via IP. Display prices in local currency with Stripe multi-currency support. Example: India pricing at 60% of US price, Africa at 40%. Increases conversion in price-sensitive markets by 3-5x.',
+        title: 'Geo-Pricing PPP (4 tiers)',
+        desc: 'Implémenté : 4 tiers PPP (premium ×1.0, standard ×0.7, emerging ×0.45, frontier ×0.25). Détection GeoIP via x-vercel-ip-country. Bandeau discount sur /pricing. API /api/geo.',
         tag: 'AGENT',
         effort: '16h agent',
         impact: 'High',
-        status: 'todo',
+        status: 'done',
       },
       {
         id: 'p8-regional-ai',
@@ -363,12 +363,12 @@ const PALIERS: Palier[] = [
       },
       {
         id: 'p8-personas-global',
-        title: '50+ AI Influencer Personas Across 10 Languages',
-        desc: 'Scale from 5 personas to 50+. Each language gets 4-5 specialized personas: regional trade expert, sector analyst, success story narrator, data visualizer, market commentator. Auto-generated content in each language targeting local social platforms (WeChat, VK, Line).',
+        title: '300 AI Influencer Personas × 15 Languages',
+        desc: '300 personas IA déployées (20 archétypes × 15 langues). Agent: influencer-factory.ts. Niches: agri-trade, fintech, fashion, cosmetics, energy, etc. Chaque persona a bio, voice traits, content pillars.',
         tag: 'AGENT',
         effort: '40h agent (persona creation + content pipeline)',
         impact: 'High',
-        status: 'todo',
+        status: 'done',
       },
       {
         id: 'p8-partnerships',
