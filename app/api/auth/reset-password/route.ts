@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createHmac, timingSafeEqual } from "crypto";
 
-const RESET_SECRET = process.env.RESET_TOKEN_SECRET ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "ftg-reset-fallback";
+const RESET_SECRET = process.env.RESET_TOKEN_SECRET ?? process.env.JWT_SECRET ?? "ftg-reset-" + (process.env.NEXT_PUBLIC_SUPABASE_URL || "").slice(-12);
 
 /**
  * Generate a short-lived HMAC token binding userId to a 10-minute window.

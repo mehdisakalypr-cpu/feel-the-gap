@@ -8,11 +8,7 @@ const PUBLIC_PAGES = new Set([
   '/demo',
   '/map',
   '/reports',
-  '/farming',
-  '/gemini',
   '/onboarding',
-  '/seller',
-  '/influencer',
   '/influencer/welcome',  // Influencer landing "vendre du rêve" (public)
   '/influencer/catalog',  // Product catalog Apple-style (public browse, save needs auth)
   '/influencer/map',      // Public view of product countries

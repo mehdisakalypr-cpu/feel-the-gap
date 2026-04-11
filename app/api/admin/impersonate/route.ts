@@ -14,7 +14,8 @@ export const runtime = 'nodejs'
 //   - Only allowed to impersonate accounts whose email starts with "demo."
 //     and ends with "@feelthegap.app" — hard whitelist, no escalation possible.
 
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? 'DemoFTG2026!'
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD
+if (!DEMO_PASSWORD) console.warn('[security] DEMO_PASSWORD env var not set — impersonation disabled')
 
 function isDemoEmail(email: string): boolean {
   return /^demo\.[a-z]+@feelthegap\.app$/.test(email)
@@ -65,10 +66,13 @@ export async function POST(req: NextRequest) {
     const isAdmin = callerProfile?.is_admin === true || callerProfile?.is_delegate_admin === true
     if (!isAdmin) return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 })
 
-    // 2. Sign out current session
+    // 2. Verify DEMO_PASSWORD is configured
+    if (!DEMO_PASSWORD) return NextResponse.json({ error: 'Impersonation disabled — DEMO_PASSWORD not configured' }, { status: 503 })
+
+    // 3. Sign out current session
     await supabase.auth.signOut()
 
-    // 3. Sign in as target demo account with shared password
+    // 4. Sign in as target demo account with shared password
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: targetEmail,
       password: DEMO_PASSWORD,

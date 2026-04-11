@@ -12,7 +12,7 @@ export default async function DemoTokenPage({ params }: { params: Promise<{ toke
 
   const { data: demo } = await supabase
     .from('entrepreneur_demos')
-    .select('*')
+    .select('id, token, full_name, company_name, country_iso, city, sector, product_focus, business_plan, opportunities, investors, market_data, hero_message, status, views_count, first_viewed_at, created_at')
     .eq('token', token)
     .single()
 
