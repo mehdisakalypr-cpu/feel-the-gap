@@ -22,6 +22,7 @@ import type { LanguageModelV1 } from 'ai'
 import { google } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
+import { createOpenAI } from '@ai-sdk/openai'
 
 function loadEnv() {
   const p = path.join(process.cwd(), '.env.local')
