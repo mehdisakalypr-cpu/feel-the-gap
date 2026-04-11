@@ -62,7 +62,7 @@ const CURRENT_SCORE = {
 const CURRENT_MRR = 1_200_000
 const PROJECTED_MRR = 3_628_000
 const LANGUAGES_DEPLOYED = 15
-const AGENTS_DEPLOYED = 34
+const AGENTS_DEPLOYED = 38  // +4: entrepreneur-scout, demo-generator, hyperscale, site-renderer
 const PRODUCTS_CATALOG = 3_879
 const DEAL_FLOWS = 206
 const AI_PERSONAS = 300
@@ -74,6 +74,30 @@ const BUSINESS_PLANS = 385
 const MARKET_TRENDS = 99
 const SOCIAL_POSTS = 333
 const YOUTUBE_INSIGHTS = 63
+
+// ── ONE FOR ALL — HYPERSCALE (2026-04-11) ───────────────────────────────────
+const ONE_FOR_ALL = {
+  sitesGenerated: 100,          // premier batch, target 100K
+  leadsIdentified: 100,
+  countries: 44,                // 44 pays couverts
+  categories: 6,               // restaurant, artisan, agriculture, ecommerce, services, retail
+  designs: 3,                   // minimal, colorful, premium
+  entrepreneurDemos: 30,        // demos personnalisees generees
+  mrrProjection100k: 700_000,   // 100K sites × 7 EUR/mo avg maintenance
+  costPerSite: 0.05,            // EUR/site/mo (API costs)
+  marginPerSite: 6.95,          // EUR/site/mo net
+  target: 100_000,
+}
+
+// ── ENTREPRENEUR SCOUT (2026-04-11) ─────────────────────────────────────────
+const SCOUT = {
+  demosGenerated: 30,
+  countriesCovered: 3,          // CIV, SEN, MAR (premiere vague)
+  sectorsTargeted: 8,
+  conversionTarget: 15,         // % objectif
+  projectedDealsM6: 100,
+  projectedMrrM6: 15_000,
+}
 
 const PHASES: Phase[] = [
   {

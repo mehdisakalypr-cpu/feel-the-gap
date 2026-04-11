@@ -36,6 +36,39 @@ async function getStats() {
   return { countries, opportunities, users, events30d, recentRuns, topCountries }
 }
 
+async function getScoutStats() {
+  const admin = supabaseAdmin()
+  const [
+    { count: totalDemos },
+    { count: viewedDemos },
+    { count: convertedDemos },
+    { count: totalLeads },
+    { count: sitesGenerated },
+    { count: pitchedLeads },
+    { count: onboardedLeads },
+  ] = await Promise.all([
+    admin.from('entrepreneur_demos').select('*', { count: 'exact', head: true }),
+    admin.from('entrepreneur_demos').select('*', { count: 'exact', head: true }).eq('status', 'viewed'),
+    admin.from('entrepreneur_demos').select('*', { count: 'exact', head: true }).eq('status', 'converted'),
+    admin.from('commerce_leads').select('*', { count: 'exact', head: true }),
+    admin.from('generated_sites').select('*', { count: 'exact', head: true }),
+    admin.from('commerce_leads').select('*', { count: 'exact', head: true }).eq('status', 'pitched'),
+    admin.from('commerce_leads').select('*', { count: 'exact', head: true }).eq('status', 'onboarded'),
+  ])
+
+  return {
+    totalDemos: totalDemos || 0,
+    viewedDemos: viewedDemos || 0,
+    convertedDemos: convertedDemos || 0,
+    totalLeads: totalLeads || 0,
+    sitesGenerated: sitesGenerated || 0,
+    pitchedLeads: pitchedLeads || 0,
+    onboardedLeads: onboardedLeads || 0,
+    siteTarget: 100000,
+    scoutConversionRate: totalDemos ? Math.round(((convertedDemos || 0) / totalDemos) * 100) : 0,
+  }
+}
+
 async function getReportsStats() {
   const admin = supabaseAdmin()
   const { data: oppsCountries } = await admin.from('opportunities').select('country_iso')
@@ -92,7 +125,7 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default async function AdminPage() {
-  const [{ countries, opportunities, users, events30d, recentRuns, topCountries }, rp] = await Promise.all([getStats(), getReportsStats()])
+  const [{ countries, opportunities, users, events30d, recentRuns, topCountries }, rp, scout] = await Promise.all([getStats(), getReportsStats(), getScoutStats()])
 
   return (
     <div className="p-6 space-y-6">
@@ -223,6 +256,92 @@ export default async function AdminPage() {
         </div>
       </div>
 
+      {/* ONE FOR ALL + Entrepreneur Scout */}
+      <div className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-white">ONE FOR ALL + Entrepreneur Scout</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-[#C9A84C]/20 text-[#C9A84C] font-bold">HYPERSCALE</span>
+        </div>
+
+        {/* Progress to 100K */}
+        <div className="mb-5">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-gray-400">Progression 100K sites</span>
+            <span className="text-[#C9A84C] font-bold">{((scout.sitesGenerated / scout.siteTarget) * 100).toFixed(2)}%</span>
+          </div>
+          <div className="h-3 rounded-full bg-[#1F2937] overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-[#C9A84C] to-[#E8D5A3]" style={{ width: `${Math.min(100, (scout.sitesGenerated / scout.siteTarget) * 100)}%` }} />
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-600 mt-1">
+            <span>{scout.sitesGenerated.toLocaleString()} generes</span>
+            <span>{(scout.siteTarget - scout.sitesGenerated).toLocaleString()} restants</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          <div className="p-3 rounded-lg bg-white/5">
+            <p className="text-xl font-bold text-[#C9A84C]">{scout.sitesGenerated.toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Sites generes</p>
+          </div>
+          <div className="p-3 rounded-lg bg-white/5">
+            <p className="text-xl font-bold text-blue-400">{scout.totalLeads.toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Leads pipeline</p>
+          </div>
+          <div className="p-3 rounded-lg bg-white/5">
+            <p className="text-xl font-bold text-purple-400">{scout.totalDemos.toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Demos scout</p>
+          </div>
+          <div className="p-3 rounded-lg bg-white/5">
+            <p className="text-xl font-bold text-green-400">{scout.onboardedLeads.toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Onboardes FTG</p>
+          </div>
+        </div>
+
+        {/* Scout funnel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Entrepreneur Scout Funnel</h3>
+            <div className="space-y-2">
+              <FunnelBar label="Demos generees" value={scout.totalDemos} max={scout.totalDemos || 1} color="#C9A84C" />
+              <FunnelBar label="Demos vues" value={scout.viewedDemos} max={scout.totalDemos || 1} color="#60A5FA" />
+              <FunnelBar label="Convertis" value={scout.convertedDemos} max={scout.totalDemos || 1} color="#22C55E" />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Commerce Pipeline</h3>
+            <div className="space-y-2">
+              <FunnelBar label="Leads identifies" value={scout.totalLeads} max={scout.totalLeads || 1} color="#C9A84C" />
+              <FunnelBar label="Sites publies" value={scout.sitesGenerated} max={scout.totalLeads || 1} color="#A78BFA" />
+              <FunnelBar label="Pitches envoyes" value={scout.pitchedLeads} max={scout.totalLeads || 1} color="#60A5FA" />
+              <FunnelBar label="Onboardes" value={scout.onboardedLeads} max={scout.totalLeads || 1} color="#22C55E" />
+            </div>
+          </div>
+        </div>
+
+        {/* Revenue projection */}
+        <div className="mt-5 pt-4 border-t border-white/5">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Revenue projection (maintenance EUR 7/site/mo moy.)</h3>
+          <div className="grid grid-cols-4 gap-3 text-center">
+            <div className="p-2 rounded-lg bg-white/5">
+              <p className="text-xs text-gray-500">Actuel</p>
+              <p className="text-sm font-bold text-green-400">{(scout.sitesGenerated * 7).toLocaleString()} EUR</p>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5">
+              <p className="text-xs text-gray-500">10K</p>
+              <p className="text-sm font-bold text-green-400">70K EUR</p>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5">
+              <p className="text-xs text-gray-500">50K</p>
+              <p className="text-sm font-bold text-green-400">350K EUR</p>
+            </div>
+            <div className="p-2 rounded-lg bg-white/5">
+              <p className="text-xs text-gray-500">100K</p>
+              <p className="text-sm font-bold text-green-400">700K EUR</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Quick actions */}
       <div className="bg-[#0D1117] border border-[rgba(201,168,76,.1)] rounded-xl p-5">
         <h2 className="text-sm font-semibold text-white mb-4">Quick Actions</h2>
@@ -242,6 +361,19 @@ export default async function AdminPage() {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function FunnelBar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
+  const pct = max > 0 ? (value / max) * 100 : 0
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-gray-400 w-28 shrink-0">{label}</span>
+      <div className="flex-1 h-2 bg-[#1F2937] rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-xs font-mono w-10 text-right" style={{ color }}>{value}</span>
     </div>
   )
 }
