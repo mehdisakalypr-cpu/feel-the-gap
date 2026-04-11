@@ -81,8 +81,8 @@ function fmtEur(v: number) {
 // The aggregated top-level sections (action_plan, financials, b2b_targets) used by
 // PlanDisplay are sourced from the first selected strategy's mode-specific data.
 // If no modes are checked, we show all 3 as a safety fallback.
-function filterPlanByModes(plan: Plan, selectedModels: string[], scopePct: number): Plan {
-  const modes = selectedModels.length ? selectedModels : ['import_sell', 'produce_locally', 'train_locals']
+function filterPlanByModes(plan: Plan, models: string[], scopePct: number): Plan {
+  const modes = models.length ? models : ['import_sell', 'produce_locally', 'train_locals']
   const factor = 1 - Math.min(Math.max(scopePct, 0), 100) / 100
 
   const filteredStrategies = (plan.strategies ?? []).filter((s) => modes.includes(s.model))
@@ -1108,7 +1108,7 @@ export default function BusinessPlanPage() {
   const iso = (params?.iso as string ?? '').toUpperCase()
 
   const selectedOppIds = (searchParams?.get('opps') ?? '').split(',').filter(Boolean)
-  const selectedModels = (searchParams?.get('models') ?? 'import_sell,produce_locally,train_locals').split(',').filter(Boolean)
+  const urlModels = (searchParams?.get('models') ?? '').split(',').filter(Boolean)
 
   const [opps, setOpps] = useState<OppRow[]>([])
   const [countryName, setCountryName] = useState('')
@@ -1118,6 +1118,11 @@ export default function BusinessPlanPage() {
   const [scopePct, setScopePct] = useState(0)         // 0 = pas de réduction, 30 = -30%, etc.
   const [error, setError] = useState('')
   const [userTier, setUserTier] = useState('free')
+  // ── Mode selection (user must pick at least one) ──────────────────────────
+  const [selectedModes, setSelectedModes] = useState<Set<string>>(
+    urlModels.length > 0 ? new Set(urlModels) : new Set()
+  )
+  const [modesConfirmed, setModesConfirmed] = useState(urlModels.length > 0)
   // User budget (persisted in localStorage per iso+opps) — drives BudgetShortfallNotice
   const budgetKey = `ftg_bp_budget_${iso}_${[...selectedOppIds].sort().join(',')}`
   const [userBudgetEur, setUserBudgetEur] = useState<number | null>(null)
@@ -1292,8 +1297,51 @@ export default function BusinessPlanPage() {
           </div>
         )}
 
+        {/* Mode selection — required before generating */}
+        {!modesConfirmed && !plan && cacheChecked && (
+          <div className="mb-8 p-6 rounded-2xl bg-white/[.03] border border-white/10">
+            <h2 className="text-lg font-bold text-white mb-1">Mode de commercialisation</h2>
+            <p className="text-sm text-gray-400 mb-4">Sélectionnez au moins un mode avant de générer votre business plan.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              {[
+                { id: 'import_sell', icon: '📦', label: 'Import & Revente', desc: 'Importer des produits depuis ce pays pour les revendre sur votre marché.' },
+                { id: 'produce_locally', icon: '🏭', label: 'Produire localement', desc: 'Installer une unité de production dans le pays pour transformer sur place.' },
+                { id: 'train_locals', icon: '🎓', label: 'Former les locaux', desc: 'Former des équipes locales, transférer des compétences et du savoir-faire.' },
+              ].map((mode) => {
+                const checked = selectedModes.has(mode.id)
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => setSelectedModes((prev) => {
+                      const next = new Set(prev)
+                      if (next.has(mode.id)) next.delete(mode.id)
+                      else next.add(mode.id)
+                      return next
+                    })}
+                    className={`p-4 rounded-xl border text-left transition-all ${checked
+                      ? 'border-amber-500/60 bg-amber-500/10'
+                      : 'border-white/10 bg-white/[.02] hover:border-white/20'}`}
+                  >
+                    <div className="text-2xl mb-2">{mode.icon}</div>
+                    <div className="font-semibold text-sm text-white">{mode.label}</div>
+                    <div className="text-xs text-gray-400 mt-1">{mode.desc}</div>
+                    {checked && <div className="text-amber-400 text-xs mt-2 font-bold">✓ Sélectionné</div>}
+                  </button>
+                )
+              })}
+            </div>
+            <button
+              onClick={() => { if (selectedModes.size > 0) setModesConfirmed(true) }}
+              disabled={selectedModes.size === 0}
+              className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500"
+            >
+              Continuer avec {selectedModes.size} mode{selectedModes.size > 1 ? 's' : ''} →
+            </button>
+          </div>
+        )}
+
         {loading ? (
-          <GeneratingScreen opps={opps} models={selectedModels} country={countryName} />
+          <GeneratingScreen opps={opps} models={Array.from(selectedModes)} country={countryName} />
         ) : !cacheChecked ? (
           // Brief skeleton while we check the cache — avoids showing the form
           // then hiding it if the cache is a hit.
@@ -1301,12 +1349,12 @@ export default function BusinessPlanPage() {
             <div className="w-10 h-10 mx-auto mb-4 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
             Chargement de votre business plan…
           </div>
-        ) : !plan ? (
-          <ContextForm opps={opps} models={selectedModels} onSubmit={generate} loading={loading} countryName={countryName} />
-        ) : (
+        ) : !plan && modesConfirmed ? (
+          <ContextForm opps={opps} models={Array.from(selectedModes)} onSubmit={generate} loading={loading} countryName={countryName} />
+        ) : plan ? (
           <>
             <PlanDisplay
-              plan={filterPlanByModes(plan, selectedModels, scopePct)}
+              plan={filterPlanByModes(plan, Array.from(selectedModes), scopePct)}
               opps={opps}
               country={countryName}
               iso={iso}
@@ -1318,15 +1366,15 @@ export default function BusinessPlanPage() {
             {/* Budget shortfall notice — floats on the right when budget < required_min */}
             <BudgetShortfallNotice
               userBudgetEur={userBudgetEur}
-              requiredMinEur={(filterPlanByModes(plan, selectedModels, scopePct).strategies ?? [])
+              requiredMinEur={(filterPlanByModes(plan, Array.from(selectedModes), scopePct).strategies ?? [])
                 .reduce((sum, s) => sum + (s.investment_min_eur ?? 0), 0)}
-              requiredMaxEur={(filterPlanByModes(plan, selectedModels, scopePct).strategies ?? [])
+              requiredMaxEur={(filterPlanByModes(plan, Array.from(selectedModes), scopePct).strategies ?? [])
                 .reduce((sum, s) => sum + (s.investment_max_eur ?? 0), 0)}
               iso={iso}
               oppIds={selectedOppIds}
             />
           </>
-        )}
+        ) : null}
       </div>
     </div>
   )
