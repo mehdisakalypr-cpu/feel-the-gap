@@ -43,6 +43,7 @@ function buildProviders(): Provider[] {
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) p.push({ name: 'Gemini', model: google('gemini-2.5-flash'), exhausted: false })
   if (process.env.GROQ_API_KEY) { const g = createGroq({ apiKey: process.env.GROQ_API_KEY }); p.push({ name: 'Groq', model: g('llama-3.3-70b-versatile'), exhausted: false }) }
   if (process.env.MISTRAL_API_KEY) { const m = createMistral({ apiKey: process.env.MISTRAL_API_KEY }); p.push({ name: 'Mistral', model: m('mistral-small-latest'), exhausted: false }) }
+  if (process.env.OPENAI_API_KEY) { const o = createOpenAI({ apiKey: process.env.OPENAI_API_KEY }); p.push({ name: 'OpenAI', model: o('gpt-4o-mini'), exhausted: false }) }
   if (!p.length) throw new Error('No AI API keys configured')
   return p
 }
