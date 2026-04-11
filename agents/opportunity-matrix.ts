@@ -69,52 +69,24 @@ async function gen(prompt: string): Promise<string> {
   throw new Error('All providers exhausted')
 }
 
-// Top product categories for opportunity scoring
-const PRODUCT_CATEGORIES = [
-  'cacao', 'café', 'épices', 'fruits tropicaux', 'noix & anacarde',
-  'huile de palme', 'textile & coton', 'maroquinerie', 'cosmétiques naturelles',
-  'panneaux solaires', 'miel', 'thé', 'vanille', 'mangue',
-  'beurre de karité', 'gomme arabique', 'caoutchouc', 'riz',
-  'bijoux artisanaux', 'céramique', 'chocolat', 'huile d\'argan',
-  'café spécialité', 'sucre bio', 'coton bio',
-]
-
 async function generateOpportunitiesForCountry(
   countryIso: string,
   countryName: string,
   topImport: string,
-  numProducts: number
+  productIds: string[],
 ): Promise<any[]> {
-  const products = PRODUCT_CATEGORIES.slice(0, numProducts).join(', ')
+  const productList = productIds.map(id => id.replace(/^\d+_/, '').replace(/_/g, ' ')).join(', ')
 
-  const prompt = `You are a trade intelligence analyst. Generate ${numProducts} scored trade OPPORTUNITIES for country ${countryName} (${countryIso}).
+  const prompt = `You are a trade intelligence analyst. Score these ${productIds.length} products as trade opportunities for ${countryName} (${countryIso}).
 
 Known imports: ${topImport || 'general goods'}
 
-For each of these products: ${products}
+Products to score: ${productList}
 
-Score each opportunity 0-100 based on:
-- Market demand (imports volume, growth trends)
-- Competition level (fewer competitors = higher score)
-- Logistics feasibility (ports, routes, costs)
-- Regulatory friendliness (tariffs, certifications needed)
+Score each 0-100 based on: market demand, competition, logistics, regulations.
 
-Return ONLY valid JSON array:
-[{
-  "product": "product name",
-  "country_iso": "${countryIso}",
-  "score": 75,
-  "title": "Short opportunity title (max 80 chars)",
-  "description": "2-3 sentence description of the opportunity",
-  "market_size_usd": 5000000,
-  "competition_level": "low|medium|high",
-  "entry_barrier": "low|medium|high",
-  "recommended_action": "What an entrepreneur should do",
-  "key_buyers": "Who buys this product in ${countryName}",
-  "logistics_route": "Best shipping route"
-}]
-
-Generate exactly ${numProducts} opportunities. Each must have a unique product.`
+Return ONLY valid JSON array (one entry per product, same order):
+[{"score":75,"summary":"2-3 sentences about this opportunity in ${countryName}","market_size_usd":5000000}]`
 
   const raw = await gen(prompt)
   try {
@@ -151,6 +123,15 @@ async function main() {
 
   if (!countries?.length) { console.error('No countries'); return }
 
+  // Get existing product IDs from the products table
+  const { data: products } = await sb
+    .from('products')
+    .select('id')
+    .limit(numProducts)
+
+  if (!products?.length) { console.error('No products in products table'); return }
+  const productIds = products.map(p => p.id)
+
   let targets = countries
   if (batchNum > 0) {
     const start = (batchNum - 1) * 20
@@ -158,8 +139,8 @@ async function main() {
     console.log(`  Batch ${batchNum}: ${targets.length} countries (${start}-${start + targets.length - 1})`)
   }
 
-  console.log(`  Countries: ${targets.length} | Products/country: ${numProducts}`)
-  console.log(`  Expected: ~${targets.length * numProducts} opportunities\n`)
+  console.log(`  Countries: ${targets.length} | Products: ${productIds.length}`)
+  console.log(`  Expected: ~${targets.length * productIds.length} opportunities\n`)
 
   let totalInserted = 0
 
@@ -168,30 +149,23 @@ async function main() {
     console.log(`  [${i + 1}/${targets.length}] ${c.name} (${c.id})...`)
 
     try {
-      const opps = await generateOpportunitiesForCountry(c.id, c.name, c.top_import_text ?? '', numProducts)
+      const scores = await generateOpportunitiesForCountry(c.id, c.name, c.top_import_text ?? '', productIds)
 
-      for (const opp of opps) {
-        const productSlug = opp.product?.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 60) ?? 'unknown'
-        const { error } = await sb.from('opportunities').upsert({
+      for (let j = 0; j < Math.min(scores.length, productIds.length); j++) {
+        const s = scores[j]
+        const { error } = await sb.from('opportunities').insert({
           country_iso: c.id,
-          product_id: productSlug,
+          product_id: productIds[j],
           type: 'direct_trade',
-          opportunity_score: Math.min(100, Math.max(0, opp.score ?? 50)),
-          gap_value_usd: opp.market_size_usd ?? 0,
-          land_availability: opp.entry_barrier === 'low' ? 'high' : opp.entry_barrier === 'high' ? 'low' : 'medium',
-          summary: [opp.title, opp.description, opp.recommended_action].filter(Boolean).join('. '),
-          analysis_json: {
-            competition_level: opp.competition_level,
-            entry_barrier: opp.entry_barrier,
-            key_buyers: opp.key_buyers,
-            logistics_route: opp.logistics_route,
-          },
-        }, { onConflict: 'country_iso,product_id', ignoreDuplicates: true })
+          opportunity_score: Math.min(100, Math.max(0, s.score ?? 50)),
+          gap_value_usd: s.market_size_usd ?? 0,
+          summary: s.summary ?? '',
+        })
 
         if (!error) totalInserted++
       }
 
-      console.log(`    +${opps.length} opps (total: ${totalInserted})`)
+      console.log(`    +${scores.length} opps (total: ${totalInserted})`)
     } catch (err: any) {
       console.error(`    ✗ ${c.name}: ${err.message?.slice(0, 80)}`)
     }
