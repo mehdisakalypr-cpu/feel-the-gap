@@ -1,0 +1,48 @@
+{
+  "title": "Où vendre votre produit ? La réponse est ici !",
+  "hook": "Vous avez un produit. Mais OÙ le vendre ?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Gros plan sur un entrepreneur passionné tenant son produit. Son regard devient pensif, presque inquiet, en fixant un horizon flou. Un globe terrestre en arrière-plan, également flou.",
+      "text_overlay": "UN PRODUIT INCROYABLE. MAIS OÙ VENDRE ?",
+      "voiceover": "Vous avez créé un produit incroyable, n'est-ce pas ? Mais la vraie question est : OÙ devriez-vous le vendre pour cartonner ?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Montage rapide et dynamique : Graphiques complexes et incompréhensibles. Carte du monde avec des points d'interrogation géants. Un entrepreneur frustré devant un écran d'ordinateur, se frottant les tempes. Des opportunités symbolisées par des flèches descendantes ou des portes fermées.",
+      "text_overlay": "Marchés inconnus ? Potentiel inexploré ? Temps perdu ?",
+      "voiceover": "Perdre des mois à tâtonner, à ignorer des marchés explosifs... La concurrence est féroce, et sans les bonnes informations, c'est comme chercher une aiguille dans une botte de foin mondiale. Vous passez à côté de MILLIONS !"
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Transition fluide vers un écran d'ordinateur affichant l'interface de Feel The Gap. On voit des cartes interactives avec des zones colorées, des graphiques clairs de données d'import/export, des filtres de pays/produits appliqués, révélant des informations précises. Mise en évidence de données claires et de marchés cibles.",
+      "text_overlay": "Feel The Gap : Vos marchés cibles, enfin clairs.",
+      "voiceover": "Imaginez. Avec Feel The Gap, vous accédez aux données commerciales mondiales en temps réel. Découvrez les pays qui DEMANDENT votre produit. Identifiez les concurrents, les volumes... tout est là, précis, clair."
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Animation graphique percutante montrant une flèche ascendante spectaculaire, symbolisant la croissance. Un chiffre clé apparaît de manière dynamique et s'agrandit au centre de l'écran.",
+      "text_overlay": "Jusqu'à 3x plus de marchés rentables découverts !",
+      "voiceover": "Nos utilisateurs ? Ils découvrent jusqu'à trois fois plus de marchés rentables, inexploités. C'est votre avantage concurrentiel, à portée de clic !"
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Logo de Feel The Gap. L'URL 'feelthegap.com' en grand et parfaitement lisible. Un bouton animé 'ESSAI GRATUIT' apparaît en dessous.",
+      "text_overlay": "feelthegap.com - ESSAI GRATUIT",
+      "voiceover": "Arrêtez de deviner. Commencez à dominer. Visitez feelthegap.com. Essai gratuit !"
+    }
+  ],
+  "music_mood": "inspirant et dynamique",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

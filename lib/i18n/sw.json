@@ -1,0 +1,129 @@
+{
+  "nav": { "reports": "Ripoti", "farming": "Farming", "gemini": "Gemini", "pricing": "Bei", "signin": "Ingia", "map": "Ramani" },
+  "auth": {
+    "login_title": "Karibu tena", "login_subtitle": "Ingia kupata akili yako ya biashara",
+    "register_title": "Unda akaunti yako", "register_subtitle": "Anza kuchunguza fursa za biashara duniani bure",
+    "email": "Barua pepe", "password": "Nenosiri", "confirm_password": "Thibitisha nenosiri",
+    "forgot": "Umesahau nenosiri?", "signin_btn": "Ingia", "register_btn": "Unda akaunti ya bure",
+    "google_btn": "Endelea na Google", "no_account": "Huna akaunti?", "have_account": "Tayari una akaunti?",
+    "signup_free": "Jisajili bure", "signin_link": "Ingia", "check_email": "Angalia barua pepe yako",
+    "check_email_desc": "Tumetuma kiungo cha uthibitisho kwa {{email}}. Bofya kuwezesha akaunti yako.",
+    "back_to_signin": "← Rudi kwenye kuingia", "passwords_no_match": "Nenosiri hazifanani",
+    "password_too_short": "Nenosiri lazima iwe na angalau herufi 8"
+  },
+  "map": {
+    "countries_tracked": "nchi zinazofuatiliwa", "countries_tracked_short": "nchi", "opportunities": "fursa zilizotambuliwa",
+    "opportunities_qualified": "fursa bora", "opportunities_short": "fursa bora",
+    "markets_analyzed": "masoko yaliyochambuliwa", "markets_short": "masoko", "filter": "Chuja",
+    "loading": "Inapakia data ya dunia…", "tile_standard": "Ramani", "tile_satellite": "Setilaiti", "tile_night": "Usiku"
+  },
+  "country": {
+    "imports": "Jumla ya Uagizaji", "exports": "Jumla ya Usafirishaji", "balance": "Mizani ya Biashara", "gdp": "GDP",
+    "population": "Idadi ya watu", "data_year": "Mwaka wa data", "top_category": "Kategoria kuu",
+    "opportunities": "Fursa za Biashara", "identified": "zilizotambuliwa", "investment_context": "Muktadha wa Uwekezaji",
+    "arable_land": "Ardhi inayolimika", "labor_cost": "Faharasa ya gharama ya kazi", "infrastructure": "Miundombinu",
+    "full_report": "Ripoti kamili ya {{country}}", "full_report_desc": "Mipango ya biashara ya AI, modeli za ROI, wasambazaji waliopendekezwa.",
+    "upgrade_btn": "Boresha hadi mpango wa Strategy →", "ask_ai": "Uliza AI kuhusu soko hili",
+    "ai_title": "Mshauri wa Biashara wa AI", "ai_placeholder": "Ni mkakati gani bora wa kuingia?",
+    "ai_placeholder_country": "Uliza chochote kuhusu fursa za biashara katika {{country}}.",
+    "ai_unavailable": "Samahani, Mshauri wa AI haupatikani kwa sasa.", "full_plan": "Mpango kamili wa biashara →",
+    "no_opportunities": "Hakuna fursa katika hifadhidata bado.", "view_on_map": "Tazama kwenye ramani",
+    "back_reports": "← Ripoti", "gap_label": "Pengo:", "score": "alama", "seed_data": "Ongeza data →",
+    "see_opportunities": "Gundua fursa {{count}}", "see_opportunities_desc": "Ripoti ya kina, alama na mipango ya biashara ya AI kwa {{country}}"
+  },
+  "farming": {
+    "title": "Ugunduzi wa Fursa", "subtitle": "Eleza bidhaa yako — mshauri wetu wa AI atatambua njia za usambazaji, maeneo na fursa muhimu duniani kote.",
+    "block1_title": "Bidhaa au huduma yako", "product_name": "Jina la bidhaa", "product_name_placeholder": "mf: Mafuta ya argan ya kikaboni",
+    "product_desc": "Maelezo ya bidhaa", "product_desc_placeholder": "Inatumika kwa nini? Inatatua tatizo gani?",
+    "product_url": "URL ya ukurasa wa bidhaa (hiari)", "product_price": "Bei ya mwelekeo / kitengo (hiari)",
+    "block2_title": "Unatafuta nini?", "opp_type_label": "Aina ya fursa zinazotafutwa", "opp_desc": "Eleza utafutaji wako",
+    "opp_desc_placeholder": "Masoko gani yanakuvutia? Una vikwazo gani?",
+    "geography": "Eneo la lengo (hiari)", "geography_placeholder": "mf: Afrika Kusini mwa Sahara, Asia ya Kusini-Mashariki",
+    "budget": "Bajeti ya juu (hiari)", "budget_placeholder": "mf: €50,000",
+    "block3_title": "Kiungo cha mshirika (hiari)", "affiliate_placeholder": "https://tovutiyako.com/ref/ftg",
+    "affiliate_helper": "Tutaingiza kiungo chako katika mapendekezo yote ya washawishi yaliyoundwa kwa bidhaa hii.",
+    "submit_btn": "Changanua fursa", "scanning": "Inachunguza…", "error_product": "Tafadhali ingiza jina la bidhaa yako.",
+    "opp_types": { "end_clients": "Wateja wa mwisho", "distributors": "Wasambazaji", "wholesalers": "Wauzaji jumla", "franchisees": "Waendesha franchise", "resellers": "Wauzaji", "agents": "Mawakala", "oem": "OEM / Chapa nyeupe", "other": "Nyingine" }
+  },
+  "pricing": {
+    "title": "Bei rahisi na wazi", "subtitle": "Kutoka uchunguzi wa bure hadi mpango kamili wa biashara wa AI. Panda ngazi ukiwa tayari.",
+    "free_label": "Bure", "custom_label": "Maalum", "per_month": "/mwezi", "popular": "MAARUFU", "new": "MPYA",
+    "credits_title": "Mikopo ya Mshauri wa AI",
+    "credits_desc": "Mshauri wa AI (kuunda mipango ya biashara, ripoti za hatua) hutumia tokeni za AI. Kila kikao hutozwa kupitia kihesabu cha mikopo ya ndani. Mikopo inaweza kujazwa wakati wowote. Salio linapofika {{threshold}}, mwaliko wa kujaza unaonekana moja kwa moja.",
+    "credits_add": "+ {{amount}} mikopo", "credits_note": "Kujaza kunapatikana katika akaunti yako. Imejumuishwa katika mpango wa Strategy.",
+    "access_title": "Ufikiaji na usajili",
+    "access_inactive": "Usajili ukiisha au malipo yakishindwa, historia ya utafutaji na kadi za fursa hufichwa — zinafunguka mara malipo yanapokamilika.",
+    "access_map": "Ramani inaacha kuonyesha fursa na mipango ya hatua haipatikani bila usajili unaofanya kazi.",
+    "access_reactivate": "Malipo yanarejesha mara moja data na vipengele vyako vyote.",
+    "trial_note": "Malipo salama kupitia Stripe. Ghairi wakati wowote."
+  },
+  "account": {
+    "title": "Akaunti Yangu", "member_since": "Mwanachama tangu", "this_month": "Mwezi huu", "reports": "Ripoti",
+    "business_plans": "Mipango ya biashara", "farming_scans": "Uchunguzi wa Farming",
+    "upgrade_title": "Pata vipengele vyote", "upgrade_desc": "Mipango ya biashara ya AI, Ugunduzi wa Fursa, mtandao wa washawishi na zaidi.",
+    "view_plans": "Angalia mipango →", "signout": "Ondoka",
+    "links": { "map": "Chunguza ramani ya dunia", "reports": "Ripoti za biashara", "farming": "Ugunduzi wa Fursa", "influencer": "Nafasi ya Mshawishi", "seller": "Nafasi ya Muuzaji / Ushirika", "pricing": "Badilisha mpango" }
+  },
+  "reports": {
+    "title": "Ripoti za biashara", "subtitle": "Uchambuzi wa fursa nchi kwa nchi kulingana na data halisi ya biashara.",
+    "search_placeholder": "Tafuta nchi…", "sort_score": "Panga: Alama ya fursa", "sort_imports": "Panga: Jumla ya uagizaji",
+    "sort_deficit": "Panga: Nakisi ya biashara", "n_countries": "Nchi {{count}} zimechambuliwa — bofya kuona fursa",
+    "loading": "Inapakia data ya soko…", "empty_title": "Hakuna nchi bado", "empty_desc": "Data inapakiwa kutoka vyanzo vya biashara vya kimataifa",
+    "explore_map": "Chunguza ramani", "col_imports": "Uagizaji", "col_balance": "Mizani",
+    "n_opportunities": "Fursa {{count}} zimetambuliwa", "all_regions": "Zote"
+  },
+  "influencer": {
+    "title": "Nafasi ya Mshawishi", "subtitle": "Chagua ofa, shiriki viungo vyako vya kipekee, pata kamisheni.",
+    "tabs": { "offers": "Ofa zinazopatikana", "links": "Viungo vyangu", "profile": "Wasifu wangu" },
+    "get_link": "Pata kiungo changu", "generating": "Inaunda…", "copied": "Imenakiliwa!", "copy": "Nakili",
+    "balance_pending": "Inasubiri", "balance_available": "Inapatikana", "total_earned": "Jumla iliyopatikana",
+    "no_offers": "Hakuna ofa zinazopatikana kwa sasa.", "no_links": "Hakuna viungo hai. Pata kiungo chako cha kwanza katika kichupo cha Ofa.",
+    "commission": "{{pct}}% kamisheni", "clicks": "mibofyo", "conversions": "ubadilishaji", "earned": "imepatikana",
+    "create_profile_title": "Unda wasifu wako wa mshawishi",
+    "create_profile_desc": "Pata ofa za ushirika, unda viungo vinavyofuatiliwa na upate kamisheni kiotomatiki. Ufikiaji ni bure — jukwaa huhifadhi 30% ya kamisheni zinazoundwa.",
+    "create_profile_btn": "Unda wasifu wangu wa mshawishi"
+  },
+  "seller": {
+    "title": "Nafasi ya Muuzaji", "subtitle": "Unda ofa za ushirika. Washawishi wa jukwaa watazitangaza kwa hadhira yao.",
+    "new_offer": "+ Ofa mpya", "cancel": "Ghairi", "my_offers": "Ofa zangu",
+    "no_offers_free": "Hakuna ofa zilizoundwa. Bofya + Ofa mpya kuanza.",
+    "no_offers_locked": "Boresha hadi mpango wa Strategy kuunda ofa za ushirika.",
+    "paywall_title": "Mpango wa Strategy unahitajika", "paywall_desc": "Kuunda ofa za ushirika kunapatikana kuanzia mpango wa Strategy (€99/mwezi).",
+    "paywall_btn": "Angalia mipango →", "form_title": "Ofa mpya ya ushirika", "product_name": "Jina la bidhaa",
+    "commission_pct": "Kamisheni inayotolewa (%)", "product_desc": "Maelezo ya bidhaa", "product_url": "URL ya ukurasa wa bidhaa",
+    "affiliate_url": "URL ya msingi ya ushirika", "category": "Kategoria", "target_geos": "Nchi lengwa (tenganisha kwa koma)",
+    "target_niches": "Niches lengwa (tenganisha kwa koma)",
+    "split_note": "Jukwaa huhifadhi 30% ya kamisheni. 70% iliyobaki hulipwa kiotomatiki kwa washawishi kupitia Stripe Connect (S+7 baada ya ubadilishaji kuthibitishwa).",
+    "create_btn": "Unda ofa", "creating": "Inaunda…", "status_active": "Hai", "status_paused": "Imesimamishwa",
+    "pause": "Simamisha", "reactivate": "Wezesha tena", "created_on": "Imeundwa"
+  },
+  "gemini": {
+    "title": "Gemini AI", "subtitle": "Gemini 2.0 Flash · Google", "back": "← Rudi kwenye ramani",
+    "welcome": "Karibu Gemini",
+    "welcome_desc": "Uliza chochote — uchambuzi wa soko, mkakati wa biashara, fursa za uagizaji/usafirishaji, au mada za jumla.",
+    "placeholder": "Uliza Gemini swali lako…", "disclaimer": "Gemini 2.0 Flash · Mazungumzo hayahifadhiwi",
+    "error": "Kosa la muunganisho — angalia ufunguo wa API wa Gemini.",
+    "suggestions": ["Masoko gani yana matumaini zaidi kwa kilimo-chakula barani Afrika?", "Jinsi ya kutathmini uwezo wa soko jipya la usafirishaji?", "Eleza Incoterms zinazotumika zaidi"]
+  },
+  "home": {
+    "badge": "Jukwaa la SaaS · Data ya uagizaji/usafirishaji duniani",
+    "hero_title": "Tafuta wapi kuuza", "hero_title_accent": "kabla ya wengine wote",
+    "hero_desc": "Feel The Gap inachambua mtiririko wa biashara duniani kutambua masoko yenye uhaba wa ugavi. AI, data halisi, mipango ya biashara inayotekelezeka.",
+    "cta_register": "Anza bure →", "cta_register_full": "Jisajili na uanze bure →",
+    "cta_signin": "Tayari umesajiliwa? Ingia", "cta_map": "Chunguza ramani",
+    "features_title": "Kutoka data mbichi hadi fursa zinazotekelezeka",
+    "f1_title": "Ramani ya mtiririko wa biashara duniani", "f1_desc": "Onyesha mapengo ya uagizaji/usafirishaji nchi kwa nchi. Tambua mahali ambapo mahitaji yanazidi ugavi wa ndani.",
+    "f2_title": "Ugunduzi wa Fursa", "f2_desc": "Changanua bidhaa yako. AI inatambua wasifu wa wateja, maeneo na njia za usambazaji.",
+    "f3_title": "Mipango ya biashara ya AI", "f3_desc": "Kutoka wazo hadi mpango wa hatua. Capex, Opex, ROI, wasambazaji — yote yanatengenezwa na AI katika sekunde.",
+    "f4_title": "Mtandao wa washawishi", "f4_desc": "Unganisha bidhaa zako na washawishi bora. Viungo vya ushirika vinavyofuatiliwa, malipo ya kiotomatiki kupitia Stripe.",
+    "stat1_label": "Nchi zilizoshughulikiwa", "stat2_label": "Kategoria za bidhaa", "stat3_label": "Inashikiliwa na Gemini",
+    "cta_final_title": "Uko tayari kutafuta soko lako linalofuata?", "cta_final_desc": "Usajili wa bure. Hakuna kadi ya mkopo inayohitajika.",
+    "cta_final_btn": "Unda akaunti yangu →", "already_member": "Tayari ni mwanachama?", "signin_link": "Ingia",
+    "footer_pricing": "Bei", "footer_contact": "Wasiliana"
+  },
+  "common": {
+    "loading": "Inapakia…", "error": "Kosa limetokea", "back": "← Rudi", "upgrade": "Boresha mpango wangu →",
+    "locked_feature": "Kipengele kilichozuiwa", "locked_desc": "{{feature}} inahitaji mpango wa {{plan}}",
+    "from": "Kuanzia", "contact_us": "Wasiliana nasi", "language": "Lugha"
+  }
+}

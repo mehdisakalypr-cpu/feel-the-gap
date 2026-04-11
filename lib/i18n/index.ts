@@ -2,12 +2,64 @@
 
 import en from './en.json'
 import fr from './fr.json'
+import es from './es.json'
+import pt from './pt.json'
+import ar from './ar.json'
+import zh from './zh.json'
+import de from './de.json'
+import tr from './tr.json'
+import ja from './ja.json'
+import ko from './ko.json'
+import hi from './hi.json'
+import ru from './ru.json'
+import id from './id.json'
+import sw from './sw.json'
+import it from './it.json'
 
-export type Lang = 'en' | 'fr'
+export type Lang = 'en' | 'fr' | 'es' | 'pt' | 'ar' | 'zh' | 'de' | 'tr' | 'ja' | 'ko' | 'hi' | 'ru' | 'id' | 'sw' | 'it'
 
-export const SUPPORTED_LANGS: Lang[] = ['en', 'fr']
+export const SUPPORTED_LANGS: Lang[] = ['en', 'fr', 'es', 'pt', 'ar', 'zh', 'de', 'tr', 'ja', 'ko', 'hi', 'ru', 'id', 'sw', 'it']
 
-const TRANSLATIONS: Record<Lang, typeof en> = { en, fr }
+export const LANG_LABELS: Record<Lang, string> = {
+  en: 'English',
+  fr: 'Français',
+  es: 'Español',
+  pt: 'Português',
+  ar: 'العربية',
+  zh: '中文',
+  de: 'Deutsch',
+  tr: 'Türkçe',
+  ja: '日本語',
+  ko: '한국어',
+  hi: 'हिन्दी',
+  ru: 'Русский',
+  id: 'Bahasa Indonesia',
+  sw: 'Kiswahili',
+  it: 'Italiano',
+}
+
+export const LANG_FLAGS: Record<Lang, string> = {
+  en: '🇬🇧',
+  fr: '🇫🇷',
+  es: '🇪🇸',
+  pt: '🇧🇷',
+  ar: '🇸🇦',
+  zh: '🇨🇳',
+  de: '🇩🇪',
+  tr: '🇹🇷',
+  ja: '🇯🇵',
+  ko: '🇰🇷',
+  hi: '🇮🇳',
+  ru: '🇷🇺',
+  id: '🇮🇩',
+  sw: '🇰🇪',
+  it: '🇮🇹',
+}
+
+// RTL languages
+export const RTL_LANGS: Lang[] = ['ar']
+
+const TRANSLATIONS: Record<Lang, typeof en> = { en, fr, es, pt, ar, zh, de, tr, ja, ko, hi, ru, id, sw, it }
 
 // Detect best language from browser, falling back to 'en'
 export function detectLang(): Lang {

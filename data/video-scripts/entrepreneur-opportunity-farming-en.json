@@ -1,0 +1,48 @@
+{
+  "title": "Unlock Global Opportunities with Feel The Gap AI",
+  "hook": "Describe your product. AI finds your customers worldwide.",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Dynamic, fast-paced shots: a world map morphing into a digital interface, then a quick zoom on a keyboard. Energetic background music starts.",
+      "text_overlay": "Describe your product. AI finds your customers worldwide.",
+      "voiceover": "Ever wish you could just... describe your product, and AI finds your customers worldwide?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Entrepreneur looking stressed, surrounded by messy papers, scrolling frustratedly on a laptop. Images of complex spreadsheets and outdated market reports flash by. Emphasize the feeling of being overwhelmed and missing out.",
+      "text_overlay": "Tired of guessing? 🌍 Lost in market research? 💸",
+      "voiceover": "Feeling stuck? Your product is world-class, but finding global buyers and suppliers feels like searching for a needle in a haystack. Endless market research, outdated data, missed opportunities... that's revenue left on the table."
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Clean, dynamic screen recording of Feel The Gap platform. User types product name, results instantly populate: interactive map highlighting potential markets, lists of verified importers/exporters, real-time trade data trends. UI is intuitive and modern.",
+      "text_overlay": "Feel The Gap: Opportunity Farming. AI-powered Global Trade.",
+      "voiceover": "Meet Feel The Gap. Describe your product, and our AI instantly maps out your global opportunity. Identify new markets, pinpoint validated buyers, and uncover critical trade trends in seconds. It’s 'opportunity farming' at its best."
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Split screen: one side shows a global growth chart spiking upwards, the other shows a confident entrepreneur smiling. Bold text overlay with a powerful stat.",
+      "text_overlay": "3X More Qualified Leads in 1 Month! 📈",
+      "voiceover": "Businesses using Feel The Gap have uncovered 3X more qualified leads in their first month. Stop guessing where to grow next."
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Feel The Gap logo prominently displayed. Clear, clean animation of the website URL appearing with 'free to start' glowing. Music crescendos slightly then ends positively.",
+      "text_overlay": "feelthegap.com — free to start",
+      "voiceover": "Start growing globally, today. Visit feelthegap.com."
+    }
+  ],
+  "music_mood": "upbeat/inspiring",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

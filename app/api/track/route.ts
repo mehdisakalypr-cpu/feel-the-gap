@@ -20,6 +20,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Funnel step tracking
+    if ((event ?? event_type) === 'funnel_step') {
+      await admin.from('funnel_events').insert({
+        session_id: properties?.session_id ?? session_id ?? 'anon',
+        step: properties?.step ?? '',
+        action: properties?.action ?? '',
+        metadata: properties ?? {},
+      }).then(() => null, () => null) // table might not exist yet
+      return NextResponse.json({ ok: true })
+    }
+
+    // Exit feedback
+    if ((event ?? event_type) === 'exit_feedback') {
+      await admin.from('exit_feedback').insert({
+        session_id: properties?.session_id ?? session_id ?? 'anon',
+        exit_step: properties?.exit_step ?? '',
+        reason: properties?.reason,
+        feedback_text: properties?.feedback_text,
+        would_return: properties?.would_return,
+        missing_feature: properties?.missing_feature,
+        email: properties?.email,
+      }).then(() => null, () => null)
+      return NextResponse.json({ ok: true })
+    }
+
     if (!session_id || !event_type) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }

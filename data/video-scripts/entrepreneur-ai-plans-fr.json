@@ -1,0 +1,48 @@
+{
+  "title": "Business Plan en 30 Secondes ? Découvrez Feel The Gap !",
+  "hook": "Et si vous pouviez obtenir un business plan complet en moins de 30 secondes ?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Un entrepreneur jeune et dynamique, l'air étonné puis intrigué, face à l'écran d'un ordinateur affichant un chronomètre qui démarre. Transitions rapides, couleurs vives.",
+      "text_overlay": "Business Plan en 30s ? 🚀",
+      "voiceover": "Et si vous pouviez obtenir un business plan complet en moins de 30 secondes ?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Montage rapide : entrepreneur stressé devant des piles de dossiers, graphiques confus, visages frustrés. Ambiance sombre. Écran affichant des données incompréhensibles. Soupirs audibles.",
+      "text_overlay": "Nuits blanches ? Incertitude ? 😩",
+      "voiceover": "Marre des nuits blanches à chercher des données ? Des heures perdues sur des études de marché complexes ? Votre idée est géniale, mais l'incertitude vous freine. Chaque décision est un pari risqué. La peur de l'échec est réelle."
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Transition nette vers un écran clair et moderne. Enregistrement d'écran fluide montrant un utilisateur tapant une idée dans Feel The Gap. L'IA génère instantanément un tableau de bord complet avec analyse de marché, concurrents et opportunités. Graphiques clairs, données précises.",
+      "text_overlay": "AI pour votre Business Plan ! ✨",
+      "voiceover": "Imaginez : vous entrez votre idée. Feel The Gap, avec son IA ultra-puissante, génère instantanément un business plan détaillé. Analyse de marché, concurrents, opportunités : tout est là, précis, clair, prêt à l'action. Plus de doutes, seulement des données."
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Un entrepreneur souriant et confiant, levant le pouce, pointant un graphique de croissance impressionnant. Des entrepreneurs divers célébrant une réussite. Texte impactant qui apparaît à l'écran.",
+      "text_overlay": "Lancez 2X plus vite ! Confiance assurée. ✅",
+      "voiceover": "Les entrepreneurs qui utilisent Feel The Gap lancent leurs projets 2 fois plus vite et avec une confiance inégalée. C'est la fin des approximations, le début de la stratégie gagnante."
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Gros plan sur un doigt qui tapote un bouton 'Commencer Gratuitement'. L'URL du site web apparaît en grand, lumineux et incitatif. Musique montante.",
+      "text_overlay": "feelthegap.com - GRATUIT pour commencer",
+      "voiceover": "Ne laissez plus vos rêves attendre. Visitez feelthegap.com – gratuit pour commencer. Votre succès commence ici."
+    }
+  ],
+  "music_mood": "inspirant et dynamique",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

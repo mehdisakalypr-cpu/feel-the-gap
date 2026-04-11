@@ -1,0 +1,48 @@
+{
+  "title": "Uncover Proven Demand: Feel The Gap for Entrepreneurs",
+  "hook": "Want to know a secret? These products are imported at scale — the demand is PROVEN.",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Fast cuts: a container ship, a bustling market, a person looking intently at a tablet. Dynamic, high-energy visuals.",
+      "text_overlay": "These products are imported at scale — the demand is PROVEN.",
+      "voiceover": "(Energetic, confident) \"Want to know a secret? These products are imported at scale — the demand is PROVEN.\""
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Entrepreneur looking frustrated, head in hands, surrounded by trend reports and competitor analysis. Quick cuts of empty store shelves, 'out of stock' notifications.",
+      "text_overlay": "STOP GUESSING. START SELLING.",
+      "voiceover": "(Empathetic, slightly dramatic) \"Tired of guessing what products will actually sell? Wasting time and money chasing unproven trends? Imagine missing out on massive profit because you didn't have the data.\""
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Smooth, engaging screen recording of Feel The Gap dashboard. Highlight a filter showing 'products in tension,' then a list of specific product categories with clear demand indicators. Zoom in on a data point.",
+      "text_overlay": "Feel The Gap: Uncover Proven Demand.\n10,000+ Products in Tension.",
+      "voiceover": "(Upbeat, solution-oriented) \"Stop wishing, start knowing. Feel The Gap shows you over 10,000 products currently in 'tension' – high demand, low supply, proven market gaps. Real data. Real opportunities.\""
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Graphic with an upward-trending arrow and percentage increase. Or a testimonial snippet from a successful entrepreneur with a genuine smile.",
+      "text_overlay": "\"I launched 3 new products last month, all hits!\" - Sarah M. | 300% ROI.",
+      "voiceover": "(Inspiring, authoritative) \"Entrepreneurs are using Feel The Gap to uncover hidden gems and skyrocket their revenue. Stop speculating, start dominating.\""
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Bold Feel The Gap logo appears, then transitions to 'feelthegap.com' with 'free to start' clearly visible.",
+      "text_overlay": "feelthegap.com — free to start",
+      "voiceover": "(Urgent, direct) \"Ready to find your next winning product? Visit feelthegap.com now. It's free to start!\""
+    }
+  ],
+  "music_mood": "upbeat/inspiring",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

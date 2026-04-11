@@ -1,0 +1,48 @@
+{
+  "title": "Votre Mine d'Or Mondiale avec Feel The Gap",
+  "hook": "115 pays analysés. Lequel est VOTRE mine d'or ?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Montage rapide de drapeaux de pays, cartes du monde dynamiques, symboles de croissance économique. Un grand point d'interrogation apparaît.",
+      "text_overlay": "115 PAYS ANALYSÉS.\nVOTRE MINE D'OR ?",
+      "voiceover": "115 pays analysés. Lequel est VOTRE mine d'or ?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Un entrepreneur l'air frustré devant un écran rempli de chiffres complexes et de graphiques peu clairs. Il se frotte les tempes. Transition vers une image montrant des opportunités manquées (portes fermées).",
+      "text_overlay": "STOP AU HASARD.\nPERTES DE TEMPS? RISQUES ÉLEVÉS?",
+      "voiceover": "Marre de naviguer à l'aveugle ? Perdre des mois à chercher des données fiables pour votre expansion ? Chaque mauvaise décision coûte cher, très cher."
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Enregistrement d'écran de la plateforme Feel The Gap. L'utilisateur tape un pays, un tableau de bord clair apparaît avec des données clés (PIB, démographie, réglementations, etc.). Facilité d'utilisation mise en avant.",
+      "text_overlay": "TROUVEZ VOTRE MARCHÉ IDÉAL.\nDONNÉES CLÉS EN SECONDES.",
+      "voiceover": "Imaginez : des études de marché complètes pour tout pays, en quelques clics. Feel The Gap vous donne les clés de votre succès mondial avec des données précises, exploitables."
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Graphique animé montrant une courbe de succès ascendante. Un entrepreneur souriant, confiant, serrant la main d'un partenaire commercial international. Des chiffres clés apparaissent à l'écran.",
+      "text_overlay": "ENTREZ SUR LE MARCHÉ SANS RISQUE.\nSUCCÈS ACCÉLÉRÉ.",
+      "voiceover": "Nos utilisateurs réduisent leurs risques de 30% et accélèrent leur entrée sur de nouveaux marchés de 50%. C'est la puissance de l'intelligence commerciale."
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Écran final avec le logo Feel The Gap, l'URL du site web et un bouton 'Commencez Gratuitement' mis en évidence.",
+      "text_overlay": "FEELTHEGAP.COM\nCOMMENCEZ GRATUITEMENT",
+      "voiceover": "Ne laissez plus le potentiel vous échapper. Visitez feelthegap.com. C'est gratuit pour commencer !"
+    }
+  ],
+  "music_mood": "inspirant et dynamique",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

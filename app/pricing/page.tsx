@@ -110,11 +110,20 @@ const CREDIT_PACKS = [
   { label: '100 €', amount: 100 },
 ]
 
+interface GeoTier {
+  country: string | null
+  tier: string
+  multiplier: number
+  currency: string
+  symbol: string
+}
+
 export default function PricingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
   const [userTier, setUserTier] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null)
+  const [geo, setGeo] = useState<GeoTier>({ country: null, tier: 'tier1_premium', multiplier: 1, currency: 'EUR', symbol: '\u20ac' })
 
   useEffect(() => {
     const sb = createSupabaseBrowser()
@@ -124,6 +133,8 @@ export default function PricingPage() {
       const { data: profile } = await sb.from('profiles').select('tier').eq('id', data.user.id).single()
       setUserTier(profile?.tier ?? 'free')
     })
+    // Detect geo-pricing tier
+    fetch('/api/geo').then(r => r.json()).then(setGeo).catch(() => {})
   }, [])
 
   async function handleSubscribe(plan: typeof PLANS[0]) {
@@ -157,6 +168,21 @@ export default function PricingPage() {
     <div className="min-h-screen flex flex-col bg-[#07090F]">
       <Topbar />
       <main className="flex-1 px-6 py-16 max-w-6xl mx-auto w-full">
+
+        {/* PPP discount banner */}
+        {geo.multiplier < 1 && (
+          <div className="mb-8 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-6 py-4 flex items-center gap-3">
+            <span className="text-2xl">🌍</span>
+            <div>
+              <p className="text-sm font-semibold text-emerald-400">
+                Prix ajustés pour votre marché ({geo.country})
+              </p>
+              <p className="text-xs text-gray-400">
+                Nous appliquons un tarif adapté au pouvoir d'achat local : -{Math.round((1 - geo.multiplier) * 100)}% sur tous les plans.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className="text-center mb-12">
@@ -213,9 +239,21 @@ export default function PricingPage() {
                 ) : plan.price === 0 ? (
                   <span className="text-2xl font-bold text-white">Gratuit</span>
                 ) : (
-                  <div className="flex items-end gap-1">
-                    <span className="text-3xl font-bold text-white">{plan.price} €</span>
-                    <span className="text-gray-500 text-sm pb-1">/{plan.period}</span>
+                  <div>
+                    <div className="flex items-end gap-1">
+                      <span className="text-3xl font-bold text-white">
+                        {Math.round(plan.price * geo.multiplier)} {geo.symbol}
+                      </span>
+                      <span className="text-gray-500 text-sm pb-1">/{plan.period}</span>
+                    </div>
+                    {geo.multiplier < 1 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-xs text-gray-600 line-through">{plan.price} €</span>
+                        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">
+                          -{Math.round((1 - geo.multiplier) * 100)}% PPP
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

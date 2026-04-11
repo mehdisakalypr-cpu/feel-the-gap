@@ -1,0 +1,48 @@
+{
+  "title": "Unlock Your Global Goldmine: Feel The Gap",
+  "hook": "115 countries analyzed. Which one is YOUR goldmine?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Fast-paced montage of diverse global cityscapes, then a world map dynamically highlighting 115 different countries. Energetic, inspiring music kicks in.",
+      "text_overlay": "115 Countries. Your Goldmine?",
+      "voiceover": "115 countries analyzed. Which one is YOUR goldmine?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Entrepreneur looking stressed, surrounded by messy papers, complex spreadsheets, and confused expressions. Quick cuts to a clock ticking rapidly, then a competitor's 'success' headline flashing across the screen.",
+      "text_overlay": "Lost in global markets? 😩\nMissed opportunities? 💸\nGuesswork is EXPENSIVE.",
+      "voiceover": "Feeling overwhelmed by global expansion? Stop guessing! You're wasting months researching fragmented data, or worse, missing out on massive opportunities. Your next big market is out there, but finding it feels impossible."
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Dynamic screen recording of the Feel The Gap platform. Cursor navigates intuitively, clicks on 'Country Market Studies', and a sleek, comprehensive report (charts, key stats, growth projections) for a specific country instantly appears. Data visualizations are clear and engaging.",
+      "text_overlay": "Instant Market Insights.\nData-Driven Decisions.\nFeel The Gap.",
+      "voiceover": "Imagine instantly accessing comprehensive country market studies. Feel The Gap delivers crystal-clear data: market size, growth trends, competitor analysis. Pinpoint your perfect market with precision, not guesswork!"
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Animated graph showing a significant upward trend or '200% Faster Market Entry' stat prominently displayed, followed by a confident, smiling entrepreneur making a breakthrough gesture.",
+      "text_overlay": "200% Faster Market Entry! 🚀\nTrusted by Global Innovators.",
+      "voiceover": "Entrepreneurs using Feel The Gap launch into new markets up to 200% faster. Stop guessing. Start winning!"
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Clean, bold display of Feel The Gap logo with the full URL. Music swells slightly then fades.",
+      "text_overlay": "feelthegap.com\n— Free to Start",
+      "voiceover": "Your global success starts now. Visit feelthegap.com. Free to start!"
+    }
+  ],
+  "music_mood": "upbeat/inspiring",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

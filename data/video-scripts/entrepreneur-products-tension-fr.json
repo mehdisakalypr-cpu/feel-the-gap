@@ -1,0 +1,48 @@
+{
+  "title": "Produits à Succès : La Demande est PROUVÉE",
+  "hook": "Ces produits sont importés massivement... La demande est PROUVÉE.",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Montage rapide de produits tendance et d'entrepôts animés. Un graphique de croissance fulgurante. Visage d'entrepreneur souriant avec une idée lumineuse.",
+      "text_overlay": "DEMANDE PROUVÉE",
+      "voiceover": "Ces produits sont importés massivement... La demande est PROUVÉE."
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Un entrepreneur stressé devant un écran vide, puis devant des cartons d'invendus. Des images de recherches Google sans fin. Des points d'interrogation géants.",
+      "text_overlay": "STOP au Gâchis. STOP à l'Incertitude.",
+      "voiceover": "Fatigué de deviner quel produit va marcher ? Peur d'investir dans le vide ? Chaque échec coûte cher, en temps et en argent. L'incertitude vous ronge ?"
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Enregistrement d'écran de la plateforme Feel The Gap. Un curseur navigue fluidement, met en évidence des produits avec des volumes d'importation élevés et des 'tensions' de marché clairement indiquées. Graphiques intuitifs.",
+      "text_overlay": "Feel The Gap: Votre Boussole du Marché.",
+      "voiceover": "Avec Feel The Gap, décodez les flux mondiaux. Repérez les produits importés en forte tension, ceux où l'offre ne suit pas la demande. C'est la certitude, pas la chance !"
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Animation graphique spectaculaire affichant '10 000+' en grand, avec des icônes de produits et des flèches montantes. L'entrepreneur précédent, maintenant confiant et souriant, validant une commande.",
+      "text_overlay": "10 000+ Produits en Tension vous Attendent.",
+      "voiceover": "Nous identifions plus de 10 000 produits en tension. C'est ça, la demande PROUVÉE qui attend VRAIMENT votre offre !"
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Écran clair avec l'URL 'feelthegap.com' et 'Gratuit pour Commencer'. Une main tapote l'écran d'un smartphone avec un signe de validation.",
+      "text_overlay": "feelthegap.com - GRATUIT pour Commencer",
+      "voiceover": "Ne laissez plus passer l'opportunité. Rendez-vous sur feelthegap.com. C'est gratuit pour commencer !"
+    }
+  ],
+  "music_mood": "upbeat/inspiring",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

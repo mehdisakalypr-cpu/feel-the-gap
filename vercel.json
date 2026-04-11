@@ -7,6 +7,26 @@
     {
       "path": "/api/cron/research",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/performance",
+      "schedule": "55 23 * * *"
+    },
+    {
+      "path": "/api/cron/trends",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/optimize",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "path": "/api/cron/friction",
+      "schedule": "0 5 * * 1"
+    },
+    {
+      "path": "/api/churn",
+      "schedule": "0 8 * * *"
     }
   ]
 }

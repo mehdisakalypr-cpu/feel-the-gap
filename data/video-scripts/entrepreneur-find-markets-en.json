@@ -1,0 +1,48 @@
+{
+  "title": "Feel The Gap: Find Your Next Global Market",
+  "hook": "You have a product. But WHERE should you sell it?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Entrepreneur looking thoughtful, then confused, then a huge question mark appears over their head. Fast-paced, attention-grabbing zoom.",
+      "text_overlay": "You have a product. But WHERE should you sell it?",
+      "voiceover": "You have an amazing product. But WHERE should you sell it to truly explode globally?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Rapid cuts: spinning globe with question marks, stacks of complex market research reports, stressed entrepreneur pinching their nose, then a visual of competitors' success metrics.",
+      "text_overlay": "Endless research? Wasted time? Missing opportunities?",
+      "voiceover": "Are you drowning in endless market research? Wasting precious time and missing massive global opportunities? It's frustrating, right? Stop guessing where to go next."
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Seamless transition to a dynamic screen recording of the Feel The Gap platform. User types product, hits enter, and vibrant data visualizations pop up, highlighting top countries with high market demand. Zoom in on a key graph showing growth potential.",
+      "text_overlay": "Feel The Gap: Your global market compass.",
+      "voiceover": "Imagine instantly knowing your next big market. Feel The Gap uses advanced AI to pinpoint exact countries demanding your product."
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Entrepreneur smiling confidently, pointing to a graph showing increased sales. A bold text overlay with a powerful testimonial/stat appears.",
+      "text_overlay": "\"10x market reach in weeks!\" - Sarah K., CEO.",
+      "voiceover": "Entrepreneurs like Sarah are boosting their market reach by 10x in weeks, not years! Real businesses, real results."
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Clean, bold display of \"feelthegap.com\" with an animating \"Free to Start\" button. Finger taps the screen.",
+      "text_overlay": "feelthegap.com - Free to start.",
+      "voiceover": "Stop guessing. Start growing. Visit feelthegap.com – it’s free to start!"
+    }
+  ],
+  "music_mood": "upbeat/inspiring",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

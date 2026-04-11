@@ -5,9 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
-import type { Lang } from '@/lib/i18n'
-
-const FLAG: Record<Lang, string> = { en: '🇬🇧', fr: '🇫🇷' }
+import { LANG_FLAGS, LANG_LABELS, SUPPORTED_LANGS, type Lang } from '@/lib/i18n'
 
 // Covers both the legacy tier keys (free/basic/standard) and the current DB
 // tier keys (explorer/data/strategy). Premium/enterprise are unchanged.
@@ -34,6 +32,50 @@ const ROLE_CONFIG: Record<UserRole, { label: string; icon: string; color: string
 }
 
 const ALL_ROLES: UserRole[] = ['entrepreneur', 'financeur', 'investisseur', 'influenceur']
+
+function LangSwitcher({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative ml-1 shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs"
+        title={LANG_LABELS[lang]}
+      >
+        <span>{LANG_FLAGS[lang]}</span>
+        <span className="text-gray-400 font-medium hidden sm:inline">{lang.toUpperCase()}</span>
+        <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor" className="text-gray-500"><path d="M5 8l5 5 5-5H5z"/></svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-44 rounded-xl overflow-hidden z-50 shadow-2xl max-h-80 overflow-y-auto" style={{ background: '#0D1117', border: '1px solid rgba(201,168,76,0.25)' }}>
+          {SUPPORTED_LANGS.map(l => (
+            <button
+              key={l}
+              onClick={() => { setLang(l); setOpen(false) }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-white/5 transition-colors ${lang === l ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-gray-300'}`}
+            >
+              <span>{LANG_FLAGS[l]}</span>
+              <span className="flex-1">{LANG_LABELS[l]}</span>
+              {lang === l && <span className="text-[#C9A84C]">●</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Topbar() {
   const router = useRouter()
@@ -181,20 +223,8 @@ export default function Topbar() {
               Admin
             </Link>
           )}
-          {/* Language switcher */}
-          <div className="flex items-center gap-0.5 ml-1 bg-white/5 rounded-lg p-0.5 shrink-0">
-            {(['fr', 'en'] as Lang[]).map(l => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                title={l === 'fr' ? 'Français' : 'English'}
-                className={`px-2 py-1 rounded-md text-xs font-semibold transition-all ${
-                  lang === l ? 'bg-[#C9A84C] text-[#07090F]' : 'text-gray-400 hover:text-white'
-                }`}>
-                {FLAG[l]}
-              </button>
-            ))}
-          </div>
+          {/* Language switcher — dropdown for 15 langs */}
+          <LangSwitcher lang={lang} setLang={setLang} />
           {userInitial ? (
             <>
               {/* Role switcher — only shows the dropdown if user has >1 role */}

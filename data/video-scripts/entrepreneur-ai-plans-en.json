@@ -1,0 +1,48 @@
+{
+  "title": "Launch Faster: AI Business Plans in 30 Seconds!",
+  "hook": "Hey entrepreneurs! What if you could get a complete business plan in 30 seconds?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Energetic entrepreneur looking stressed, then a sudden 'aha!' moment. Quick cut to a futuristic, clean interface appearing on screen.",
+      "text_overlay": "BUSINESS PLAN IN 30 SECONDS?",
+      "voiceover": "Hey entrepreneurs! What if you could get a complete business plan in 30 seconds?"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Montage: Frustrated entrepreneur buried in market research papers, staring blankly at a complex spreadsheet, clock ticking rapidly. Overlays of 'OUTDATED DATA' and 'MISSED OPPORTUNITY' warnings.",
+      "text_overlay": "TRADITIONAL RESEARCH IS SLOW & PAINFUL \n MISSED OPPORTUNITIES!",
+      "voiceover": "Stop drowning in endless market research, outdated data, and missed opportunities! Traditional planning takes months, costs thousands, and often leaves you guessing."
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Screen recording: Cursor quickly navigates Feel The Gap. User types a product idea, clicks 'Generate'. A sleek, professional business plan with charts, market size, competitor analysis, and global trade routes instantly populates.",
+      "text_overlay": "INSTANT AI BUSINESS PLANS \n GLOBAL TRADE INSIGHTS",
+      "voiceover": "Introducing Feel The Gap! Our AI generates comprehensive business plans in seconds, leveraging real-time global trade intelligence. Get deep market insights, competitor analysis, and strategy, instantly!"
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Dynamic graphic showing a rising bar chart or a '90% TIME SAVED' badge. A confident entrepreneur smiling, reviewing a Feel The Gap report on a tablet.",
+      "text_overlay": "SAVE 90% RESEARCH TIME!",
+      "voiceover": "Entrepreneurs using Feel The Gap launch 70% faster, saving critical time and resources. Stop guessing, start knowing."
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Bold, clean display of 'feelthegap.com' and 'FREE TO START' with the Feel The Gap logo prominently featured.",
+      "text_overlay": "feelthegap.com — FREE TO START",
+      "voiceover": "Ready to revolutionize your business? Visit feelthegap.com – free to start!"
+    }
+  ],
+  "music_mood": "upbeat/inspiring",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}

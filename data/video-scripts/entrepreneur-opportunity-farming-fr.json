@@ -1,0 +1,48 @@
+{
+  "title": "Cultivez Vos Opportunités Mondiales avec l'IA",
+  "hook": "Et si l'IA pouvait trouver vos prochains clients, partout dans le monde?",
+  "scenes": [
+    {
+      "scene": 1,
+      "duration": "0-5s",
+      "visual": "Gros plan sur un entrepreneur pensif/frustré, puis un éclair d'idée. Texte apparaît dynamiquement, incitant à la curiosité.",
+      "text_overlay": "Décrivez votre produit. L'IA trouve VOS clients MONDIALEMENT.",
+      "voiceover": "Et si l'IA pouvait trouver vos prochains clients, partout dans le monde? C'est la révolution!"
+    },
+    {
+      "scene": 2,
+      "duration": "5-15s",
+      "visual": "Graphiques de croissance stagnante, cartes du monde avec des zones grises (inaccessibles), entrepreneur débordé par des papiers/recherches, regardant un concurrent réussir avec un air d'envie.",
+      "text_overlay": "Marre de la stagnation? Concurrence féroce?",
+      "voiceover": "Vous travaillez dur, mais votre croissance stagne? La concurrence est féroce et les marchés à portée de main semblent saturés. Vous sentez que d'énormes opportunités vous échappent à l'international, mais comment les trouver sans y passer des mois?"
+    },
+    {
+      "scene": 3,
+      "duration": "15-22s",
+      "visual": "Transition fluide vers une interface claire de Feel The Gap. Écran d'enregistrement montrant l'utilisateur tapant un produit, puis des cartes du monde s'illuminant avec des points de données, des listes d'entreprises, des chiffres clés. Interface moderne et intuitive.",
+      "text_overlay": "Feel The Gap: L'IA pour votre expansion globale.",
+      "voiceover": "Imaginez: vous décrivez votre produit à Feel The Gap. Notre IA analyse des milliards de données commerciales mondiales. En quelques clics, elle révèle vos marchés cibles inexploités et les clients idéaux, prêts à acheter!"
+    },
+    {
+      "scene": 4,
+      "duration": "22-27s",
+      "visual": "Entrepreneur souriant et confiant, poing levé, devant un écran montrant des chiffres de croissance impressionnants (graphique montant en flèche). Visuel de succès et de soulagement.",
+      "text_overlay": "+30% de leads qualifiés en 3 mois!",
+      "voiceover": "Des entreprises comme la vôtre ont augmenté leurs leads qualifiés de plus de 30% en seulement trois mois. Ne laissez plus la croissance vous échapper!"
+    },
+    {
+      "scene": 5,
+      "duration": "27-30s",
+      "visual": "Logo Feel The Gap au centre. L'URL et le texte 'Gratuit pour commencer' apparaissent en grand, clairs et lumineux. Un design épuré, incitant à l'action immédiate.",
+      "text_overlay": "feelthegap.com — Gratuit pour commencer",
+      "voiceover": "Rejoignez la révolution. Visitez feelthegap.com et commencez gratuitement aujourd'hui!"
+    }
+  ],
+  "music_mood": "inspirant et dynamique",
+  "total_duration": "30s",
+  "platforms": [
+    "instagram_reels",
+    "youtube_shorts",
+    "tiktok"
+  ]
+}
