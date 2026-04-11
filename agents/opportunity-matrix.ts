@@ -175,7 +175,7 @@ async function main() {
         const { error } = await sb.from('opportunities').upsert({
           country_iso: c.id,
           product_id: productSlug,
-          type: 'import_opportunity',
+          type: 'direct_trade',
           opportunity_score: Math.min(100, Math.max(0, opp.score ?? 50)),
           gap_value_usd: opp.market_size_usd ?? 0,
           land_availability: opp.entry_barrier === 'low' ? 'high' : opp.entry_barrier === 'high' ? 'low' : 'medium',
