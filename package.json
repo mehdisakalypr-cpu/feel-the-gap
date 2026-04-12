@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "scout:local-buyers": "tsx agents/local-buyers-scout.ts",
+    "scout:exporters": "tsx agents/exporters-scout.ts",
+    "scout:investors": "tsx agents/investors-scout.ts",
+    "scout:entrepreneurs": "tsx agents/entrepreneurs-scout.ts",
+    "scout:all": "tsx agents/prospect-orchestrator.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.58",
