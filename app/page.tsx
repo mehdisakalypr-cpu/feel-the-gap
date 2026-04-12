@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useLang } from '@/components/LanguageProvider'
+import PaymentBadges from '@/components/PaymentBadges'
 
 const FEATURE_ICONS = [
   (
@@ -92,6 +93,10 @@ export default function HomePage() {
               className="px-7 py-3.5 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors text-sm">
               {t('home.cta_signin')}
             </Link>
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <PaymentBadges variant="inline" showCountryName />
           </div>
         </div>
 
