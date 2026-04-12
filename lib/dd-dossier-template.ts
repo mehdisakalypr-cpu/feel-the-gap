@@ -261,6 +261,51 @@ export function computeCompletion(template: DDTemplate, answers: Record<string, 
   return Math.round((reqPct * 0.8 + optPct * 0.2) * 100)
 }
 
+/**
+ * Adapter: convert DD_TEMPLATE_V1 to the existing DossierStructure shape so
+ * the current /funding/dossier/[id] UI renders it without changes.
+ * Maps: prompt→label, longtext→textarea, currency→currency_eur, pct→percent,
+ *       url→text, table→textarea (degraded — filled as structured text),
+ *       options (string[])→ [{value,label}].
+ */
+export function toDossierStructure(tpl: DDTemplate, context?: Record<string, unknown>) {
+  const mapType = (t: DDQuestion['type']): string => {
+    switch (t) {
+      case 'longtext': return 'textarea'
+      case 'currency': return 'currency_eur'
+      case 'pct':      return 'percent'
+      case 'url':      return 'text'
+      case 'table':    return 'textarea'
+      default:         return t
+    }
+  }
+  return {
+    version: 1 as const,
+    type: 'investissement' as const,
+    generated_at: new Date().toISOString(),
+    context: context ?? {},
+    template_source: `dd_v${tpl.version}`,
+    sections: tpl.sections.map(s => ({
+      key: s.id,
+      title: s.title,
+      description: s.description ?? '',
+      questions: s.questions.map(q => ({
+        key: q.key,
+        label: q.prompt,
+        type: mapType(q.type),
+        required: q.required,
+        help: q.hint,
+        placeholder: q.placeholder,
+        options: q.options?.map(o => ({ value: o, label: o })),
+        // Hint for table-type questions so users structure their free text
+        ...(q.type === 'table' && q.columns
+          ? { help: (q.hint ?? '') + ' — Colonnes attendues : ' + q.columns.map(c => c.label).join(' | ') }
+          : {}),
+      })),
+    })),
+  }
+}
+
 /** Return the next 5 missing required items (for nudges/emails). */
 export function nextMissingRequired(template: DDTemplate, answers: Record<string, any>, max = 5) {
   const out: { section: string; key: string; prompt: string }[] = []

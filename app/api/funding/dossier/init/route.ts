@@ -7,7 +7,7 @@
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { DD_TEMPLATE_V1 } from '@/lib/dd-dossier-template'
+import { DD_TEMPLATE_V1, toDossierStructure } from '@/lib/dd-dossier-template'
 
 export const runtime = 'nodejs'
 
@@ -37,7 +37,11 @@ export async function POST(req: Request) {
     product_slug: body.product_slug ?? null,
     amount_eur: body.amount_eur,
     business_plan_id: body.business_plan_id ?? null,
-    structure: { template_version: DD_TEMPLATE_V1.version, sections: DD_TEMPLATE_V1.sections },
+    structure: toDossierStructure(DD_TEMPLATE_V1, {
+      amount_eur: body.amount_eur,
+      country_iso: body.country_iso,
+      product_slug: body.product_slug,
+    }),
     answers: {},
     completion_pct: 0,
     status: 'draft',
