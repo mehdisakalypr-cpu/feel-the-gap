@@ -77,11 +77,28 @@ export async function proxy(request: NextRequest) {
   // Static assets — always pass through
   if (isStaticAsset(pathname)) return NextResponse.next()
 
+  // Country detection (used by PaymentBadges + checkout localization)
+  const detectedCountry =
+    request.headers.get('x-vercel-ip-country') ??
+    request.headers.get('cf-ipcountry') ??
+    request.cookies.get('country')?.value ??
+    'FR'
+
+  const withCountry = (res: NextResponse) => {
+    res.headers.set('x-country', detectedCountry)
+    if (!request.cookies.get('country')) {
+      res.cookies.set('country', detectedCountry, {
+        path: '/', maxAge: 60 * 60 * 24 * 30, sameSite: 'lax',
+      })
+    }
+    return res
+  }
+
   // Public pages — no auth needed
-  if (isPublicPage(pathname)) return NextResponse.next()
+  if (isPublicPage(pathname)) return withCountry(NextResponse.next())
 
   // Public APIs — no auth needed
-  if (pathname.startsWith('/api/') && isPublicApi(pathname)) return NextResponse.next()
+  if (pathname.startsWith('/api/') && isPublicApi(pathname)) return withCountry(NextResponse.next())
 
   // ── Auth check for all other routes ────────────────────────────────────────
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -134,7 +151,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return response
+  return withCountry(response)
 }
 
 export const proxyConfig = {

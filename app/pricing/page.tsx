@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
+import PaymentBadges from '@/components/PaymentBadges'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 const STRIPE_PRICES = {
@@ -192,6 +193,11 @@ export default function PricingPage() {
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
             De la découverte gratuite au business plan IA complet. Passez au niveau supérieur quand vous êtes prêt.
           </p>
+        </div>
+
+        {/* Mobile money badges for African visitors */}
+        <div className="flex justify-center mb-10">
+          <PaymentBadges variant="card" />
         </div>
 
         {/* Plans grid */}
