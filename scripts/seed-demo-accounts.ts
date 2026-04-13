@@ -19,7 +19,7 @@
  *   4. demo.investisseur@feelthegap.app  — investisseur
  *      · peut voir les dossiers type=investissement de l'entrepreneur
  *
- * Tous les comptes utilisent le mot de passe : DemoFTG2026!
+ * Tous les comptes utilisent le mot de passe défini dans process.env.DEMO_PASSWORD
  *
  * Usage:
  *   npx tsx scripts/seed-demo-accounts.ts          # create/update
@@ -39,7 +39,15 @@ function loadEnv() {
 }
 loadEnv()
 
-const DEMO_PASSWORD = 'DemoFTG2026!'
+// Password sourced from env (DEMO_PASSWORD). Never commit a literal — sharing a
+// password between code, docs and a running deployment causes silent password
+// resets when the seeder runs against a user who has changed it elsewhere.
+// Set DEMO_PASSWORD in .env.local AND in Vercel env (Production/Preview).
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD
+if (!DEMO_PASSWORD || DEMO_PASSWORD.length < 8) {
+  console.error('[seed-demo] DEMO_PASSWORD env var is missing or too short (min 8 chars). Set it in .env.local and Vercel env.')
+  process.exit(1)
+}
 const DEMO_ACCOUNTS = [
   {
     email: 'demo.entrepreneur@feelthegap.app',
@@ -106,8 +114,15 @@ async function main() {
         if (error || !created.user) throw new Error(`createUser ${acc.email}: ${error?.message}`)
         userId = created.user.id
       } else {
+        // Existing user: do NOT overwrite password (would clobber any /auth/forgot
+        // change). Use --reset to force-rotate, or --rotate-password explicitly.
         userId = existing.id
-        await admin.auth.admin.updateUserById(userId, { password: DEMO_PASSWORD, email_confirm: true })
+        if (process.argv.includes('--rotate-password')) {
+          await admin.auth.admin.updateUserById(userId, { password: DEMO_PASSWORD, email_confirm: true })
+          console.log(`  ↻ rotated password for ${acc.email}`)
+        } else {
+          await admin.auth.admin.updateUserById(userId, { email_confirm: true })
+        }
       }
       console.log(`  ✓ ${acc.email} (${userId.slice(0, 8)})`)
     } else {

@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation'
 
 interface DemoAccount {
   email: string
-  password: string
   role: string
   full_name: string
   company: string
@@ -24,7 +23,6 @@ interface DemoAccount {
 const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     email: 'demo.entrepreneur@feelthegap.app',
-    password: 'DemoFTG2026!',
     role: 'entrepreneur',
     full_name: 'Amélie Dubois',
     company: 'Cacao de Côte d\'Ivoire SARL',
@@ -40,7 +38,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     email: 'demo.influenceur@feelthegap.app',
-    password: 'DemoFTG2026!',
     role: 'influenceur',
     full_name: 'Léa Martin',
     company: 'Léa Martin Media',
@@ -57,7 +54,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     email: 'demo.financeur@feelthegap.app',
-    password: 'DemoFTG2026!',
     role: 'financeur',
     full_name: 'Pierre Laurent',
     company: 'Banque Éthique SA',
@@ -73,7 +69,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     email: 'demo.investisseur@feelthegap.app',
-    password: 'DemoFTG2026!',
     role: 'investisseur',
     full_name: 'Marie Chen',
     company: 'Green Ventures Capital',
@@ -96,6 +91,15 @@ export default function DemoAccountsPage() {
   const [copied, setCopied] = useState<string | null>(null)
   const [tiers, setTiers] = useState<Record<string, string>>({})
   const [togglingTier, setTogglingTier] = useState<string | null>(null)
+  const [demoPassword, setDemoPassword] = useState<string>('…')
+
+  // Fetch demo password from server (admin-only). Never hardcoded in code.
+  useEffect(() => {
+    fetch('/api/admin/demo-password')
+      .then((r) => r.json())
+      .then((j) => setDemoPassword(j.password ?? '⚠️ DEMO_PASSWORD env var manquant'))
+      .catch(() => setDemoPassword('⚠️ erreur de chargement'))
+  }, [])
 
   // Load current tiers of demo accounts
   useEffect(() => {
@@ -228,10 +232,10 @@ export default function DemoAccountsPage() {
               <div className="flex items-center gap-2">
                 <div className="text-[10px] text-gray-500 w-16">Password</div>
                 <code className="flex-1 text-xs text-gray-300 font-mono bg-white/5 px-2 py-1 rounded">
-                  {acc.password}
+                  {demoPassword}
                 </code>
                 <button
-                  onClick={() => copyToClipboard(acc.password, `${acc.email}-pw`)}
+                  onClick={() => copyToClipboard(demoPassword, `${acc.email}-pw`)}
                   className="text-[10px] text-gray-500 hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5"
                 >
                   {copied === `${acc.email}-pw` ? '✓' : 'copier'}
