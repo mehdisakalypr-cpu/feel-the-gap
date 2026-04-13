@@ -174,8 +174,13 @@ async function main() {
   const seqFilter = args.find(a => a.startsWith('--sequence='))?.split('=')[1] as Sequence | null ?? null
   const langFilter = args.find(a => a.startsWith('--lang='))?.split('=')[1]?.split(',') as Lang[] | null ?? null
 
-  const targetLangs = langFilter ?? [...ALL_LANGS]
+  // Shard partition — each instance handles a disjoint slice of languages.
+  const { parseShardArgs, pickShard } = await import('./lib/shard')
+  const { shard, shards } = parseShardArgs()
+  const allLangs = langFilter ?? [...ALL_LANGS]
+  const targetLangs = pickShard(allLangs, shard, shards)
   const targetSeqs = seqFilter ? [seqFilter] : Object.keys(SEQUENCES) as Sequence[]
+  if (shards > 1) console.log(`[NURTURE] shard=${shard}/${shards} langs=${targetLangs.length}/${allLangs.length}`)
 
   const totalEmails = targetSeqs.reduce((sum, seq) => sum + SEQUENCES[seq].emails.length, 0) * targetLangs.length
   console.log(`  Sequences: ${targetSeqs.join(', ')} | Languages: ${targetLangs.length} | Total: ${totalEmails} emails\n`)

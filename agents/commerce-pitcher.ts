@@ -135,25 +135,22 @@ Return ONLY valid JSON:
   }
 }
 
-async function pitchLeads(sb: any, countryFilter: string | null) {
+async function pitchLeads(sb: any, countryFilter: string | null, shard: number, shards: number, limit: number) {
   console.log('\n── Pitching Commerce Leads ──\n')
+  const { belongsToShard } = await import('./lib/shard')
 
-  let query = sb
-    .from('commerce_leads')
-    .select('*, generated_sites!commerce_leads_id_fkey(slug)')
-    .eq('status', 'site_generated')
-    .order('potential_score', { ascending: false })
-    .limit(200)
-
-  if (countryFilter) query = query.eq('country_iso', countryFilter)
-
-  // Simpler approach: get leads and their sites separately
-  const { data: leads } = await sb
+  // Oversample so shard slice still meets limit.
+  let q = sb
     .from('commerce_leads')
     .select('*')
     .eq('status', 'site_generated')
     .order('potential_score', { ascending: false })
-    .limit(200)
+    .limit(limit * shards)
+  if (countryFilter) q = q.eq('country_iso', countryFilter)
+  const { data: leadsRaw } = await q
+  const leads = (leadsRaw ?? [])
+    .filter((l: any) => belongsToShard(String(l.id), shard, shards))
+    .slice(0, limit)
 
   if (!leads?.length) { console.log('  No leads ready for pitching'); return }
 
@@ -216,12 +213,23 @@ async function main() {
   const args = process.argv.slice(2)
   const templatesOnly = args.includes('--templates-only')
   const countryFilter = args.find(a => a.startsWith('--country='))?.split('=')[1] ?? null
+  const limitArgRaw = args.find(a => a.startsWith('--limit='))?.split('=')[1]
+
+  // CC simulator target + shard partition.
+  const { loadActiveTarget, needForAgent } = await import('./lib/agent-targets')
+  const { parseShardArgs } = await import('./lib/shard')
+  const { shard, shards } = parseShardArgs()
+  const activeTarget = limitArgRaw ? null : await loadActiveTarget('ftg')
+  const dbTarget = needForAgent(activeTarget, 'commerce-pitcher') ?? needForAgent(activeTarget, 'email-nurture')
+  const globalLimit = limitArgRaw ? parseInt(limitArgRaw) : (dbTarget ?? 200)
+  const shardLimit = Math.max(1, Math.ceil(globalLimit / shards))
+  if (activeTarget || shards > 1) console.log(`[PITCHER] shard=${shard}/${shards} limit=${shardLimit} (global=${globalLimit})`)
 
   // Always ensure templates exist
   await generateTemplates(sb)
 
   if (!templatesOnly) {
-    await pitchLeads(sb, countryFilter)
+    await pitchLeads(sb, countryFilter, shard, shards, shardLimit)
   }
 }
 

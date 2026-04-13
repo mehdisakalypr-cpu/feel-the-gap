@@ -133,15 +133,18 @@ async function main() {
   const sectorArg = args.find(a => a.startsWith('--sector='))?.split('=')[1]
   const countArgRaw = args.find(a => a.startsWith('--count='))?.split('=')[1]
 
-  // If --count is not explicitly passed, read the active CC scenario for FTG
-  // so the Business Simulator propagates to the scout's batch size.
+  // Load CC simulator target + shard partition.
   const { loadActiveTarget, needForAgent } = await import('./lib/agent-targets')
+  const { parseShardArgs, pickShard } = await import('./lib/shard')
+  const { shard, shards } = parseShardArgs()
   const activeTarget = countArgRaw ? null : await loadActiveTarget('ftg')
   const dbTarget = needForAgent(activeTarget, 'ftg-founder-scout') ?? needForAgent(activeTarget, 'ftg-vc-scout')
-  const countArg = countArgRaw ? parseInt(countArgRaw) : (dbTarget ?? 50)
-  if (activeTarget) console.log(`[SCOUT] Using CC scenario ${activeTarget.scenarioId} → count=${countArg}`)
+  const globalCount = countArgRaw ? parseInt(countArgRaw) : (dbTarget ?? 50)
+  const countArg = Math.max(1, Math.ceil(globalCount / shards))
+  if (activeTarget || shards > 1) console.log(`[SCOUT] shard=${shard}/${shards} count=${countArg} (global=${globalCount})`)
 
-  const countries = countryArg || Object.keys(COUNTRY_PROFILES)
+  const allCountries = countryArg || Object.keys(COUNTRY_PROFILES)
+  const countries = pickShard(allCountries, shard, shards)
   const sectors = sectorArg ? [sectorArg] : SECTORS
 
   console.log(`[SCOUT] Target: ${countArg} entrepreneurs across ${countries.length} countries`)
