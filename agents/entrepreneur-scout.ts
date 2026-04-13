@@ -131,7 +131,15 @@ async function main() {
   const args = process.argv.slice(2)
   const countryArg = args.find(a => a.startsWith('--country='))?.split('=')[1]?.split(',')
   const sectorArg = args.find(a => a.startsWith('--sector='))?.split('=')[1]
-  const countArg = parseInt(args.find(a => a.startsWith('--count='))?.split('=')[1] || '50')
+  const countArgRaw = args.find(a => a.startsWith('--count='))?.split('=')[1]
+
+  // If --count is not explicitly passed, read the active CC scenario for FTG
+  // so the Business Simulator propagates to the scout's batch size.
+  const { loadActiveTarget, needForAgent } = await import('./lib/agent-targets')
+  const activeTarget = countArgRaw ? null : await loadActiveTarget('ftg')
+  const dbTarget = needForAgent(activeTarget, 'ftg-founder-scout') ?? needForAgent(activeTarget, 'ftg-vc-scout')
+  const countArg = countArgRaw ? parseInt(countArgRaw) : (dbTarget ?? 50)
+  if (activeTarget) console.log(`[SCOUT] Using CC scenario ${activeTarget.scenarioId} → count=${countArg}`)
 
   const countries = countryArg || Object.keys(COUNTRY_PROFILES)
   const sectors = sectorArg ? [sectorArg] : SECTORS
