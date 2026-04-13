@@ -178,7 +178,17 @@ async function main() {
   const args = process.argv.slice(2)
   const countryFilter = args.find(a => a.startsWith('--country='))?.split('=')[1]?.split(',') ?? null
   const categoryFilter = args.find(a => a.startsWith('--category='))?.split('=')[1] ?? null
-  const targetCount = parseInt(args.find(a => a.startsWith('--count='))?.split('=')[1] ?? '500')
+  const countArgRaw = args.find(a => a.startsWith('--count='))?.split('=')[1]
+
+  // CC simulator target + shard partition on countries.
+  const { loadActiveTarget, needForAgent } = await import('./lib/agent-targets')
+  const { parseShardArgs, pickShard } = await import('./lib/shard')
+  const { shard, shards } = parseShardArgs()
+  const activeTarget = countArgRaw ? null : await loadActiveTarget('ftg')
+  const dbTarget = needForAgent(activeTarget, 'web-scout')
+  const globalCount = countArgRaw ? parseInt(countArgRaw) : (dbTarget ?? 500)
+  const targetCount = Math.max(1, Math.ceil(globalCount / shards))
+  if (activeTarget || shards > 1) console.log(`[web-scout] shard=${shard}/${shards} count=${targetCount} (global=${globalCount})`)
 
   // Get country names from DB
   const { data: countries } = await sb.from('countries').select('id, name')
@@ -189,9 +199,11 @@ async function main() {
   const leadsPerCountry = Math.ceil(targetCount / 40) // ~12-15 per country
 
   for (const [region, config] of Object.entries(SCOUT_TARGETS)) {
-    const regionCountries = countryFilter
+    const baseCountries = countryFilter
       ? config.countries.filter(c => countryFilter.includes(c))
       : config.countries
+    // Partition countries across shards so N instances cover disjoint pays.
+    const regionCountries = pickShard(baseCountries, shard, shards)
 
     const cats = categoryFilter
       ? config.categories.filter(c => c === categoryFilter)

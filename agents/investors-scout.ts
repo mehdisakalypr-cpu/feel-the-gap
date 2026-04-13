@@ -40,12 +40,17 @@ type Candidate = {
   notes?: string
 }
 
-const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true'] }))
+import { parseShardArgs, belongsToShard } from './lib/shard'
+const args = Object.fromEntries(process.argv.slice(2).filter(a => !/^--shards?=/.test(a)).map(a => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true'] }))
 const SECTOR = String(args.sector ?? '')
 const REGION = String(args.region ?? '')
-const TYPES = (args.types ? String(args.types).split(',') : Object.keys(TYPE_QUERIES)) as InvestorType[]
-const MAX = Number(args.max ?? 30)
+const { shard: SHARD, shards: SHARDS } = parseShardArgs()
+const ALL_TYPES = (args.types ? String(args.types).split(',') : Object.keys(TYPE_QUERIES)) as InvestorType[]
+const TYPES = (SHARDS > 1 ? ALL_TYPES.filter((_, i) => i % SHARDS === SHARD) : ALL_TYPES)
+const MAX_GLOBAL = Number(args.max ?? 30)
+const MAX = Math.max(1, Math.ceil(MAX_GLOBAL / SHARDS))
 const APPLY = args.apply === 'true'
+if (SHARDS > 1) console.log(`[investors-scout] shard=${SHARD}/${SHARDS} types=${TYPES.length}/${ALL_TYPES.length} max=${MAX}`)
 
 if (!SECTOR || !REGION) {
   console.error('usage: tsx investors-scout.ts --sector=agriculture --region=africa-west [--types=vc_fund,dfi] [--max=30] [--apply]')
@@ -108,7 +113,7 @@ async function extractFromResults(type: InvestorType, query: string, results: an
   const unique = candidates.filter(c => {
     const k = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
     if (seen.has(k)) return false; seen.add(k); return true
-  }).slice(0, MAX)
+  }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX)
 
   console.log(`found ${unique.length} unique candidates`)
   for (const c of unique.slice(0, 20)) console.log(`  · ${c.investor_type.padEnd(14)} ${c.name.slice(0, 60)}  ${c.website_url?.slice(0, 40) ?? ''}`)

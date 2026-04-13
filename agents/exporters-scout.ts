@@ -6,11 +6,15 @@ import { loadEnv } from '../lib/env'
 import { createClient } from '@supabase/supabase-js'
 
 loadEnv()
-const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true'] }))
+import { parseShardArgs, belongsToShard } from './lib/shard'
+const args = Object.fromEntries(process.argv.slice(2).filter(a => !/^--shards?=/.test(a)).map(a => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true'] }))
 const COUNTRY = String(args.country ?? '').toUpperCase()
 const PRODUCT = String(args.product ?? '').toLowerCase()
-const MAX = Number(args.max ?? 30)
+const { shard: SHARD, shards: SHARDS } = parseShardArgs()
+const MAX_GLOBAL = Number(args.max ?? 30)
+const MAX = Math.max(1, Math.ceil(MAX_GLOBAL / SHARDS))
 const APPLY = args.apply === 'true'
+if (SHARDS > 1) console.log(`[exporters-scout] shard=${SHARD}/${SHARDS} max=${MAX}`)
 if (!COUNTRY || !PRODUCT) { console.error('usage: tsx exporters-scout.ts --country=CI --product=cajou [--max=30] [--apply]'); process.exit(1) }
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } })
@@ -52,7 +56,7 @@ const QUERIES = [
     const domain = (() => { try { return new URL(r.link).hostname } catch { return '' } })()
     if (!name || /news|medium|wiki|youtube|facebook|linkedin\.com\/pulse/.test(domain)) return null
     return { name, website_url: r.link, snippet: r.snippet, query: r.query }
-  }).filter(Boolean).filter((r: any) => { const k = r.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true }).slice(0, MAX) as any[]
+  }).filter(Boolean).filter((r: any) => { const k = r.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX) as any[]
 
   console.log(`found ${unique.length}`)
   for (const c of unique.slice(0, 20)) console.log(`  · ${c.name.slice(0, 60)}  ${c.website_url.slice(0, 40)}`)

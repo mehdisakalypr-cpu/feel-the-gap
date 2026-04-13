@@ -47,15 +47,20 @@ type BuyerCandidate = {
   notes?: string
 }
 
-const args = Object.fromEntries(process.argv.slice(2).map(a => {
+import { parseShardArgs, belongsToShard } from './lib/shard'
+const args = Object.fromEntries(process.argv.slice(2).filter(a => !/^--shards?=/.test(a)).map(a => {
   const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true']
 }))
 
 const COUNTRY = String(args.country ?? '').toUpperCase()
 const PRODUCT = String(args.product ?? '').toLowerCase()
-const MAX = Number(args.max ?? 20)
+const { shard: SHARD, shards: SHARDS } = parseShardArgs()
+const MAX_GLOBAL = Number(args.max ?? 20)
+const MAX = Math.max(1, Math.ceil(MAX_GLOBAL / SHARDS))
 const APPLY = args.apply === 'true'
-const TYPES = (args.types ? String(args.types).split(',') : Object.keys(BUYER_QUERIES))
+const ALL_TYPES = (args.types ? String(args.types).split(',') : Object.keys(BUYER_QUERIES))
+const TYPES = (SHARDS > 1 ? ALL_TYPES.filter((_, i) => i % SHARDS === SHARD) : ALL_TYPES)
+if (SHARDS > 1) console.log(`[local-buyers-scout] shard=${SHARD}/${SHARDS} types=${TYPES.length}/${ALL_TYPES.length} max=${MAX}`)
 
 if (!COUNTRY || !PRODUCT) {
   console.error('usage: tsx local-buyers-scout.ts --country=CI --product=cajou [--max=20] [--apply] [--types=industriel,grossiste]')
@@ -139,7 +144,7 @@ async function extractBuyersFromResults(
   const unique = candidates.filter(c => {
     const k = `${c.country_iso}|${c.name.toLowerCase()}`
     if (seen.has(k)) return false; seen.add(k); return true
-  }).slice(0, MAX)
+  }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX)
 
   console.log(`found: ${unique.length} unique candidates`)
   for (const c of unique.slice(0, 20)) console.log(`  · ${c.buyer_type.padEnd(14)} ${c.name.slice(0, 60)}  (${c.website_url?.slice(0, 40) ?? '-'})`)

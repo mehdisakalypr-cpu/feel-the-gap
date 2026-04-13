@@ -178,8 +178,14 @@ async function main() {
   const sectorFilter = args.find(a => a.startsWith('--sector='))?.split('=')[1] ?? null
   const perSector = parseInt(args.find(a => a.startsWith('--count='))?.split('=')[1] ?? '8') || 8
 
+  // Shard partition: each instance owns a disjoint slice of sectors.
+  const { parseShardArgs, pickShard } = await import('./lib/shard')
+  const { shard, shards } = parseShardArgs()
   let sectors = SECTORS
   if (sectorFilter) sectors = sectors.filter(s => s.sector.includes(sectorFilter))
+  const allSectors = sectors
+  sectors = pickShard(allSectors, shard, shards)
+  if (shards > 1) console.log(`[deal-flow] shard=${shard}/${shards} sectors=${sectors.length}/${allSectors.length}`)
 
   console.log(`Sectors: ${sectors.length} | Per sector: ${perSector} | Expected: ${sectors.length * perSector} deals\n`)
 
