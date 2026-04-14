@@ -2,17 +2,21 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
 export default function RegisterPage() {
   const { t, lang } = useLang()
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
+  // 'confirm_required' = Supabase a envoyé un lien de confirmation (mailer_autoconfirm=false).
+  //                     Cas rare aujourd'hui, mais on garde le support si la config change.
+  const [done, setDone] = useState<null | 'confirm_required'>(null)
   const [error, setError] = useState<string | null>(null)
   const [showPwd, setShowPwd] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -35,11 +39,22 @@ export default function RegisterPage() {
     const sb = createSupabaseBrowser()
     const { data: signUpData, error: err } = await sb.auth.signUp({ email, password, options: { data: { username: username.trim() } } })
     if (err) { setError(err.message); setLoading(false); return }
-    // Update profile with username
+    // Username -> profiles
     if (signUpData.user) {
       await sb.from('profiles').update({ username: username.trim() }).eq('id', signUpData.user.id)
     }
-    setDone(true)
+
+    // Supabase renvoie une session SI mailer_autoconfirm=true (compte actif direct).
+    // Dans ce cas, on connecte l'utilisateur et on file sur /map. Pas d'écran "check email"
+    // trompeur qui laisse attendre un mail qui n'arrivera jamais.
+    if (signUpData.session) {
+      router.push('/map')
+      return
+    }
+
+    // Sinon (confirmation email requise côté Supabase), on affiche l'écran check email.
+    setDone('confirm_required')
+    setLoading(false)
   }
 
   return (
@@ -56,11 +71,14 @@ export default function RegisterPage() {
         </Link>
 
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-7">
-          {done ? (
+          {done === 'confirm_required' ? (
             <div className="text-center py-4">
               <div className="text-4xl mb-3">📬</div>
               <h2 className="font-bold text-white text-lg mb-2">{t('auth.check_email')}</h2>
               <p className="text-gray-400 text-sm">{t('auth.check_email_desc', { email })}</p>
+              <p className="text-gray-500 text-xs mt-2">
+                Expéditeur : Feel The Gap &lt;outreach@ofaops.xyz&gt; · vérifiez les spams/promos.
+              </p>
               <Link href="/auth/login" className="inline-block mt-5 text-[#C9A84C] text-sm hover:text-[#E8C97A]">{t('auth.back_to_signin')}</Link>
             </div>
           ) : (

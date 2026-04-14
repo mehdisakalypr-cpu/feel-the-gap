@@ -82,12 +82,15 @@ function ResetPasswordForm() {
         }
       }, 2000)
     } else if (!code) {
-      // No code and no hash — invalid access
-      setTimeout(() => setChecking(false), 1500)
+      // Ni lien PKCE ni hash recovery — l email Supabase envoie un CODE OTP, pas un lien.
+      // Le flow canonique pour reset est /auth/forgot (email + code + nouveau mot de passe).
+      // On redirige pour ne pas laisser l'utilisateur sur un "lien invalide" confus.
+      router.replace('/auth/forgot')
+      return
     }
 
     return () => { subscription.unsubscribe() }
-  }, [searchParams])
+  }, [searchParams, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

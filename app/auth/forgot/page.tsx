@@ -134,9 +134,11 @@ export default function ForgotPasswordPage() {
             <>
               <h1 className="text-xl font-bold text-white mb-1">Réinitialisation</h1>
               <p className="text-gray-400 text-sm mb-2">
-                Un code a été envoyé à <span className="text-[#C9A84C] font-medium">{email}</span>
+                Un code à 8 chiffres a été envoyé à <span className="text-[#C9A84C] font-medium">{email}</span>
               </p>
-              <p className="text-gray-500 text-xs mb-6">Vérifiez vos spams si nécessaire.</p>
+              <p className="text-gray-500 text-xs mb-6">
+                Expéditeur : Feel The Gap &lt;outreach@ofaops.xyz&gt;. Vérifiez vos spams/promotions.
+              </p>
 
               {error && (
                 <div className="mb-4 px-3 py-2.5 bg-red-500/10 border border-red-500/25 rounded-lg text-red-400 text-sm">
