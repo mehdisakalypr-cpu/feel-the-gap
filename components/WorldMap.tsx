@@ -189,6 +189,10 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
     tileLayerRef.current.remove()
     tileLayerRef.current = L.tileLayer(TILE_URLS[tileMode].url, TILE_URLS[tileMode].opts).addTo(map)
 
+    // Toggle night class on container so the background bleed matches the tiles
+    const container = map.getContainer?.()
+    if (container) container.classList.toggle('ftg-night', tileMode === 'night')
+
     // Add label overlay for satellite mode (cities + countries)
     if (tileMode === 'satellite') {
       labelLayerRef.current = L.tileLayer(SATELLITE_LABEL_URL, { maxZoom: 19, opacity: 1 }).addTo(map)
@@ -337,6 +341,12 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       {/* Zoom control placement — ensure no overlap with tile switcher (topright desktop)
           or the CategoryFilter toggle button (left) and stats bar (bottom-left) on mobile */}
       <style>{`
+        /* Base Leaflet container: gris très clair au lieu de noir par défaut,
+           ce qui adoucit la carte pendant les pans/zooms et quand les océans
+           sont transparents sur les tiles OSM. */
+        .leaflet-container { background: #e7ecf1 !important; }
+        /* Mode nuit : on garde un bleu nuit plus doux que le noir pur */
+        .leaflet-container.ftg-night { background: #1e293b !important; }
         /* Desktop: tile switcher lives at top:12 right:12; push zoom below it */
         .leaflet-top.leaflet-right { top: 56px !important; right: 12px !important; }
         /* Mobile: zoom is at bottom-right, safe distance from stats bar (bottom-left) */

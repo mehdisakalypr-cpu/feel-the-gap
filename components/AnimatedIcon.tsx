@@ -14,11 +14,13 @@ export function getAnimatedIconHTML(
   const s = size
   const half = s / 2
   const color = CATEGORY_COLORS[category] ?? '#C9A84C'
-  const glow = score && score >= 85 ? `filter:drop-shadow(0 0 6px ${color})` : ''
+  // Glow only on top opportunities (>=90) and much softer than before
+  const glow = score && score >= 90 ? `filter:drop-shadow(0 0 3px ${color}AA)` : ''
 
   const svg = buildIconSVG(category, subcategory ?? '', s, color)
 
-  return `<div style="width:${s}px;height:${s}px;${glow};cursor:pointer" class="ftg-marker-wrap">${svg}</div>`
+  // Wrap opacity .82 keeps the hue readable but knocks back the "flashy" feel
+  return `<div style="width:${s}px;height:${s}px;${glow};opacity:.82;cursor:pointer" class="ftg-marker-wrap">${svg}</div>`
 }
 
 function buildIconSVG(category: TradeCategory | 'all', sub: string, s: number, color: string): string {
@@ -184,11 +186,13 @@ function defaultPinSVG(s: number, c: string): string {
 </svg>`
 }
 
+// Palette désaturée d'un cran (Tailwind *400* au lieu de *500*) pour éviter
+// le "flashy" sur carte claire. Hues conservées — lisibilité préservée.
 export const CATEGORY_COLORS: Record<string, string> = {
-  agriculture:  '#22C55E',
-  energy:       '#F59E0B',
-  materials:    '#94A3B8',
-  manufactured: '#60A5FA',
-  resources:    '#38BDF8',
+  agriculture:  '#4ADE80',
+  energy:       '#FBBF24',
+  materials:    '#CBD5E1',
+  manufactured: '#93C5FD',
+  resources:    '#7DD3FC',
   all:          '#C9A84C',
 }
