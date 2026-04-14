@@ -1,0 +1,119 @@
+import Link from 'next/link'
+
+export default function CGUPage() {
+  return (
+    <div className="min-h-screen bg-[#0B1120] text-white">
+      <div className="max-w-3xl mx-auto px-6 py-16 prose prose-invert prose-sm">
+        <Link href="/legal" className="text-sky-400 text-sm hover:underline no-underline">← Retour</Link>
+
+        <h1>Terms of Use / Conditions Générales d&apos;Utilisation</h1>
+        <p className="text-gray-400 text-sm">Last updated: April 2026 · v2</p>
+
+        <h2>1. Operator</h2>
+        <p>
+          Feel The Gap is operated by <strong>OFA Holdings LLC</strong>, a Wyoming LLC at 30 N Gould St, Ste R, Sheridan, WY 82801, USA.
+          Contact: <strong>legal@feelthegap.world</strong>.
+        </p>
+
+        <h2>2. Acceptance</h2>
+        <p>
+          By accessing the Feel The Gap platform (the &quot;Service&quot;), you agree to these Terms together with
+          <Link href="/legal/cgv"> Terms of Sale</Link>, <Link href="/legal/privacy"> Privacy Policy</Link>,
+          <Link href="/legal/aup"> AUP</Link>, <Link href="/legal/cookies"> Cookies</Link>, and the
+          <Link href="/legal/dpa"> DPA</Link>.
+        </p>
+
+        <h2>3. Service Description</h2>
+        <ul>
+          <li>Global trade dataset (import/export volumes, prices, partners by HS code &amp; country)</li>
+          <li>Interactive dashboards and watchlists</li>
+          <li>AI-generated business plans, roadmaps, and on-demand advisor (Strategy / Premium)</li>
+          <li>Outbound prospection credits and REST API (Premium)</li>
+        </ul>
+
+        <h2>4. Accounts &amp; Security</h2>
+        <p>
+          You are responsible for safeguarding credentials, enabling MFA, and notifying us of unauthorised use.
+          We may throttle or suspend accounts showing abuse patterns (credential stuffing, scraping).
+        </p>
+
+        <h2>5. Acceptable Use</h2>
+        <p>
+          Use is subject to our <Link href="/legal/aup">AUP</Link>. In particular: no redistribution of the raw dataset as a
+          competing data product, no scraping beyond rate-limits, no use of AI Output or prompts to train competing AI models.
+        </p>
+
+        <h2>6. AI Output Disclaimer</h2>
+        <p className="uppercase text-xs">
+          AI-generated business plans, roadmaps, and advisor responses may contain errors, hallucinations, biases, or
+          outdated data. Customer must review and validate before material use. FTG does not warrant accuracy, originality,
+          non-infringement, or fitness for any particular purpose.
+        </p>
+
+        <h2>7. Output Ownership &amp; Residual Licence</h2>
+        <p>
+          Customer owns AI Output generated for their business; FTG retains a non-exclusive right to use anonymised prompts
+          and aggregated usage signals to improve the Service. Opt-out: <strong>privacy@feelthegap.world</strong>.
+        </p>
+
+        <h2>8. Data Accuracy Disclaimer</h2>
+        <p>
+          Dataset sources (UN Comtrade, governmental customs, etc.) may contain delays and gaps. FTG normalises and deduplicates
+          on a commercially reasonable basis but does not warrant completeness. Customer must verify critical data.
+        </p>
+
+        <h2>9. Prohibited Use</h2>
+        <ul>
+          <li>Illegal activities, fraud, phishing, malware distribution</li>
+          <li>Use violating OFAC or EU sanctions lists (re-export of data to sanctioned jurisdictions)</li>
+          <li>Republishing the raw dataset as a competing data product</li>
+          <li>Reverse-engineering the AI pipelines or templates</li>
+          <li>Training third-party AI models with FTG Output or prompts</li>
+          <li>Content listed as prohibited in the <Link href="/legal/aup">AUP</Link></li>
+        </ul>
+
+        <h2>10. Indemnity</h2>
+        <p>
+          Customer indemnifies FTG against third-party claims arising from Customer Content, prompts, instructions, regulatory
+          non-compliance, or published Output without review.
+        </p>
+
+        <h2>11. Liability Cap</h2>
+        <p className="uppercase text-xs">
+          Aggregate liability capped at fees paid in the 12 months preceding the claim. No indirect, incidental, special,
+          consequential, or punitive damages. Mandatory consumer law rights reserved.
+        </p>
+
+        <h2>12. DMCA</h2>
+        <p>
+          Notices to our designated agent: <strong>dmca@feelthegap.world</strong>. See <Link href="/legal/dmca">DMCA Policy</Link>.
+        </p>
+
+        <h2>13. Export Controls &amp; Sanctions</h2>
+        <p>
+          You represent you are not located in, a national of, or subject to, OFAC-sanctioned jurisdictions, and will not
+          re-export the Service or dataset to restricted persons or end-uses.
+        </p>
+
+        <h2>14. EU AI Act Transparency (Regulation 2024/1689)</h2>
+        <p>
+          Business plans and advisor outputs produced by the Service disclose &quot;AI-generated by Feel The Gap&quot; in a visible
+          footer and metadata (C2PA where supported). You agree not to remove these markers.
+        </p>
+
+        <h2>15. Governing Law &amp; Dispute Resolution</h2>
+        <p>
+          Wyoming law. US Customers: binding AAA arbitration seated in Cheyenne, WY, with class-action waiver and
+          30-day opt-out to <strong>arb-optout@feelthegap.world</strong>. EU/UK/Swiss consumers retain statutory rights and
+          may use the EU ODR platform at <a className="text-sky-400" href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer">ec.europa.eu/consumers/odr</a>.
+        </p>
+
+        <h2>16. Changes</h2>
+        <p>Material changes notified by email 30 days before effect.</p>
+
+        <h2>17. Contact</h2>
+        <p>Legal: <strong>legal@feelthegap.world</strong> · Support: <strong>support@feelthegap.world</strong>.</p>
+      </div>
+    </div>
+  )
+}
