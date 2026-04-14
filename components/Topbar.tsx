@@ -81,6 +81,7 @@ export default function Topbar() {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [userInitial, setUserInitial] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [tier, setTier] = useState<string | null>(null)
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
@@ -98,6 +99,7 @@ export default function Topbar() {
       const email = data.user?.email
       if (email) {
         setUserInitial(email[0].toUpperCase())
+        setUserEmail(email.toLowerCase())
         const { data: profile } = await sb.from('profiles').select('tier, is_admin, is_delegate_admin, roles, active_role').eq('id', data.user!.id).single()
         setTier(profile?.tier ?? 'free')
         if (profile?.is_admin || profile?.is_delegate_admin) setIsAdminUser(true)
@@ -207,12 +209,15 @@ export default function Topbar() {
             </svg>
             {t('nav.farming')}
           </Link>
-          <Link href="/gemini" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-[#818CF8]">{t('nav.gemini')}</span>
-          </Link>
+          {/* Onglet Gemini — accès restreint (owner uniquement, cache en dev tool). */}
+          {userEmail === 'mehdi.sakalypr@gmail.com' && (
+            <Link href="/gemini" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#818CF8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-[#818CF8]">{t('nav.gemini')}</span>
+            </Link>
+          )}
           <Link href="/pricing" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors whitespace-nowrap shrink-0">
             {t('nav.pricing')}
           </Link>

@@ -1,9 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Topbar from '@/components/Topbar'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '@/lib/supabase'
+
+// Accès restreint — cette page est un outil interne. Les non-owners sont
+// redirigés côté client (la nav ne la montre déjà pas pour eux, mais on
+// verrouille aussi l'accès direct par URL).
+const GEMINI_OWNER_EMAILS = new Set(['mehdi.sakalypr@gmail.com'])
 
 interface Msg { role: 'user' | 'assistant'; content: string }
 
@@ -15,6 +21,7 @@ interface GoogleUser {
 }
 
 export default function GeminiPage() {
+  const router = useRouter()
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -30,19 +37,23 @@ export default function GeminiPage() {
   useEffect(() => {
     const sb = createSupabaseBrowser()
     sb.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        const meta = user.user_metadata
-        const provider = user.app_metadata?.provider ?? 'email'
-        setGoogleUser({
-          name: meta?.full_name ?? meta?.name ?? user.email?.split('@')[0] ?? null,
-          email: user.email ?? null,
-          avatar: meta?.avatar_url ?? meta?.picture ?? null,
-          provider,
-        })
+      const email = user?.email?.toLowerCase() ?? null
+      // Garde owner : accès direct par URL bloqué pour les non-owners.
+      if (!email || !GEMINI_OWNER_EMAILS.has(email)) {
+        router.replace('/map')
+        return
       }
+      const meta = user!.user_metadata
+      const provider = user!.app_metadata?.provider ?? 'email'
+      setGoogleUser({
+        name: meta?.full_name ?? meta?.name ?? user!.email?.split('@')[0] ?? null,
+        email: user!.email ?? null,
+        avatar: meta?.avatar_url ?? meta?.picture ?? null,
+        provider,
+      })
       setCheckingAuth(false)
     })
-  }, [])
+  }, [router])
 
   async function handleGoogleLogin() {
     const sb = createSupabaseBrowser()
