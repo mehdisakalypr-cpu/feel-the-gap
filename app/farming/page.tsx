@@ -7,6 +7,11 @@ import PaywallGate from '@/components/PaywallGate'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import type { OpportunityScanResult, GeoOpportunity, ChannelOption } from '@/agents/opportunity-scanner'
 import { useLang } from '@/components/LanguageProvider'
+import dynamic from 'next/dynamic'
+
+// Remotion: client-only, éviter le SSR sur les compositions
+const FarmingRemotionHero    = dynamic(() => import('@/components/FarmingRemotionHero'),    { ssr: false })
+const FarmingRemotionLoading = dynamic(() => import('@/components/FarmingRemotionLoading'), { ssr: false })
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -377,16 +382,16 @@ export default function FarmingPage() {
       <Topbar />
 
       <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
-        {/* Header */}
+        {/* Hero Remotion — "vivant" vs dashboard froid */}
+        <FarmingRemotionHero />
+
+        {/* Header (fallback copy sous le hero) */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <span className="px-2 py-0.5 bg-[#C9A84C]/15 text-[#C9A84C] text-xs font-semibold rounded-full uppercase tracking-wide">
               {t('farming.title')}
             </span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            {t('farming.title')}
-          </h1>
           <p className="text-gray-400 max-w-xl">
             {t('farming.subtitle')}
           </p>
@@ -567,6 +572,13 @@ export default function FarmingPage() {
             )}
           </button>
         </form>
+
+        {/* Scan en cours — storytelling Remotion (remplace l'attente vide) */}
+        {loading && (
+          <div className="mb-8">
+            <FarmingRemotionLoading />
+          </div>
+        )}
 
         {/* Error */}
         {error && (
