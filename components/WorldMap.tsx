@@ -82,7 +82,9 @@ function fmtUsd(v: number | null): string {
 }
 
 const TILE_URLS = {
-  standard:  { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts: { maxZoom: 19 } },
+  // Carto Voyager — océans bleu clair, forêts vert tendre, roads subtils.
+  // Même style utilisé par The Estate, beaucoup plus lisible que l'OSM brut.
+  standard:  { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CARTO' } },
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Esri' } },
   night:     { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19 } },
 } as const
@@ -106,7 +108,9 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
   const [selectedCountry, setSelectedCountry] = useState<CountryMapData | null>(null)
   const [countries, setCountries] = useState<CountryMapData[]>(SEED_COUNTRIES)
   const [mapReady, setMapReady] = useState(false)
-  const [tileMode, setTileMode] = useState<'standard' | 'satellite' | 'night'>('standard')
+  // Satellite par défaut — plus impactant visuellement à l'atterrissage,
+  // "Voyager" (standard) reste disponible d'un clic pour la lisibilité pure.
+  const [tileMode, setTileMode] = useState<'standard' | 'satellite' | 'night'>('satellite')
   const [totalMarkets, setTotalMarkets] = useState<number | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tileLayerRef = useRef<any>(null)
@@ -157,7 +161,10 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       leafletMapRef.current = map
       leafletRef.current = L
 
-      tileLayerRef.current = L.tileLayer(TILE_URLS.standard.url, TILE_URLS.standard.opts).addTo(map)
+      // Démarre sur satellite — le useEffect tileMode gère la suite si l'utilisateur switche.
+      tileLayerRef.current = L.tileLayer(TILE_URLS.satellite.url, TILE_URLS.satellite.opts).addTo(map)
+      // Ajoute aussi le label overlay satellite au démarrage (noms pays/villes)
+      labelLayerRef.current = L.tileLayer(SATELLITE_LABEL_URL, { maxZoom: 19, opacity: 1 }).addTo(map)
 
       setMapReady(true)
     }
