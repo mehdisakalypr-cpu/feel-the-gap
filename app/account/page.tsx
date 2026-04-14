@@ -17,6 +17,73 @@ const TIER_CONFIG: Record<Tier, { label: string; color: string; reports: number;
   enterprise: { label: 'Enterprise',color: '#64748B', reports: -1, paid: true  },
 }
 
+function PasswordChangeBlock({ email }: { email: string }) {
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [ok, setOk] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [show, setShow] = useState(false)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setErr(null); setOk(false)
+    if (next.length < 8) { setErr('Minimum 8 caractères.'); return }
+    if (next !== confirm) { setErr('Les mots de passe ne correspondent pas.'); return }
+    if (next === current) { setErr('Le nouveau mot de passe doit être différent.'); return }
+    setLoading(true)
+    const sb = createSupabaseBrowser()
+    // 1) Vérifier le mot de passe actuel via signInWithPassword (re-auth)
+    const { error: reauthErr } = await sb.auth.signInWithPassword({ email, password: current })
+    if (reauthErr) { setLoading(false); setErr('Mot de passe actuel incorrect.'); return }
+    // 2) Appliquer le nouveau
+    const { error: updErr } = await sb.auth.updateUser({ password: next })
+    setLoading(false)
+    if (updErr) { setErr(updErr.message || 'Erreur lors de la mise à jour.'); return }
+    setOk(true); setCurrent(''); setNext(''); setConfirm('')
+  }
+
+  return (
+    <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+      <div className="font-semibold text-white mb-1">Mot de passe</div>
+      <div className="text-sm text-gray-400 mb-4">
+        Changez votre mot de passe. Nous demandons l&apos;actuel pour valider l&apos;opération.
+      </div>
+      {ok && <div className="mb-3 px-3 py-2 bg-emerald-500/10 border border-emerald-500/25 rounded-lg text-emerald-300 text-sm">✓ Mot de passe mis à jour.</div>}
+      {err && <div className="mb-3 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-lg text-red-400 text-sm">{err}</div>}
+      <form onSubmit={submit} className="space-y-3 max-w-md">
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Mot de passe actuel</label>
+          <input type={show ? 'text' : 'password'} value={current} onChange={e => setCurrent(e.target.value)} required
+            className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Nouveau mot de passe</label>
+          <input type={show ? 'text' : 'password'} value={next} onChange={e => setNext(e.target.value)} required
+            placeholder="Minimum 8 caractères"
+            className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Confirmer</label>
+          <input type={show ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required
+            className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+            <input type="checkbox" checked={show} onChange={e => setShow(e.target.checked)} className="accent-[#C9A84C]" />
+            Afficher les mots de passe
+          </label>
+          <button type="submit" disabled={loading}
+            className="px-5 py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm disabled:opacity-50">
+            {loading ? 'Mise à jour…' : 'Changer le mot de passe'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function ManageSubscriptionBtn() {
   const [loading, setLoading] = useState(false)
   const handlePortal = async () => {
@@ -190,6 +257,11 @@ export default function AccountPage() {
             Configurer la biométrie
           </button>
         </div>
+
+        {/* Changer le mot de passe — exige la vérification du mot de passe actuel
+            pour éviter qu un attaquant avec un cookie détourné puisse modifier
+            le login sans prouver qu il connaît l actuel. */}
+        {user?.email && <PasswordChangeBlock email={user.email} />}
 
         {/* Links */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl divide-y divide-white/5">
