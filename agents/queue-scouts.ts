@@ -210,6 +210,58 @@ const JOBS: Job[] = [
   { country_iso: 'FJI', sector: 'agriculture',  product_slug: 'sucre',         priority: 8 },
   { country_iso: 'PNG', sector: 'materials',    product_slug: 'or',            priority: 8 },
   { country_iso: 'RUS', sector: 'agriculture',  product_slug: 'ble',           priority: 8 },
+
+  // ═══════════════════════════════════════════════════════════════
+  // BATCH 3 — ~40 pays restants (priorité 10-12, couverture mondiale)
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Afrique complément (7) ──────────────────────────────────────
+  { country_iso: 'GMB', sector: 'agriculture',  product_slug: 'arachide',      priority: 10 },
+  { country_iso: 'CPV', sector: 'agriculture',  product_slug: 'poisson',       priority: 10 },
+  { country_iso: 'SWZ', sector: 'agriculture',  product_slug: 'sucre',         priority: 10 },
+  { country_iso: 'STP', sector: 'agriculture',  product_slug: 'cacao',         priority: 11 },
+  { country_iso: 'COM', sector: 'agriculture',  product_slug: 'vanille',       priority: 11 },
+  { country_iso: 'SYC', sector: 'agriculture',  product_slug: 'poisson',       priority: 11 },
+  { country_iso: 'GNQ', sector: 'energy',       product_slug: 'petrole',       priority: 11 },
+
+  // ── Asie complément (6) ─────────────────────────────────────────
+  { country_iso: 'SYR', sector: 'agriculture',  product_slug: 'huile_olive',   priority: 10 },
+  { country_iso: 'PSE', sector: 'agriculture',  product_slug: 'huile_olive',   priority: 11 },
+  { country_iso: 'ARM', sector: 'agriculture',  product_slug: 'cognac',        priority: 10 },
+  { country_iso: 'BRN', sector: 'energy',       product_slug: 'gaz',           priority: 11 },
+  { country_iso: 'TLS', sector: 'agriculture',  product_slug: 'cafe',          priority: 11 },
+  { country_iso: 'PRK', sector: 'materials',    product_slug: 'mineraux',      priority: 12 },
+
+  // ── Europe micro-états (5) ──────────────────────────────────────
+  { country_iso: 'LIE', sector: 'services',     product_slug: 'finance',       priority: 12 },
+  { country_iso: 'AND', sector: 'services',     product_slug: 'finance',       priority: 12 },
+  { country_iso: 'MCO', sector: 'services',     product_slug: 'finance',       priority: 12 },
+  { country_iso: 'SMR', sector: 'services',     product_slug: 'tourisme',      priority: 12 },
+  { country_iso: 'VAT', sector: 'services',     product_slug: 'tourisme',      priority: 12 },
+
+  // ── Caraïbes & Amériques micro (10) ─────────────────────────────
+  { country_iso: 'BRB', sector: 'agriculture',  product_slug: 'rhum',          priority: 10 },
+  { country_iso: 'BLZ', sector: 'agriculture',  product_slug: 'sucre',         priority: 11 },
+  { country_iso: 'GRD', sector: 'agriculture',  product_slug: 'noix_muscade',  priority: 11 },
+  { country_iso: 'LCA', sector: 'agriculture',  product_slug: 'banane',        priority: 11 },
+  { country_iso: 'VCT', sector: 'agriculture',  product_slug: 'arrow_root',    priority: 12 },
+  { country_iso: 'ATG', sector: 'services',     product_slug: 'tourisme',      priority: 12 },
+  { country_iso: 'DMA', sector: 'agriculture',  product_slug: 'banane',        priority: 12 },
+  { country_iso: 'KNA', sector: 'agriculture',  product_slug: 'sucre',         priority: 12 },
+  { country_iso: 'GLP', sector: 'agriculture',  product_slug: 'banane',        priority: 12 }, // Guadeloupe (proxy)
+  { country_iso: 'PRI', sector: 'manufactured', product_slug: 'pharma',        priority: 11 }, // Puerto Rico
+
+  // ── Océanie Pacifique (10) ──────────────────────────────────────
+  { country_iso: 'SLB', sector: 'materials',    product_slug: 'bois',          priority: 11 },
+  { country_iso: 'VUT', sector: 'agriculture',  product_slug: 'kava',          priority: 11 },
+  { country_iso: 'WSM', sector: 'agriculture',  product_slug: 'coprah',        priority: 12 },
+  { country_iso: 'TON', sector: 'agriculture',  product_slug: 'vanille',       priority: 12 },
+  { country_iso: 'KIR', sector: 'agriculture',  product_slug: 'poisson',       priority: 12 },
+  { country_iso: 'TUV', sector: 'agriculture',  product_slug: 'poisson',       priority: 12 },
+  { country_iso: 'NRU', sector: 'materials',    product_slug: 'phosphates',    priority: 12 },
+  { country_iso: 'MHL', sector: 'agriculture',  product_slug: 'poisson',       priority: 12 },
+  { country_iso: 'FSM', sector: 'agriculture',  product_slug: 'poisson',       priority: 12 },
+  { country_iso: 'PLW', sector: 'agriculture',  product_slug: 'poisson',       priority: 12 },
 ]
 
 async function main() {
