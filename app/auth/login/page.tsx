@@ -126,9 +126,34 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    // Go through our rate-limited server proxy instead of calling Supabase
+    // directly from the browser. This adds: IP rate-limit (5/5min),
+    // per-email rate-limit (10/15min), and allows captchaToken injection.
+    const captchaToken = (typeof window !== 'undefined'
+      ? (window as unknown as { __turnstileToken?: string }).__turnstileToken
+      : undefined)
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, captchaToken }),
+    })
+    if (resp.status === 429) {
+      const j = await resp.json().catch(() => ({}))
+      const wait = j.retryAfter ? ` (retry in ${j.retryAfter}s)` : ''
+      setError(`${j.error || 'Too many attempts'}${wait}`)
+      setLoading(false)
+      return
+    }
+    if (!resp.ok) {
+      const j = await resp.json().catch(() => ({}))
+      setError(j.error || 'Login failed')
+      setLoading(false)
+      return
+    }
+    const { access_token, refresh_token } = await resp.json()
     const sb = createSupabaseBrowser()
-    const { error: err } = await sb.auth.signInWithPassword({ email, password })
-    if (err) { setError(err.message); setLoading(false); return }
+    const { error: setErr } = await sb.auth.setSession({ access_token, refresh_token })
+    if (setErr) { setError(setErr.message); setLoading(false); return }
 
     // Save email for biometric quick-access
     localStorage.setItem('ftg_biometric_email', email)

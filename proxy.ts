@@ -28,6 +28,7 @@ const PUBLIC_PAGE_PREFIXES = [
 
 // ── Public API routes — no auth required ─────────────────────────────────────
 const PUBLIC_API = new Set([
+  '/api/auth/login',                  // Rate-limited login proxy (server-side signInWithPassword)
   '/api/auth/webauthn/authenticate',  // WebAuthn login flow (creates session)
   '/api/auth/webauthn/check',         // Check biometric availability
   '/api/stripe/webhook',              // Stripe signature-verified
