@@ -17,26 +17,29 @@ export const CREDIT_COSTS = {
 
 export type CreditAction = keyof typeof CREDIT_COSTS
 
-/** Tier plans: crédits inclus par mois. */
+/** Tier plans: crédits inclus par mois. Free = 0 (Demo BP statique gratuit). */
 export const PLAN_MONTHLY_GRANT = {
-  free: 5,
-  starter: 50,
-  pro: 200,
-  business: 800,
-  enterprise: 5000,
-  custom: 10000, // pré-set, à ajuster au deal
+  free: 0,
+  starter: 60,
+  premium: 120,
+  custom: 10000, // enterprise/agency pré-set ajustable au deal
 } as const
 
 export type PlanTier = keyof typeof PLAN_MONTHLY_GRANT
 
-/** Top-up packs: [size, price EUR, price/credit]. Courbe dégressive. */
+export const PLAN_PRICE_EUR = {
+  free: 0,
+  starter: 29,
+  premium: 79,
+  custom: 0, // sur devis
+} as const
+
+/** Top-up packs (valides 12 mois) — dégressif, tous > coût/crédit des subscriptions. */
 export const TOPUP_PACKS = [
-  { size: 10, price: 9, unit: 0.90 },
-  { size: 30, price: 24, unit: 0.80 },
-  { size: 50, price: 37, unit: 0.74 },    // sweet spot
-  { size: 100, price: 69, unit: 0.69 },
-  { size: 300, price: 179, unit: 0.60 },
-  { size: 1000, price: 499, unit: 0.50 },
+  { size: 10, price: 12, unit: 1.20 },
+  { size: 20, price: 22, unit: 1.10 },
+  { size: 30, price: 30, unit: 1.00 },
+  { size: 50, price: 45, unit: 0.90 },
 ] as const
 
 /** Anti-scraping caps */
