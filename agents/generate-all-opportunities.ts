@@ -14,7 +14,21 @@
  * Rate limit: 1 country/2s (Gemini free tier)
  */
 
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+
+// Key pool for ×4 throughput (4 free-tier Gemini keys, 20 rpm each = 80 rpm total)
+const GEMINI_KEYS = [
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
+].filter(Boolean) as string[]
+let keyIdx = 0
+function nextGemini(model: string) {
+  const key = GEMINI_KEYS[keyIdx % GEMINI_KEYS.length]
+  keyIdx++
+  return createGoogleGenerativeAI({ apiKey: key })(model)
+}
 import { generateText } from 'ai'
 import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
@@ -199,7 +213,7 @@ async function main() {
       for (let attempt = 1; attempt <= 4; attempt++) {
         try {
           const result = await generateText({
-            model: google(GEMINI_MODEL),
+            model: nextGemini(GEMINI_MODEL),
             prompt,
             maxTokens: 2500,
           })

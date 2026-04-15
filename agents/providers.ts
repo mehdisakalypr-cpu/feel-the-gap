@@ -4,7 +4,7 @@
  */
 import { generateText } from 'ai'
 import type { LanguageModelV1 } from 'ai'
-import { google } from '@ai-sdk/google'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
 import { createOpenAI } from '@ai-sdk/openai'
@@ -13,8 +13,17 @@ export interface Provider { name: string; model: LanguageModelV1; exhausted: boo
 
 export function buildProviders(): Provider[] {
   const p: Provider[] = []
-  // Gratuits en priorité
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) p.push({ name: 'Gemini', model: google('gemini-2.5-flash'), exhausted: false })
+  // Gratuits en priorité — rotation sur 4 clés Gemini pour ×4 throughput (quota 20 rpm/clé)
+  const geminiKeys = [
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
+  ].filter(Boolean) as string[]
+  geminiKeys.forEach((k, i) => {
+    const g = createGoogleGenerativeAI({ apiKey: k })
+    p.push({ name: `Gemini${i === 0 ? '' : '_' + (i + 1)}`, model: g('gemini-2.5-flash'), exhausted: false })
+  })
   if (process.env.GROQ_API_KEY) { const g = createGroq({ apiKey: process.env.GROQ_API_KEY }); p.push({ name: 'Groq', model: g('llama-3.3-70b-versatile'), exhausted: false }) }
   if (process.env.MISTRAL_API_KEY) { const m = createMistral({ apiKey: process.env.MISTRAL_API_KEY }); p.push({ name: 'Mistral', model: m('mistral-small-latest'), exhausted: false }) }
   if (process.env.CEREBRAS_API_KEY) { const c = createOpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: 'https://api.cerebras.ai/v1' }); p.push({ name: 'Cerebras', model: c('llama-3.3-70b'), exhausted: false }) }
