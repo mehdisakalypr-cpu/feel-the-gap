@@ -30,7 +30,6 @@ const PUBLIC_PAGE_PREFIXES = [
 const PUBLIC_API = new Set([
   '/api/auth/webauthn/authenticate',  // WebAuthn login flow (creates session)
   '/api/auth/webauthn/check',         // Check biometric availability
-  '/api/auth/reset-password',         // Password reset (token-verified internally)
   '/api/stripe/webhook',              // Stripe signature-verified
   '/api/track',                       // Lightweight analytics
   '/api/cron/collect',                // Cron secret-verified internally
