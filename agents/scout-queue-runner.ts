@@ -36,7 +36,7 @@ const db = () => createClient(
 
 async function runOrchestrator(job: {
   country_iso: string; sector: string; product_slug: string | null; max_results: number
-}, apply: boolean, maxPerJob: number): Promise<{ ok: boolean; err?: string }> {
+}, apply: boolean, maxPerJob: number): Promise<{ ok: boolean; err?: string; resultsCount: number }> {
   return new Promise((resolve) => {
     const flags = [
       'agents/prospect-orchestrator.ts',
@@ -46,9 +46,38 @@ async function runOrchestrator(job: {
       `--max=${Math.min(job.max_results || 30, maxPerJob)}`,
       ...(apply ? ['--apply'] : []),
     ]
-    const p = spawn('npx', ['--yes', 'tsx', ...flags], { stdio: 'inherit' })
-    p.on('close', (code) => resolve({ ok: code === 0, err: code === 0 ? undefined : `exit=${code}` }))
-    p.on('error', (e) => resolve({ ok: false, err: e.message }))
+    const p = spawn('npx', ['--yes', 'tsx', ...flags], { stdio: ['inherit', 'pipe', 'pipe'] })
+    let buf = ''
+    let quotaHit = false
+    p.stdout?.on('data', (chunk) => {
+      const s = chunk.toString()
+      process.stdout.write(s)
+      buf += s
+      if (/429|quota|rate.?limit|RESOURCE_EXHAUSTED/i.test(s)) quotaHit = true
+    })
+    p.stderr?.on('data', (chunk) => {
+      const s = chunk.toString()
+      process.stderr.write(s)
+      buf += s
+      if (/429|quota|rate.?limit|RESOURCE_EXHAUSTED/i.test(s)) quotaHit = true
+    })
+    p.on('close', (code) => {
+      // Parse "✓ DB: N <label>" lines from each scout to count inserted rows
+      let total = 0
+      for (const m of buf.matchAll(/✓ DB:\s*(\d+)/g)) total += Number(m[1]) || 0
+      const baseOk = code === 0
+      // A job is only "done" if at least 1 row was inserted AND no quota error surfaced
+      const ok = baseOk && total > 0 && !quotaHit
+      const err = !baseOk
+        ? `exit=${code}`
+        : quotaHit
+          ? 'quota_exhausted'
+          : total === 0
+            ? 'zero_results'
+            : undefined
+      resolve({ ok, err, resultsCount: total })
+    })
+    p.on('error', (e) => resolve({ ok: false, err: e.message, resultsCount: 0 }))
   })
 }
 
@@ -87,9 +116,14 @@ async function main() {
       status: res.ok ? 'done' : 'failed',
       finished_at: new Date().toISOString(),
       last_error: res.err ?? null,
+      results_count: res.resultsCount,
     }).eq('id', job.id)
 
-    console.log(res.ok ? `✓ done` : `✗ failed: ${res.err}`)
+    console.log(res.ok ? `✓ done (rows=${res.resultsCount})` : `✗ failed: ${res.err} (rows=${res.resultsCount})`)
+
+    // Back-off anti-quota Gemini : 3s entre jobs, 60s si quota touché
+    const sleepMs = res.err === 'quota_exhausted' ? 60_000 : 3_000
+    await new Promise((r) => setTimeout(r, sleepMs))
   }
 
   const { count: remaining } = await sb

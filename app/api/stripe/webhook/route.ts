@@ -113,6 +113,39 @@ export async function POST(req: NextRequest) {
     const planLabel  = session.metadata?.plan_label ?? ''
     const creditCents= Number(session.metadata?.credit_cents ?? 0)
 
+    // Lead pack one-shot
+    if (session.metadata?.type === 'lead_pack') {
+      const packId = session.metadata?.pack_id
+      const sessionId = session.id
+      // Update purchase to paid
+      await supabaseAdmin.from('lead_purchases').update({
+        status: 'paid',
+        stripe_payment_intent: (session.payment_intent as string) ?? null,
+      }).eq('stripe_session_id', sessionId)
+      // Retrouve la purchase
+      const { data: purchase } = await supabaseAdmin.from('lead_purchases')
+        .select('id').eq('stripe_session_id', sessionId).maybeSingle()
+      if (purchase) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+        // Trigger fulfill
+        fetch(`${appUrl}/api/leads/fulfill`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-internal-token': process.env.LEADS_INTERNAL_TOKEN || 'mock',
+          },
+          body: JSON.stringify({ purchase_id: purchase.id }),
+        }).catch(err => console.error('[webhook] fulfill trigger error', err))
+      }
+      await trackRevenue({
+        id: `lead_pack_${sessionId}`, event_type: 'lead_pack_purchase',
+        stripe_event_id: event.id, user_id: userId, email: userEmail,
+        amount_eur: (session.amount_total ?? 0) / 100,
+        metadata: { pack_id: packId, pack_slug: session.metadata?.pack_slug },
+      })
+      return NextResponse.json({ received: true })
+    }
+
     // Recharge crédits IA
     if (userId && creditCents > 0) {
       await supabaseAdmin.rpc('add_ai_credits', {
