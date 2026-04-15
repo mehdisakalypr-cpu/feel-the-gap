@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireAdmin } from "@/lib/supabase-server";
 
 // One-shot migration endpoint to create cms_content table
 // Call: GET /api/admin/cms-migrate
 export async function GET() {
+  const gate = await requireAdmin(); if (gate) return gate;
   const sb = supabaseAdmin();
 
   try {

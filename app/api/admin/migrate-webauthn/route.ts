@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireAdmin } from "@/lib/supabase-server";
 
 export async function GET() {
+  const gate = await requireAdmin(); if (gate) return gate;
   const sb = supabaseAdmin();
 
   try {

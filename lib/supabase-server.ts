@@ -58,6 +58,34 @@ export async function isSuperAdmin() {
 }
 
 /**
+ * Gate helper for admin route handlers.
+ * Returns a Response (401/403) if caller is not authenticated/not admin, else null.
+ * Usage: const gate = await requireAdmin(); if (gate) return gate
+ */
+export async function requireAdmin(): Promise<Response | null> {
+  const sb = await createSupabaseServer()
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (adminEmail && user.email === adminEmail) return null
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('is_admin, is_delegate_admin')
+    .eq('id', user.id)
+    .single()
+  if (profile?.is_admin === true || profile?.is_delegate_admin === true) return null
+  return new Response(JSON.stringify({ error: 'Forbidden' }), {
+    status: 403,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+/**
  * Create a Supabase server client from a middleware request (no cookies() API).
  */
 export function createSupabaseMiddleware(req: NextRequest) {
