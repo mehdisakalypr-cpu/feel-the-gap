@@ -14,6 +14,7 @@ export default async function PurchasesPage() {
   const sb = adminSupabase()
   const { data: purchases } = await sb.from('lead_purchases')
     .select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+  const nowMs = Date.now()
 
   return (
     <main className="min-h-screen px-6 py-16 max-w-4xl mx-auto">
@@ -33,7 +34,7 @@ export default async function PurchasesPage() {
       ) : (
         <ul className="mt-8 space-y-3">
           {purchases.map(p => {
-            const expired = p.csv_expires_at && new Date(p.csv_expires_at).getTime() < Date.now()
+            const expired = p.csv_expires_at && new Date(p.csv_expires_at).getTime() < nowMs
             const ready = p.status === 'fulfilled' && !expired
             const limit = (p.download_count ?? 0) >= (p.max_downloads ?? 3)
             return (

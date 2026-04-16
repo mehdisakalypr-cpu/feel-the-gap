@@ -5,7 +5,7 @@ const FALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://feel-the-gap.ve
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   { auth: { persistSession: false } }
 )
 
@@ -15,6 +15,38 @@ export async function GET(
 ) {
   const { code } = await params
 
+  // ── User referral codes (U-XXXXXX) ──────────────────────────────────────
+  if (code.startsWith('U-')) {
+    const { data: row } = await supabase
+      .from('user_referral_codes')
+      .select('user_id, unique_code')
+      .eq('unique_code', code)
+      .maybeSingle()
+
+    if (!row) {
+      console.warn('[/go] unknown user referral code', code)
+      return NextResponse.redirect(FALLBACK_URL)
+    }
+
+    // Increment clicks (non-blocking)
+    supabase
+      .from('user_referral_codes')
+      .update({ clicks: ((row as { clicks?: number }).clicks ?? 0) + 1 })
+      .eq('unique_code', code)
+      .then(() => {})
+
+    const res = NextResponse.redirect(`${FALLBACK_URL}/?ref=${encodeURIComponent(code)}`, { status: 302 })
+    res.cookies.set('ftg_ref', JSON.stringify({ code, ts: Date.now() }), {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: true,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    })
+    return res
+  }
+
+  // ── Legacy affiliate links ───────────────────────────────────────────────
   const { data: link, error } = await supabase
     .from('affiliate_links')
     .select('id, affiliate_offers(affiliate_base_url, status)')
@@ -33,7 +65,6 @@ export async function GET(
     return NextResponse.redirect(`${FALLBACK_URL}/map`)
   }
 
-  // Log click — non-blocking
   supabase.rpc('increment_affiliate_clicks', { p_link_id: link.id }).then(({ error: e }) => {
     if (e) console.error('[/go] click increment failed', e.message)
   })

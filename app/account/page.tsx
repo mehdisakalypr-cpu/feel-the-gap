@@ -84,6 +84,148 @@ function PasswordChangeBlock({ email }: { email: string }) {
   )
 }
 
+function ReferralBlock() {
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [data, setData] = useState<{
+    code: string | null
+    clicks: number
+    signups: number
+    conversions: number
+    bonus_months: number
+    recurring_credit_cents: number
+  } | null>(null)
+
+  const appUrl = (typeof window !== 'undefined' ? window.location.origin : 'https://feel-the-gap.vercel.app')
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/referral/me')
+      const j = await res.json()
+      setData(j)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function generate() {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/referral/me', { method: 'POST' })
+      const j = await res.json()
+      if (j.code) await load()
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const shareUrl = data?.code ? `${appUrl}/go/${data.code}` : ''
+  const shareMsg = `Je te recommande Feel The Gap — plateforme de données import/export + business plans IA. ${shareUrl}`
+
+  async function copy() {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* noop */ }
+  }
+
+  return (
+    <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+      <div className="flex items-center justify-between mb-1">
+        <div className="font-semibold text-white">Parrainage</div>
+        {data?.code && (
+          <span className="text-[11px] font-bold tracking-wide text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-2 py-0.5 rounded">
+            {data.code}
+          </span>
+        )}
+      </div>
+      <div className="text-sm text-gray-400 mb-4">
+        Partagez votre lien. Quand un filleul s&apos;abonne, il obtient 1 mois offert et vous gagnez 1 mois gratuit + 20 % récurrents.
+      </div>
+
+      {loading ? (
+        <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
+      ) : !data?.code ? (
+        <button
+          onClick={generate}
+          disabled={generating}
+          className="px-5 py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm disabled:opacity-50"
+        >
+          {generating ? 'Génération…' : 'Générer mon code'}
+        </button>
+      ) : (
+        <>
+          <div className="flex gap-2 mb-4">
+            <input
+              readOnly
+              value={shareUrl}
+              className="flex-1 px-3 py-2 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-xs font-mono focus:outline-none"
+            />
+            <button
+              onClick={copy}
+              className="px-4 py-2 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-xs"
+            >
+              {copied ? '✓ Copié' : 'Copier'}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareMsg)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="px-3 py-2 bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] text-xs font-semibold rounded-xl hover:bg-[#25D366]/20 transition-colors"
+            >
+              WhatsApp
+            </a>
+            <a
+              href={`mailto:?subject=${encodeURIComponent('Feel The Gap')}&body=${encodeURIComponent(shareMsg)}`}
+              className="px-3 py-2 bg-white/5 border border-white/10 text-white text-xs font-semibold rounded-xl hover:bg-white/10 transition-colors"
+            >
+              Email
+            </a>
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="px-3 py-2 bg-white/5 border border-white/10 text-white text-xs font-semibold rounded-xl hover:bg-white/10 transition-colors"
+            >
+              X / Twitter
+            </a>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-white">{data.clicks}</div>
+              <div className="text-xs text-gray-500">Clics</div>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-white">{data.signups}</div>
+              <div className="text-xs text-gray-500">Inscriptions</div>
+            </div>
+            <div className="bg-white/5 rounded-xl p-3 text-center">
+              <div className="text-lg font-bold text-[#C9A84C]">{data.conversions}</div>
+              <div className="text-xs text-gray-500">Conversions</div>
+            </div>
+          </div>
+
+          <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-xl px-4 py-3 text-sm">
+            <span className="text-gray-400">Crédit cumulé : </span>
+            <span className="font-semibold text-[#C9A84C]">{data.bonus_months} mois</span>
+            <span className="text-gray-500"> + </span>
+            <span className="font-semibold text-[#C9A84C]">{(data.recurring_credit_cents / 100).toFixed(2)} €</span>
+            <span className="text-gray-500"> récurrents</span>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function ManageSubscriptionBtn() {
   const [loading, setLoading] = useState(false)
   const handlePortal = async () => {
@@ -234,6 +376,9 @@ export default function AccountPage() {
         {tierCfg.paid && (
           <ManageSubscriptionBtn />
         )}
+
+        {/* Parrainage */}
+        <ReferralBlock />
 
         {/* Biometric setup */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">

@@ -17,14 +17,14 @@ const sb = createClient(url, key, { auth: { persistSession: false } })
 
 const PACKS = [
   {
-    slug: 'restaurateurs-france-500',
-    title: 'Restaurateurs France — 500 leads',
-    subtitle: 'Horeca France, contacts vérifiés',
-    description: 'Restaurateurs indépendants et chaînes en France : email, téléphone, WhatsApp quand disponible, adresse et produits achetés.',
+    slug: 'grossistes-afrique-500',
+    title: 'Grossistes Afrique — 500 leads',
+    subtitle: 'Grossistes Afrique (CMR, CIV, ETH, BFA, KEN…)',
+    description: 'Grossistes actifs en Afrique avec volumes annuels, certifications, interlocuteurs achats et coordonnées vérifiées.',
     source_table: 'local_buyers',
-    filters: { country_iso: 'FR', buyer_type: ['horeca'] },
+    filters: { buyer_type: ['grossiste'] },
     target_count: 500, price_cents: 19900, tier: 'M',
-    country_iso: 'FR', sector: 'horeca', tags: ['france','horeca','restauration'], hero_emoji: '🍽️'
+    sector: 'wholesale', tags: ['afrique','grossiste','horeca'], hero_emoji: '🏪'
   },
   {
     slug: 'exporters-cacao-afrique-200',
@@ -32,7 +32,7 @@ const PACKS = [
     subtitle: 'Acteurs export cacao CIV, GHA, NGA, CMR',
     description: 'Exportateurs de fèves et dérivés cacao en Afrique de l\'Ouest, avec volumes annuels et certifications.',
     source_table: 'exporters_directory',
-    filters: { product_slugs: ['cocoa','cacao'], country_iso_in: ['CI','GH','NG','CM'] },
+    filters: { product_slugs: ['cacao'] },
     target_count: 200, price_cents: 9900, tier: 'S',
     sector: 'agri_export', tags: ['afrique','cacao','export'], hero_emoji: '🍫'
   },
@@ -72,19 +72,19 @@ const PACKS = [
     subtitle: 'Centrales d\'achats & grossistes frais',
     description: 'Grossistes et centrales UE : volumes fruits/légumes, certifs exigées, interlocuteurs achats.',
     source_table: 'local_buyers',
-    filters: { buyer_type: ['grossiste','centrale_achats'], product_slugs: ['fruits','vegetables','mango','pineapple'] },
+    filters: { buyer_type: ['grossiste','centrale_achats'] },
     target_count: 300, price_cents: 14900, tier: 'M',
     sector: 'wholesale', tags: ['ue','fresh','grossiste'], hero_emoji: '🥭'
   },
   {
-    slug: 'industriels-transformation-france-50',
-    title: 'Industriels transformation France — 50',
-    subtitle: 'Tri-sélect : transformateurs matières premières',
-    description: 'Mini-pack test pour calibrer campagnes : 50 industriels France transformation agroalimentaire, premium qualifiés.',
+    slug: 'industriels-afrique-50',
+    title: 'Industriels Afrique — 50 leads',
+    subtitle: 'Mini-pack test : transformateurs matières premières',
+    description: 'Mini-pack test pour calibrer vos campagnes outbound : 50 industriels Afrique transformation agroalimentaire.',
     source_table: 'local_buyers',
-    filters: { country_iso: 'FR', buyer_type: ['industriel','transformateur'] },
-    target_count: 50, price_cents: 4900, tier: 'S', verified_only: true,
-    country_iso: 'FR', sector: 'food_industrial', tags: ['france','industrie','premium'], hero_emoji: '🏭'
+    filters: { buyer_type: ['industriel'] },
+    target_count: 50, price_cents: 4900, tier: 'S',
+    sector: 'food_industrial', tags: ['afrique','industrie','agroalimentaire'], hero_emoji: '🏭'
   },
   {
     slug: 'exporters-tropical-worldwide-5000',
@@ -92,19 +92,19 @@ const PACKS = [
     subtitle: 'Mega-pack data export fruits tropicaux mondial',
     description: 'Dataset complet : 5000 exportateurs fruits tropicaux (mangue, ananas, avocat, cacao, café) multi-continents.',
     source_table: 'exporters_directory',
-    filters: { product_slugs: ['mango','pineapple','avocado','cocoa','coffee'] },
+    filters: { product_slugs: ['cafe','cacao','avocat','epices','cajou','coco'] },
     target_count: 5000, price_cents: 79900, tier: 'XL',
     sector: 'agri_export', tags: ['worldwide','tropical','mega'], hero_emoji: '🌴'
   },
   {
-    slug: 'business-angels-france-50',
-    title: 'Business Angels France — 50',
-    subtitle: 'BA actifs deals < 200k€',
-    description: 'Business Angels France avec ticket < 200k€, contacts directs & deals récents.',
+    slug: 'business-angels-50',
+    title: 'Business Angels — 50 leads',
+    subtitle: 'Business Angels actifs tickets early-stage',
+    description: 'Business Angels avec ticket early-stage, contacts directs & deals récents.',
     source_table: 'investors_directory',
-    filters: { investor_type: ['business_angel'], country_iso: 'FR' },
-    target_count: 50, price_cents: 14900, tier: 'S', verified_only: true,
-    country_iso: 'FR', sector: 'ba', tags: ['france','ba','early-stage'], hero_emoji: '👤'
+    filters: { investor_type: ['business_angel'] },
+    target_count: 50, price_cents: 14900, tier: 'S',
+    sector: 'ba', tags: ['ba','early-stage','angel'], hero_emoji: '👤'
   },
   {
     slug: 'distributeurs-afrique-ouest-200',
@@ -112,7 +112,7 @@ const PACKS = [
     subtitle: 'Distributeurs horeca / retail CIV, SEN, GHA, NGA',
     description: 'Réseau distribution B2B Afrique de l\'Ouest : distributeurs & horeca avec volumes annuels.',
     source_table: 'local_buyers',
-    filters: { buyer_type: ['distributeur','horeca'], country_iso_in: ['CI','SN','GH','NG'] },
+    filters: { buyer_type: ['centrale_achats'], country_iso_in: ['CIV','SEN','GHA','NGA','CMR','BFA','ETH','KEN'] },
     target_count: 200, price_cents: 12900, tier: 'M',
     sector: 'distribution', tags: ['afrique-ouest','distribution','horeca'], hero_emoji: '🚚'
   },
