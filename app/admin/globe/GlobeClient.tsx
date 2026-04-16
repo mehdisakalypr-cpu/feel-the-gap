@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { playBankai, playKaChing, isMuted, setMuted } from '@/lib/globe-audio'
 import { attackForCrossing, playAttack, type AnimeAttack } from '@/lib/anime-attacks'
 
-const RevenueGlobe = dynamic(() => import('./RevenueGlobe'), { ssr: false })
+const RevenueGlobe = dynamic(() => import('./RevenueMap'), { ssr: false })
 
 type SiteFilter = 'ALL' | 'ftg' | 'ofa' | 'estate'
 type CountryRow = { iso: string; name: string | null; lat: number | null; lng: number | null; flag: string | null; ca_total: number; mrr: number; ca_hors_mrr: number; customers: number; purchases: number }
