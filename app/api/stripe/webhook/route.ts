@@ -113,6 +113,43 @@ export async function POST(req: NextRequest) {
     const planLabel  = session.metadata?.plan_label ?? ''
     const creditCents= Number(session.metadata?.credit_cents ?? 0)
 
+    // ── V2 credit quota: pack one-shot ───────────────────────────────────
+    if (session.metadata?.kind === 'credit_pack' && userId) {
+      const packSize = Number(session.metadata.pack_size || 0)
+      const PACK_PRICES: Record<number, number> = { 10: 12, 20: 22, 30: 30, 50: 45 }
+      const price = PACK_PRICES[packSize] ?? (session.amount_total ?? 0) / 100
+      if (packSize > 0) {
+        await supabaseAdmin.from('user_credits_topup').insert({
+          user_id: userId,
+          balance: packSize,
+          initial_qty: packSize,
+          pack_size: packSize,
+          pack_price_eur: price,
+          stripe_payment_id: (session.payment_intent as string) ?? session.id,
+        })
+      }
+      return NextResponse.json({ ok: true, kind: 'credit_pack_applied', packSize })
+    }
+
+    // ── V2 credit quota: subscription starter/premium ─────────────────────
+    if (session.metadata?.kind === 'subscription' && userId) {
+      const plan = session.metadata.plan as 'starter' | 'premium' | undefined
+      const GRANTS: Record<string, number> = { starter: 60, premium: 120 }
+      const grant = plan ? GRANTS[plan] : 0
+      if (plan && grant) {
+        await supabaseAdmin.from('user_credits_subscription').upsert({
+          user_id: userId,
+          plan,
+          balance: grant,
+          monthly_grant: grant,
+          period_start: new Date().toISOString(),
+          period_end: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+      }
+      return NextResponse.json({ ok: true, kind: 'subscription_applied', plan })
+    }
+
     // Lead pack one-shot
     if (session.metadata?.type === 'lead_pack') {
       const packId = session.metadata?.pack_id
@@ -184,6 +221,57 @@ export async function POST(req: NextRequest) {
         email: userEmail, amount_eur: amountTotal / 100, plan: tier, interval: 'month',
       })
 
+      // ── Referral attribution ─────────────────────────────────────────
+      const referrerId = session.metadata?.referrer_id
+      if (referrerId && userId && subscriptionId) {
+        try {
+          const Stripe = (await import('stripe')).default
+          const stripe = new Stripe(stripeKey, { apiVersion: '2025-03-31.basil' })
+          // 1 month 100% off coupon for the referee
+          const coupon = await stripe.coupons.create({
+            percent_off: 100,
+            duration: 'once',
+            name: `Referral reward — 1 month free`,
+            metadata: { referrer_id: referrerId, referee_id: userId },
+          })
+          await stripe.subscriptions.update(subscriptionId, {
+            discounts: [{ coupon: coupon.id }],
+          })
+          // Bonus month for referrer
+          try {
+            const { error: rpcErr } = await supabaseAdmin.rpc('add_bonus_month_credit', { p_user: referrerId })
+            if (rpcErr) throw rpcErr
+          } catch {
+            // Fallback: direct SQL if RPC doesn't exist — increment profiles.bonus_months_credit
+            const { data: prof } = await supabaseAdmin
+              .from('profiles').select('bonus_months_credit').eq('id', referrerId).maybeSingle()
+            await supabaseAdmin.from('profiles')
+              .update({ bonus_months_credit: (prof?.bonus_months_credit ?? 0) + 1 })
+              .eq('id', referrerId)
+          }
+          // Update referral row
+          await supabaseAdmin.from('user_referrals')
+            .update({
+              status: 'converted',
+              stripe_subscription_id: subscriptionId,
+              first_paid_at: new Date().toISOString(),
+            })
+            .eq('referee_id', userId)
+          // Counters
+          const { data: codeRow } = await supabaseAdmin
+            .from('user_referral_codes')
+            .select('conversions, bonus_months_earned')
+            .eq('user_id', referrerId)
+            .maybeSingle()
+          await supabaseAdmin.from('user_referral_codes').update({
+            conversions: (codeRow?.conversions ?? 0) + 1,
+            bonus_months_earned: (codeRow?.bonus_months_earned ?? 0) + 1,
+          }).eq('user_id', referrerId)
+        } catch (e) {
+          console.error('[webhook] referral attribution failed', e)
+        }
+      }
+
       await sendEmail(userEmail,
         `✅ Bienvenue sur Feel The Gap ${planLabel} !`,
         emailBase(`
@@ -205,7 +293,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── invoice.paid — renouvellement mensuel ────────────────────────────────
+  // ── V2: subscription renewal — reset crédits mensuels ────────────────────
+  if (event.type === 'invoice.paid') {
+    const inv = event.data.object as import('stripe').Stripe.Invoice
+    const customerId = inv.customer as string
+    if (customerId) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles').select('id').eq('stripe_customer_id', customerId).maybeSingle()
+      if (profile?.id) {
+        await supabaseAdmin.rpc('renew_subscription_credits', { p_user_id: profile.id })
+      }
+    }
+    // ... fallthrough to legacy logic
+  }
+
+  // ── invoice.paid — renouvellement mensuel (legacy) ───────────────────────
   if (event.type === 'invoice.paid') {
     const inv    = event.data.object as import('stripe').Stripe.Invoice
     const invAny = inv as unknown as Record<string, unknown>
@@ -238,6 +340,77 @@ export async function POST(req: NextRequest) {
       amount_eur: (inv.amount_paid ?? 0) / 100, interval,
       metadata: { subscription_id: sub },
     })
+
+    // ── Referral recurring share (20%) ──────────────────────────────────
+    try {
+      if (!isFirst && sub && inv.amount_paid && inv.amount_paid > 0) {
+        const Stripe = (await import('stripe')).default
+        const stripe = new Stripe(stripeKey, { apiVersion: '2025-03-31.basil' })
+        const subObj = await stripe.subscriptions.retrieve(sub)
+        const referrerId = subObj.metadata?.referrer_id
+        if (referrerId) {
+          const share = Math.floor((inv.amount_paid ?? 0) * 0.20)
+          if (share > 0) {
+            // Dedupe by invoice id
+            const { data: existing } = await supabaseAdmin
+              .from('user_referral_earnings')
+              .select('id')
+              .eq('stripe_invoice_id', inv.id!)
+              .maybeSingle()
+            if (!existing) {
+              // Lookup referrer customer id for balance tx
+              const { data: refProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('stripe_customer_id')
+                .eq('id', referrerId)
+                .maybeSingle()
+
+              let applied = false
+              if (refProfile?.stripe_customer_id) {
+                try {
+                  await stripe.customers.createBalanceTransaction(refProfile.stripe_customer_id, {
+                    amount: -share,
+                    currency: inv.currency ?? 'eur',
+                    description: `Referral share 20% — invoice ${inv.id}`,
+                  })
+                  applied = true
+                } catch (e) {
+                  console.error('[webhook] referrer balance tx failed', e)
+                }
+              }
+
+              // Find referral row id for FK
+              const { data: refRow } = await supabaseAdmin
+                .from('user_referrals')
+                .select('id')
+                .eq('stripe_subscription_id', sub)
+                .maybeSingle()
+
+              await supabaseAdmin.from('user_referral_earnings').insert({
+                referral_id: refRow?.id ?? null,
+                referrer_id: referrerId,
+                stripe_invoice_id: inv.id,
+                amount_cents: share,
+                currency: inv.currency ?? 'eur',
+                applied_to_balance: applied,
+              })
+
+              // Bump cumulative counter
+              const { data: codeRow } = await supabaseAdmin
+                .from('user_referral_codes')
+                .select('recurring_credit_cents')
+                .eq('user_id', referrerId)
+                .maybeSingle()
+              await supabaseAdmin.from('user_referral_codes').update({
+                recurring_credit_cents: (codeRow?.recurring_credit_cents ?? 0) + share,
+              }).eq('user_id', referrerId)
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[webhook] referral share failed', e)
+    }
   }
 
   // ── customer.subscription.updated — annulation programmée ───────────────
