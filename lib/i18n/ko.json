@@ -120,7 +120,7 @@
     "f2_title": "기회 파밍", "f2_desc": "제품을 스캔하세요. AI가 고객 프로필, 지역 및 유통 채널을 식별합니다.",
     "f3_title": "AI 비즈니스 플랜", "f3_desc": "아이디어에서 액션 플랜으로. 설비투자, 운영비, ROI, 추천 공급업체 — 모두 AI가 몇 초 만에 생성.",
     "f4_title": "인플루언서 네트워크", "f4_desc": "제품을 자격 있는 인플루언서와 연결. 추적 가능한 제휴 링크, Stripe 자동 결제.",
-    "stat1_label": "대상 국가", "stat2_label": "제품 카테고리", "stat3_label": "Gemini 기반",
+    "stat1_label": "대상 국가", "stat2_label": "제품 카테고리", "stat3_label": "AI 기반",
     "cta_final_title": "다음 시장을 찾을 준비가 되셨나요?", "cta_final_desc": "무료 가입. 신용카드 불필요.",
     "cta_final_btn": "내 계정 만들기 →", "already_member": "이미 회원이신가요?", "signin_link": "로그인",
     "footer_pricing": "요금", "footer_contact": "문의"
