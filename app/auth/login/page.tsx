@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
+import TurnstileWidget from '@/components/TurnstileWidget'
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 export default function LoginPage() {
   const router = useRouter()
@@ -307,6 +310,9 @@ export default function LoginPage() {
               />
               <span>Rester connecté <span className="text-gray-600">(90 jours)</span></span>
             </label>
+            {TURNSTILE_SITE_KEY && (
+              <TurnstileWidget siteKey={TURNSTILE_SITE_KEY} action="login" />
+            )}
             <button
               type="submit" disabled={loading}
               className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors disabled:opacity-50 text-sm"

@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { checkPassword } from '@/lib/hibp'
 import { useLang } from '@/components/LanguageProvider'
+import TurnstileWidget from '@/components/TurnstileWidget'
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
 export default function RegisterPage() {
   const { t, lang } = useLang()
@@ -49,7 +52,12 @@ export default function RegisterPage() {
     }
 
     const sb = createSupabaseBrowser()
-    const { data: signUpData, error: err } = await sb.auth.signUp({ email, password, options: { data: { username: username.trim() } } })
+    const captchaToken = (typeof window !== 'undefined' ? window.__turnstileToken : undefined)
+    const { data: signUpData, error: err } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { username: username.trim() }, ...(captchaToken ? { captchaToken } : {}) },
+    })
     if (err) { setError(err.message); setLoading(false); return }
     // Username -> profiles
     if (signUpData.user) {
@@ -149,6 +157,9 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </div>
+                {TURNSTILE_SITE_KEY && (
+                  <TurnstileWidget siteKey={TURNSTILE_SITE_KEY} action="register" />
+                )}
                 <button type="submit" disabled={loading}
                   className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors disabled:opacity-50 text-sm">
                   {loading ? t('common.loading') : t('auth.register_btn')}
