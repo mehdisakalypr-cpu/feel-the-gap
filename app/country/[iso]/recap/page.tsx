@@ -87,12 +87,12 @@ export default async function RecapPage({ params }: Props) {
   const accessibleWeight = evaluated.filter(s => s.accessibleByTier).reduce((a, s) => a + s.weight, 0)
   const leftOnTable = 100 - consumedWeight
 
-  const completionLabel =
-    consumedWeight >= 100 ? '🏆 Opportunité activée à 100% — vous êtes opérationnel'
-    : consumedWeight >= 70 ? 'Vous avez structuré cette opportunité'
-    : consumedWeight >= 40 ? 'Vous avez analysé cette opportunité'
-    : consumedWeight >= 10 ? 'Vous avez effleuré cette opportunité'
-    : 'Commencez votre parcours sur cette opportunité'
+  const archetype =
+    consumedWeight >= 100 ? { icon: '👑', title: 'Le Business Man', tagline: 'Tu es opérationnel — à toi de jouer.' }
+    : consumedWeight >= 70 ? { icon: '⚔️', title: 'Le Pionnier',     tagline: 'Tu as tracé ta voie — le plan est prêt.' }
+    : consumedWeight >= 40 ? { icon: '🔭', title: 'L\'Éclaireur',    tagline: 'Tu as analysé le terrain.' }
+    : consumedWeight >= 10 ? { icon: '🧭', title: 'L\'Aventurier',   tagline: 'Tu as effleuré l\'opportunité.' }
+    : { icon: '🌱', title: 'Nouveau venu', tagline: 'Commence ton parcours sur cette opportunité.' }
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
@@ -105,9 +105,16 @@ export default async function RecapPage({ params }: Props) {
         <p className="text-gray-400 text-sm mb-8">Votre parcours sur cette opportunité. Plan actuel : <strong>{tierLabel(tier)}</strong>.</p>
 
         <div className="rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-6 mb-10">
-          <p className="text-xs uppercase tracking-wider text-[#C9A84C] mb-2">Valeur FTG consommée</p>
-          <p className="text-5xl font-bold mb-1">{consumedWeight}%</p>
-          <p className="text-sm text-gray-300 mb-4">{completionLabel}</p>
+          <p className="text-xs uppercase tracking-wider text-[#C9A84C] mb-2">Votre archétype sur cette opportunité</p>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-5xl">{archetype.icon}</span>
+            <div>
+              <p className="text-3xl font-bold leading-tight">{archetype.title}</p>
+              <p className="text-sm text-gray-300">{archetype.tagline}</p>
+            </div>
+          </div>
+          <p className="text-4xl font-bold mb-1">{consumedWeight}%</p>
+          <p className="text-xs text-gray-400 mb-4">valeur FTG consommée sur cette opportunité</p>
           <div className="h-3 bg-white/10 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#C9A84C] to-[#E8C56E] transition-all" style={{ width: `${consumedWeight}%` }} />
           </div>
