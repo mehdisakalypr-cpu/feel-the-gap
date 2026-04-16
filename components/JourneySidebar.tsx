@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useLang } from '@/components/LanguageProvider'
 
-export type JourneyStep = 'country' | 'report' | 'studies' | 'business_plan' | 'success'
+export type JourneyStep = 'country' | 'report' | 'studies' | 'business_plan' | 'clients' | 'videos' | 'store' | 'recap' | 'success'
 
 interface Step {
   id: JourneyStep
-  tier: 'explorer' | 'data' | 'strategy'
+  tier: 'explorer' | 'data' | 'strategy' | 'premium'
   labelFr: string
   labelEn: string
   descFr: string
@@ -60,14 +60,44 @@ const ALL_STEPS: Step[] = [
     href: (iso) => `/country/${iso}/enriched-plan`,
   },
   {
-    id: 'success',
+    id: 'clients',
     tier: 'strategy',
-    labelFr: 'En route vers le succès',
-    labelEn: 'On the way to success',
-    descFr: 'IA + formation',
-    descEn: 'AI + training',
-    icon: '🚀',
-    href: (iso) => `/country/${iso}/success`,
+    labelFr: 'Clients potentiels',
+    labelEn: 'Potential customers',
+    descFr: 'Acheteurs B2B matchés par IA',
+    descEn: 'AI-matched B2B buyers',
+    icon: '🎯',
+    href: (iso) => `/country/${iso}/clients`,
+  },
+  {
+    id: 'videos',
+    tier: 'data',
+    labelFr: 'Vidéos de ce marché',
+    labelEn: 'Videos on this market',
+    descFr: 'Formation + insights terrain',
+    descEn: 'Training + field insights',
+    icon: '🎬',
+    href: (iso) => `/country/${iso}/videos`,
+  },
+  {
+    id: 'store',
+    tier: 'premium',
+    labelFr: 'Site e-commerce en 5 min',
+    labelEn: 'E-commerce site in 5 min',
+    descFr: 'Mini-site marchand prêt à vendre',
+    descEn: 'Ready-to-sell seller mini-site',
+    icon: '🏪',
+    href: (iso) => `/country/${iso}/store`,
+  },
+  {
+    id: 'recap',
+    tier: 'explorer',
+    labelFr: 'Synthèse de l\'opportunité',
+    labelEn: 'Opportunity recap',
+    descFr: 'Tout ce que vous avez débloqué',
+    descEn: 'Everything you\'ve unlocked',
+    icon: '🎖️',
+    href: (iso) => `/country/${iso}/recap`,
   },
 ]
 
