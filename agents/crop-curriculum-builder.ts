@@ -30,10 +30,10 @@ const sb = createClient(
 )
 
 const StepSchema = z.object({
-  title: z.string().describe('Titre court du step (5-10 mots)'),
-  text_md: z.string().describe('Contenu complet markdown, 200-400 mots, gestes pratiques + timing'),
+  title: z.string(),
+  text_md: z.string(),
   duration_minutes: z.number().int().min(3).max(30),
-  video_keywords: z.string().describe('Mots-clés YouTube pour trouver une démo (FR ou EN)'),
+  video_keywords: z.string(),
 })
 
 const QuizSchema = z.object({
@@ -43,14 +43,15 @@ const QuizSchema = z.object({
   explanation: z.string(),
 })
 
+// Reduced: 6 steps + 3 quiz = smaller output, fits in Groq context without truncation
 const CurriculumSchema = z.object({
-  yield_kg_ha: z.number().describe('Rendement typique kg/ha (fourchette basse)'),
-  cost_eur_ha: z.number().describe('Coût de production €/ha'),
-  roi_pct: z.number().describe('ROI % après 1 cycle'),
-  water_need_m3_ha: z.number().describe('Besoin en eau m³/ha'),
-  description_md: z.string().describe('Intro 100 mots du mode (terrain/serre) pour ce crop'),
-  steps: z.array(StepSchema).length(12).describe('12 steps chronologiques, du sol à la récolte'),
-  quizzes: z.array(QuizSchema).length(5),
+  yield_kg_ha: z.number(),
+  cost_eur_ha: z.number(),
+  roi_pct: z.number(),
+  water_need_m3_ha: z.number(),
+  description_md: z.string(),
+  steps: z.array(StepSchema).min(5).max(7),
+  quizzes: z.array(QuizSchema).min(2).max(4),
 })
 
 function extractJson(raw: string): unknown {
@@ -63,32 +64,20 @@ function extractJson(raw: string): unknown {
 }
 
 async function generate(crop: string, mode: 'terrain' | 'serre') {
-  const prompt = `Tu es un ingénieur agronome expert. Génère un curriculum pédagogique COMPLET pour la culture du ${crop} en mode ${mode === 'terrain' ? 'plein champ naturel (non-irrigué prioritaire, sol)' : 'serre (hydroponique ou en terre protégée)'}.
+  const prompt = `Agronome expert. Curriculum ${crop} en ${mode === 'terrain' ? 'plein champ (non-irrigué prioritaire)' : 'serre (hydroponique ou protégée)'}.
+Contexte : débutant Afrique de l'Ouest, climat tropical/soudanien.
 
-CONTRAINTES :
-- 12 steps chronologiques du préparatif à la récolte
-- Chaque step : titre + texte markdown 200-400 mots + durée + mots-clés vidéo YouTube
-- 5 questions de quiz avec 4 choix chacune (pour valider compréhension)
-- Contexte : agriculteur débutant en Afrique de l'Ouest ou intermédiaire, climat tropical/soudanien
-- Ton pratique, pas théorique : gestes, timing, repères visuels, erreurs fréquentes
-- Inclure données chiffrées : rendement, coût, ROI, eau
-
-Réponds UNIQUEMENT en JSON valide, strictement conforme à ce schéma (aucun texte hors JSON) :
+JSON uniquement, schéma strict :
 {
-  "yield_kg_ha": number,
-  "cost_eur_ha": number,
-  "roi_pct": number,
-  "water_need_m3_ha": number,
-  "description_md": "string (100 mots, intro du mode)",
-  "steps": [
-    { "title": "string", "text_md": "string 200-400 mots", "duration_minutes": number, "video_keywords": "string" }
-    // exactement 12 entrées
-  ],
-  "quizzes": [
-    { "question": "string", "choices": ["s","s","s","s"], "correct_idx": 0-3, "explanation": "string" }
-    // exactement 5 entrées
-  ]
-}`
+  "yield_kg_ha": nombre,
+  "cost_eur_ha": nombre,
+  "roi_pct": nombre,
+  "water_need_m3_ha": nombre,
+  "description_md": "intro 80 mots",
+  "steps": [ {"title":"court","text_md":"~150 mots pratiques: gestes timing repères","duration_minutes":5,"video_keywords":"FR keywords"} ],
+  "quizzes": [ {"question":"?","choices":["a","b","c","d"],"correct_idx":0,"explanation":"1 phrase"} ]
+}
+Exactement 6 steps + 3 quizzes.`
 
   const models = [
     () => generateText({ model: google('gemini-2.5-flash'), prompt, temperature: 0.7 }),
@@ -123,7 +112,7 @@ async function main() {
 
   let built = 0
   let skipped = 0
-  const DELAY_MS = Number(process.env.CURRICULUM_DELAY_MS || 30000) // 30s between calls = < 20 rpm Gemini free
+  const DELAY_MS = Number(process.env.CURRICULUM_DELAY_MS || 75000) // 75s between calls (Groq 30 rpm gpt-oss = 1 every 2s)
   for (const m of modes as unknown as Array<{ id: string; mode: 'terrain' | 'serre'; crop_tutorials: { slug: string; crop_name_fr: string } }>) {
     // Skip if steps already exist
     const { count } = await sb
