@@ -59,56 +59,100 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
     }
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    if (!apiKey) {
+    const geminiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    const mistralKey = process.env.MISTRAL_API_KEY
+    if (!geminiKey && !mistralKey) {
       return new Response('AI not configured', { status: 503 })
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: SYSTEM_PROMPT,
-    })
-
-    // Build chat history (exclude last user message, which we send as the current turn)
     const contextMsg = buildContextMessage(context)
 
-    // Inject context into the first user message
-    const chatMessages = messages.map((m: { role: string; content: string }, i: number) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: i === 0 ? contextMsg + '\n\n' + m.content : m.content }],
-    }))
+    // ── Try Gemini first (free tier), fall back to Mistral on failure ──────
+    if (geminiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(geminiKey)
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: SYSTEM_PROMPT,
+        })
 
-    const lastUserMessage = chatMessages[chatMessages.length - 1]
-    const history = chatMessages.slice(0, -1)
+        const chatMessages = messages.map((m: { role: string; content: string }, i: number) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: i === 0 ? contextMsg + '\n\n' + m.content : m.content }],
+        }))
 
-    const chat = model.startChat({ history })
+        const lastUserMessage = chatMessages[chatMessages.length - 1]
+        const history = chatMessages.slice(0, -1)
+        const chat = model.startChat({ history })
 
-    // Stream the response
-    const result = await chat.sendMessageStream(lastUserMessage.parts[0].text)
+        // Probe call — if Gemini errors out (API disabled, quota), we'll throw and fall through
+        const result = await chat.sendMessageStream(lastUserMessage.parts[0].text)
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder()
-        try {
-          for await (const chunk of result.stream) {
-            const text = chunk.text()
-            if (text) {
-              // OpenAI-compatible SSE format so the client parser works
-              const data = JSON.stringify({
-                choices: [{ delta: { content: text } }],
-              })
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+        const stream = new ReadableStream({
+          async start(controller) {
+            const encoder = new TextEncoder()
+            try {
+              for await (const chunk of result.stream) {
+                const text = chunk.text()
+                if (text) {
+                  const data = JSON.stringify({ choices: [{ delta: { content: text } }] })
+                  controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                }
+              }
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+            } finally {
+              controller.close()
             }
-          }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-        } finally {
-          controller.close()
-        }
+          },
+        })
+
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        })
+      } catch (gemErr) {
+        console.warn('[/api/advisor] Gemini failed, falling back to Mistral:', (gemErr as Error).message)
+      }
+    }
+
+    // ── Mistral fallback (OpenAI-compatible streaming) ───────────────────
+    if (!mistralKey) {
+      return new Response('AI provider unavailable', { status: 503 })
+    }
+
+    const mistralMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...messages.map((m: { role: string; content: string }, i: number) => ({
+        role: m.role,
+        content: i === 0 ? contextMsg + '\n\n' + m.content : m.content,
+      })),
+    ]
+
+    const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${mistralKey}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        model: 'mistral-small-latest',
+        messages: mistralMessages,
+        stream: true,
+        temperature: 0.7,
+      }),
     })
 
-    return new Response(stream, {
+    if (!mistralRes.ok || !mistralRes.body) {
+      const errTxt = await mistralRes.text().catch(() => '')
+      console.error('[/api/advisor] Mistral error:', mistralRes.status, errTxt)
+      return new Response('AI provider error', { status: 502 })
+    }
+
+    // Pass through Mistral's SSE directly (same OpenAI format the client expects)
+    return new Response(mistralRes.body, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
