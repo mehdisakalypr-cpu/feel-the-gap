@@ -17,6 +17,31 @@ const TIER_CONFIG: Record<Tier, { label: string; color: string; reports: number;
   enterprise: { label: 'Enterprise',color: '#64748B', reports: -1, paid: true  },
 }
 
+function EyeToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      tabIndex={-1}
+      aria-label={open ? 'Masquer' : 'Afficher'}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#C9A84C] transition-colors"
+    >
+      {open ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      ) : (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      )}
+    </button>
+  )
+}
+
 function PasswordChangeBlock({ email }: { email: string }) {
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
@@ -24,20 +49,32 @@ function PasswordChangeBlock({ email }: { email: string }) {
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [show, setShow] = useState(false)
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNext, setShowNext] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setErr(null); setOk(false)
-    if (next.length < 8) { setErr('Minimum 8 caractères.'); return }
+    if (next.length < 12) { setErr('Minimum 12 caractères.'); return }
     if (next !== confirm) { setErr('Les mots de passe ne correspondent pas.'); return }
     if (next === current) { setErr('Le nouveau mot de passe doit être différent.'); return }
     setLoading(true)
+
+    // HIBP k-anonymity check — refuse passwords in known breaches
+    try {
+      const { checkPassword } = await import('@/lib/hibp')
+      const hibp = await checkPassword(next)
+      if (hibp.pwned) {
+        setLoading(false)
+        setErr(`Ce mot de passe a été compromis dans ${hibp.count.toLocaleString('fr-FR')} fuites. Choisis-en un autre.`)
+        return
+      }
+    } catch { /* hibp non bloquant */ }
+
     const sb = createSupabaseBrowser()
-    // 1) Vérifier le mot de passe actuel via signInWithPassword (re-auth)
     const { error: reauthErr } = await sb.auth.signInWithPassword({ email, password: current })
     if (reauthErr) { setLoading(false); setErr('Mot de passe actuel incorrect.'); return }
-    // 2) Appliquer le nouveau
     const { error: updErr } = await sb.auth.updateUser({ password: next })
     setLoading(false)
     if (updErr) { setErr(updErr.message || 'Erreur lors de la mise à jour.'); return }
@@ -55,25 +92,36 @@ function PasswordChangeBlock({ email }: { email: string }) {
       <form onSubmit={submit} className="space-y-3 max-w-md">
         <div>
           <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Mot de passe actuel</label>
-          <input type={show ? 'text' : 'password'} value={current} onChange={e => setCurrent(e.target.value)} required
-            className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+          <div className="relative">
+            <input type={showCurrent ? 'text' : 'password'} value={current} onChange={e => setCurrent(e.target.value)} required autoComplete="current-password"
+              className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+            <EyeToggle open={showCurrent} onClick={() => setShowCurrent(v => !v)} />
+          </div>
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Nouveau mot de passe</label>
-          <input type={show ? 'text' : 'password'} value={next} onChange={e => setNext(e.target.value)} required
-            placeholder="Minimum 8 caractères"
-            className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+          <div className="relative">
+            <input type={showNext ? 'text' : 'password'} value={next} onChange={e => setNext(e.target.value)} required autoComplete="new-password"
+              placeholder="Minimum 12 caractères"
+              className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+            <EyeToggle open={showNext} onClick={() => setShowNext(v => !v)} />
+          </div>
+          {next.length > 0 && next.length < 12 && (
+            <div className="text-[10px] text-orange-400 mt-1">Encore {12 - next.length} caractère(s)</div>
+          )}
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Confirmer</label>
-          <input type={show ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required
-            className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+          <div className="relative">
+            <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required autoComplete="new-password"
+              className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
+            <EyeToggle open={showConfirm} onClick={() => setShowConfirm(v => !v)} />
+          </div>
+          {confirm.length > 0 && confirm !== next && (
+            <div className="text-[10px] text-red-400 mt-1">Ne correspond pas</div>
+          )}
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
-            <input type="checkbox" checked={show} onChange={e => setShow(e.target.checked)} className="accent-[#C9A84C]" />
-            Afficher les mots de passe
-          </label>
+        <div className="flex items-center justify-end">
           <button type="submit" disabled={loading}
             className="px-5 py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm disabled:opacity-50">
             {loading ? 'Mise à jour…' : 'Changer le mot de passe'}
