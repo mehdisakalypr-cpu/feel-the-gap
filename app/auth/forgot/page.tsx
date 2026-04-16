@@ -16,30 +16,40 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
   const [error, setError] = useState<string | null>(null)
 
-  // Step 1: Send OTP code to email
+  // Step 1: Send OTP code via custom endpoint (Resend direct — bypass Supabase SMTP)
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const sb = createSupabaseBrowser()
-    const { error: err } = await sb.auth.resetPasswordForEmail(email)
+    const res = await fetch('/api/auth/reset-password/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    })
 
     setLoading(false)
-    if (err) {
-      setError(err.message)
-    } else {
+    if (res.status === 429) {
+      const j = await res.json().catch(() => ({}))
+      setError(j.error || 'Trop de demandes, patiente quelques minutes.')
+      return
+    }
+    // Always advance to step 2 on 2xx (no user-enumeration even if account doesn't exist)
+    if (res.ok) {
       setStep('otp')
+    } else {
+      const j = await res.json().catch(() => ({}))
+      setError(j.error || 'Erreur lors de l\'envoi du code.')
     }
   }
 
-  // Step 2: Verify OTP + set new password
+  // Step 2: Verify OTP + set new password via custom endpoint
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
-    if (newPassword.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.')
+    if (newPassword.length < 12) {
+      setError('Le mot de passe doit contenir au moins 12 caractères.')
       return
     }
     if (newPassword !== confirmPassword) {
@@ -48,34 +58,24 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true)
-    const sb = createSupabaseBrowser()
-
-    // Verify OTP and get a session
-    const { error: verifyErr } = await sb.auth.verifyOtp({
-      email,
-      token: otp.trim(),
-      type: 'recovery',
+    const res = await fetch('/api/auth/reset-password/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        code: otp.trim(),
+        password: newPassword,
+      }),
     })
-
-    if (verifyErr) {
-      setLoading(false)
-      setError('Code invalide ou expiré. Vérifiez le code reçu par email.')
-      return
-    }
-
-    // Now we have a valid session — update the password
-    const { error: updateErr } = await sb.auth.updateUser({ password: newPassword })
-
-    if (updateErr) {
-      setLoading(false)
-      setError(updateErr.message || 'Erreur lors de la mise à jour.')
-      return
-    }
-
-    await sb.auth.signOut()
     setLoading(false)
-    setStep('success')
-    setTimeout(() => router.push('/auth/login'), 2500)
+
+    if (res.ok) {
+      setStep('success')
+      setTimeout(() => router.push('/auth/login'), 2500)
+      return
+    }
+    const j = await res.json().catch(() => ({}))
+    setError(j.error || 'Erreur lors de la réinitialisation.')
   }
 
   return (
@@ -134,10 +134,10 @@ export default function ForgotPasswordPage() {
             <>
               <h1 className="text-xl font-bold text-white mb-1">Réinitialisation</h1>
               <p className="text-gray-400 text-sm mb-2">
-                Un code à 8 chiffres a été envoyé à <span className="text-[#C9A84C] font-medium">{email}</span>
+                Un code à 6 chiffres a été envoyé à <span className="text-[#C9A84C] font-medium">{email}</span>
               </p>
               <p className="text-gray-500 text-xs mb-6">
-                Expéditeur : Feel The Gap &lt;outreach@ofaops.xyz&gt;. Vérifiez vos spams/promotions.
+                Expéditeur : Feel The Gap. Vérifie aussi tes spams/promotions. Le code expire dans 10 minutes.
               </p>
 
               {error && (
@@ -151,10 +151,10 @@ export default function ForgotPasswordPage() {
                   <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Code de vérification</label>
                   <input
                     type="text" required value={otp}
-                    onChange={e => setOtp(e.target.value)}
-                    placeholder="Entrez le code reçu par email"
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="6 chiffres"
                     autoFocus
-                    maxLength={8}
+                    maxLength={6}
                     className="w-full px-4 py-2.5 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#C9A84C] transition-colors text-center tracking-widest text-lg"
                   />
                 </div>
