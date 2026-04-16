@@ -5,9 +5,12 @@ import { useLang } from '@/components/LanguageProvider'
 
 export type JourneyStep = 'country' | 'report' | 'studies' | 'business_plan' | 'clients' | 'videos' | 'store' | 'recap' | 'success'
 
+type Phase = 'feel' | 'fill'
+
 interface Step {
   id: JourneyStep
   tier: 'explorer' | 'data' | 'strategy' | 'premium'
+  phase: Phase
   labelFr: string
   labelEn: string
   descFr: string
@@ -20,6 +23,8 @@ interface Step {
 const ALL_STEPS: Step[] = [
   {
     id: 'country',
+
+    phase: 'feel',
     tier: 'explorer',
     labelFr: 'Fiche pays',
     labelEn: 'Country sheet',
@@ -30,6 +35,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'report',
+
+    phase: 'feel',
     tier: 'data',
     labelFr: 'Rapport d\'opportunités',
     labelEn: 'Opportunities report',
@@ -40,6 +47,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'studies',
+
+    phase: 'feel',
     tier: 'strategy',
     labelFr: 'Études approfondies',
     labelEn: 'In-depth studies',
@@ -51,6 +60,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'business_plan',
+
+    phase: 'feel',
     tier: 'strategy',
     labelFr: 'Business plan',
     labelEn: 'Business plan',
@@ -61,6 +72,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'clients',
+
+    phase: 'feel',
     tier: 'strategy',
     labelFr: 'Clients potentiels',
     labelEn: 'Potential customers',
@@ -71,6 +84,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'videos',
+
+    phase: 'fill',
     tier: 'data',
     labelFr: 'Vidéos de ce marché',
     labelEn: 'Videos on this market',
@@ -81,6 +96,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'store',
+
+    phase: 'fill',
     tier: 'premium',
     labelFr: 'Site e-commerce en 5 min',
     labelEn: 'E-commerce site in 5 min',
@@ -91,6 +108,8 @@ const ALL_STEPS: Step[] = [
   },
   {
     id: 'recap',
+
+    phase: 'fill',
     tier: 'explorer',
     labelFr: 'Synthèse de l\'opportunité',
     labelEn: 'Opportunity recap',
@@ -149,10 +168,23 @@ export default function JourneySidebar({ iso, currentStep, userTier = 'free', ha
             const label = L === 'fr' ? step.labelFr : step.labelEn
             const desc = L === 'fr' ? step.descFr : step.descEn
             const tierLabel = TIER_LABELS[step.tier]?.[L] ?? step.tier
+            const prevPhase = idx > 0 ? steps[idx - 1].phase : null
+            const showPhaseHeader = step.phase !== prevPhase
 
             return (
+              <div key={step.id}>
+              {showPhaseHeader && (
+                <div className={`mt-${idx === 0 ? '0' : '4'} mb-2 px-1 flex items-center gap-2`}>
+                  <div className={`h-px flex-1 ${step.phase === 'feel' ? 'bg-sky-400/30' : 'bg-emerald-400/30'}`} />
+                  <span className={`text-[10px] uppercase tracking-[0.2em] font-bold ${step.phase === 'feel' ? 'text-sky-300' : 'text-emerald-300'}`}>
+                    {step.phase === 'feel'
+                      ? (L === 'fr' ? '👁️ Feel the gap' : '👁️ Feel the gap')
+                      : (L === 'fr' ? '⚒️ Fill the gap' : '⚒️ Fill the gap')}
+                  </span>
+                  <div className={`h-px flex-1 ${step.phase === 'feel' ? 'bg-sky-400/30' : 'bg-emerald-400/30'}`} />
+                </div>
+              )}
               <Link
-                key={step.id}
                 href={step.href(iso)}
                 className={`group relative flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all ${
                   isCurrent
@@ -198,6 +230,7 @@ export default function JourneySidebar({ iso, currentStep, userTier = 'free', ha
                   </div>
                 )}
               </Link>
+              </div>
             )
           })}
         </nav>
