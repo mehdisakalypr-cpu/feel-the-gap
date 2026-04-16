@@ -17,6 +17,9 @@ export default function LoginPage() {
   const [biometricLoading, setBiometricLoading] = useState(false)
   const [biometricEmail, setBiometricEmail] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
+
+  const isOwnerEmail = email.trim().toLowerCase() === 'mehdi.sakalypr@gmail.com'
 
   useEffect(() => {
     if (!window.PublicKeyCredential) return
@@ -155,7 +158,16 @@ export default function LoginPage() {
     const { error: setErr } = await sb.auth.setSession({ access_token, refresh_token })
     if (setErr) { setError(setErr.message); setLoading(false); return }
 
-    // Save email for biometric quick-access
+    const effectiveRemember = isOwnerEmail ? true : rememberMe
+    const STORAGE_KEY = 'sb-jebuagyeapkltyjitosm-auth-token'
+    if (effectiveRemember) {
+      document.cookie = `ftg_remember=1; path=/; max-age=${60 * 60 * 24 * 90}; SameSite=Lax; Secure`
+    } else {
+      const v = localStorage.getItem(STORAGE_KEY)
+      if (v) { sessionStorage.setItem(STORAGE_KEY, v); localStorage.removeItem(STORAGE_KEY) }
+      document.cookie = 'ftg_remember=; path=/; max-age=0; SameSite=Lax; Secure'
+    }
+
     localStorage.setItem('ftg_biometric_email', email)
 
     // Offer biometric setup if not configured yet for this domain
@@ -285,6 +297,16 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-400 hover:text-gray-200 transition-colors">
+              <input
+                type="checkbox"
+                checked={isOwnerEmail ? true : rememberMe}
+                disabled={isOwnerEmail}
+                onChange={e => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-[rgba(201,168,76,.35)] bg-[#111827] text-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] disabled:opacity-60"
+              />
+              <span>Rester connecté <span className="text-gray-600">(90 jours)</span></span>
+            </label>
             <button
               type="submit" disabled={loading}
               className="w-full py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors disabled:opacity-50 text-sm"
