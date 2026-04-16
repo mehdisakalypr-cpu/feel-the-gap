@@ -276,9 +276,9 @@ export default function ReportPage() {
           <span className="text-gray-300">{country.flag} {country.name_fr}</span>
         </div>
 
-        {/* ── CTA "Voir les opportunités" ── */}
+        {/* ── CTA "Voir les opportunités" + jump dropdown ── */}
         {opps.length > 0 && (
-          <div className="flex justify-center">
+          <div className="flex justify-center items-center gap-3 flex-wrap">
             <button
               onClick={scrollToOpps}
               className="group px-6 py-3 bg-gradient-to-r from-[#34D399] to-[#10B981] text-[#07090F] font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
@@ -287,6 +287,23 @@ export default function ReportPage() {
               <span>Voir les {opps.length} opportunités</span>
               <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
             </button>
+            <select
+              onChange={(e) => {
+                const id = e.target.value
+                if (!id) return
+                document.getElementById(`opp-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                e.target.value = ''
+              }}
+              aria-label="Aller à une opportunité"
+              className="px-3 py-3 rounded-xl bg-[#0D1117] border border-[#C9A84C]/30 text-sm text-gray-200 hover:border-[#C9A84C]/60 transition-colors max-w-[260px] truncate cursor-pointer"
+            >
+              <option value="">🎯 Aller à une opportunité…</option>
+              {opps.map((o, i) => (
+                <option key={o.id} value={o.id}>
+                  #{i + 1} · {o.products?.name ?? 'Produit'} — {o.opportunity_score}/100
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -451,7 +468,8 @@ export default function ReportPage() {
 
                 return (
                   <div key={opp.id}
-                    className="bg-[#0D1117] rounded-2xl overflow-hidden transition-all cursor-pointer"
+                    id={`opp-${opp.id}`}
+                    className="bg-[#0D1117] rounded-2xl overflow-hidden transition-all cursor-pointer scroll-mt-24"
                     style={{
                       border: isSelected
                         ? '2px solid rgba(201,168,76,0.6)'

@@ -35,12 +35,17 @@ const FEATURE_ICONS = [
 
 const FEATURE_KEYS = ['f1', 'f2', 'f3', 'f4'] as const
 
-const STAT_VALUES = ['195', '500+', 'IA']
 const STAT_KEYS = ['stat1_label', 'stat2_label', 'stat3_label'] as const
+
+function formatOpps(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`
+  return `${n}`
+}
 
 export default function HomePage() {
   const { t } = useLang()
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
+  const [oppsTotal, setOppsTotal] = useState<number | null>(null)
 
   useEffect(() => {
     const sb = createSupabaseBrowser()
@@ -48,8 +53,14 @@ export default function HomePage() {
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setLoggedIn(!!session?.user)
     })
+    fetch('/api/stats/map')
+      .then(r => r.json())
+      .then(d => setOppsTotal(typeof d?.opportunities === 'number' ? d.opportunities : null))
+      .catch(() => {})
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  const STAT_VALUES = ['195', '500+', oppsTotal != null ? formatOpps(oppsTotal) : '—']
 
   const features = FEATURE_KEYS.map((k, i) => ({
     icon: FEATURE_ICONS[i],

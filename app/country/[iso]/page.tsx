@@ -250,6 +250,7 @@ function CountryPageInner() {
   const { t, lang } = useLang()
   const [country, setCountry] = useState<Country | null>(null)
   const [opps, setOpps] = useState<Opportunity[]>([])
+  const [totalOpps, setTotalOpps] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [userTier, setUserTier] = useState<string>('free')
   const [topImports, setTopImports] = useState<TopImport[]>([])
@@ -265,11 +266,13 @@ function CountryPageInner() {
     Promise.all([
       sb.from('countries').select('*').eq('id', iso.toUpperCase()).single(),
       sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, products(name, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(10),
+      sb.from('opportunities').select('*', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase()),
       sb.auth.getUser(),
-    ]).then(async ([{ data: c }, { data: o }, { data: authData }]) => {
+    ]).then(async ([{ data: c }, { data: o }, { count: total }, { data: authData }]) => {
       if (!c) { router.push('/reports'); return }
       setCountry(c as Country)
       setOpps((o ?? []).map((x: any) => ({ ...x, products: Array.isArray(x.products) ? x.products[0] ?? null : x.products })) as Opportunity[])
+      setTotalOpps(total ?? 0)
       if (authData.user) {
         const { data: profile } = await sb.from('profiles').select('tier').eq('id', authData.user.id).single()
         setUserTier(profile?.tier ?? 'free')
@@ -320,7 +323,7 @@ function CountryPageInner() {
         <div className="flex gap-1 bg-[#0D1117] rounded-xl p-1 border border-white/5">
           {[
             { id: 'overview' as const, label: lang === 'fr' ? 'Aperçu' : 'Overview', icon: '📊' },
-            { id: 'opportunities' as const, label: lang === 'fr' ? 'Opportunités' : 'Opportunities', icon: '💡', count: opps.length },
+            { id: 'opportunities' as const, label: lang === 'fr' ? 'Opportunités' : 'Opportunities', icon: '💡', count: totalOpps },
             { id: 'studies' as const, label: lang === 'fr' ? 'Études' : 'Studies', icon: '📑' },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -403,8 +406,8 @@ function CountryPageInner() {
                 <div className="absolute inset-0 bg-gradient-to-r from-[#C9A84C]/20 via-[#C9A84C]/10 to-[#C9A84C]/20 animate-pulse" />
                 <div className="relative flex items-center justify-between px-6 py-5 border border-[#C9A84C]/40 rounded-2xl bg-[#0D1117]/90 hover:border-[#C9A84C] transition-all">
                   <div className="flex items-center gap-4">
-                    <div className="relative"><div className="w-12 h-12 rounded-xl bg-[#C9A84C]/15 flex items-center justify-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div className="absolute -top-1 -right-1 w-4 h-4 bg-[#C9A84C] rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-[#07090F]">{opps.length}</span></div></div>
-                    <div><div className="text-white font-bold text-base group-hover:text-[#C9A84C] transition-colors">{t('country.see_opportunities', { count: String(opps.length) })}</div><div className="text-xs text-gray-400">{t('country.see_opportunities_desc', { country: country.name_fr })}</div></div>
+                    <div className="relative"><div className="w-12 h-12 rounded-xl bg-[#C9A84C]/15 flex items-center justify-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-[#C9A84C] rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-[#07090F]">{totalOpps}</span></div></div>
+                    <div><div className="text-white font-bold text-base group-hover:text-[#C9A84C] transition-colors">{t('country.see_opportunities', { count: String(totalOpps) })}</div><div className="text-xs text-gray-400">{t('country.see_opportunities_desc', { country: country.name_fr })}</div></div>
                   </div>
                   <div className="w-10 h-10 rounded-full bg-[#C9A84C] flex items-center justify-center group-hover:scale-110 transition-transform shrink-0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#07090F" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
                 </div>
@@ -449,7 +452,7 @@ function CountryPageInner() {
       {/* Sticky bottom bar */}
       <div className="sticky bottom-0 z-40 bg-[#07090F]/95 backdrop-blur-md border-t border-[rgba(201,168,76,.2)] px-4 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0"><span className="text-2xl shrink-0">{country.flag}</span><div className="min-w-0"><div className="text-sm font-semibold text-white truncate">{country.name_fr}</div><div className="text-[11px] text-gray-500">{opps.length} {t('country.opportunities').toLowerCase()}</div></div></div>
+          <div className="flex items-center gap-3 min-w-0"><span className="text-2xl shrink-0">{country.flag}</span><div className="min-w-0"><div className="text-sm font-semibold text-white truncate">{country.name_fr}</div><div className="text-[11px] text-gray-500">{totalOpps} {t('country.opportunities').toLowerCase()}</div></div></div>
           <div className="flex gap-2 shrink-0">
             <Link href={`/reports/${iso}`} className="px-4 py-2 bg-[#34D399]/15 text-[#34D399] font-semibold text-xs rounded-xl border border-[#34D399]/30 hover:bg-[#34D399]/25 transition-colors whitespace-nowrap">{lang === 'fr' ? 'Opportunités' : 'Opportunities'}</Link>
             <Link href={`/country/${iso}/enriched-plan`} className="px-4 py-2 bg-purple-500/15 text-purple-300 font-semibold text-xs rounded-xl border border-purple-500/30 hover:bg-purple-500/25 transition-colors whitespace-nowrap">{lang === 'fr' ? '3 scénarios ★' : '3 scenarios ★'}</Link>

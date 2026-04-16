@@ -116,7 +116,7 @@
     "f2_title": "Opportunity Farming", "f2_desc": "Scansiona il tuo prodotto. L'IA identifica profili clienti, geografie e canali di distribuzione.",
     "f3_title": "Business plan IA", "f3_desc": "Dall'idea al piano d'azione. Capex, Opex, ROI, fornitori raccomandati — tutto generato dall'IA in secondi.",
     "f4_title": "Rete influencer", "f4_desc": "Connetti i tuoi prodotti a influencer qualificati. Link affiliati tracciati, pagamenti automatici via Stripe.",
-    "stat1_label": "Paesi coperti", "stat2_label": "Categorie prodotto", "stat3_label": "Powered by AI",
+    "stat1_label": "Paesi coperti", "stat2_label": "Categorie prodotto", "stat3_label": "Opportunità",
     "cta_final_title": "Pronto a identificare il tuo prossimo mercato?", "cta_final_desc": "Registrazione gratuita. Nessuna carta di credito.",
     "cta_final_btn": "Crea il mio account →", "already_member": "Già membro?", "signin_link": "Accedi",
     "footer_pricing": "Prezzi", "footer_contact": "Contatti"

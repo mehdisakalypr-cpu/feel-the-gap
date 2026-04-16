@@ -17,19 +17,16 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Join opportunity aggregates
+  // Join opportunity aggregates via SQL view (évite la limite 1000 rows du client)
   const { data: oppAggs } = await supabase
-    .from('opportunities')
-    .select('country_iso, opportunity_score')
-    .order('opportunity_score', { ascending: false })
+    .from('country_opportunity_stats')
+    .select('country_iso, opportunity_count, top_opportunity_score')
 
   const oppByCountry: Record<string, { count: number; top: number }> = {}
-  for (const opp of (oppAggs ?? [])) {
-    const iso = opp.country_iso
-    if (!oppByCountry[iso]) oppByCountry[iso] = { count: 0, top: 0 }
-    oppByCountry[iso].count++
-    if (opp.opportunity_score > oppByCountry[iso].top) {
-      oppByCountry[iso].top = opp.opportunity_score
+  for (const row of (oppAggs ?? [])) {
+    oppByCountry[row.country_iso] = {
+      count: row.opportunity_count,
+      top: Number(row.top_opportunity_score) || 0,
     }
   }
 
