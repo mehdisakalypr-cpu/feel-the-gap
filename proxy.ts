@@ -24,6 +24,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/reports/',   // country reports (tier-gated in page)
   '/country/',   // country detail pages (tier-gated in page)
   '/demo/',      // demo tour pages (public access)
+  '/seller/',    // public seller mini-sites /seller/[slug] (catalogue B2B)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
@@ -38,6 +39,7 @@ const PUBLIC_API = new Set([
   '/api/reports/enriched-plan',       // Public consumer of /country/[iso]/enriched-plan
   '/api/demo/request',                // Public demo request (create + check status)
   '/api/demo/tour',                   // Public tour steps
+  '/api/seller/quote-request',        // Public quote request from /seller/[slug]
 ])
 
 const PUBLIC_API_PREFIXES = [
