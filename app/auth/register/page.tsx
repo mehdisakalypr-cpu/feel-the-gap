@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { checkPassword } from '@/lib/hibp'
 import { useLang } from '@/components/LanguageProvider'
 
 export default function RegisterPage() {
@@ -33,9 +34,20 @@ export default function RegisterPage() {
     e.preventDefault()
     if (!username.trim() || username.trim().length < 3) { setError(lang === 'fr' ? 'Le pseudo doit faire au moins 3 caractères' : 'Username must be at least 3 characters'); return }
     if (password !== confirm) { setError(t('auth.passwords_no_match')); return }
-    if (password.length < 8) { setError(t('auth.password_too_short')); return }
+    if (password.length < 12) { setError(lang === 'fr' ? 'Le mot de passe doit faire au moins 12 caractères' : 'Password must be at least 12 characters'); return }
     setLoading(true)
     setError(null)
+
+    // HIBP k-anonymity check — refuse passwords seen in known breaches.
+    const hibp = await checkPassword(password)
+    if (hibp.pwned) {
+      setError(lang === 'fr'
+        ? `Ce mot de passe a été compromis dans ${hibp.count.toLocaleString('fr-FR')} fuites de données. Choisis-en un autre.`
+        : `This password has appeared in ${hibp.count.toLocaleString('en-US')} data breaches. Please pick another.`)
+      setLoading(false)
+      return
+    }
+
     const sb = createSupabaseBrowser()
     const { data: signUpData, error: err } = await sb.auth.signUp({ email, password, options: { data: { username: username.trim() } } })
     if (err) { setError(err.message); setLoading(false); return }
@@ -48,6 +60,8 @@ export default function RegisterPage() {
     // Dans ce cas, on connecte l'utilisateur et on file sur /map. Pas d'écran "check email"
     // trompeur qui laisse attendre un mail qui n'arrivera jamais.
     if (signUpData.session) {
+      // Capture éventuel referral (cookie ftg_ref) avant redirection
+      try { await fetch('/api/referral/capture', { method: 'POST' }) } catch {}
       router.push('/map')
       return
     }

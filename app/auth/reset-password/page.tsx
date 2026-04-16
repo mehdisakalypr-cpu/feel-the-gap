@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { checkPassword } from '@/lib/hibp'
 
 export default function ResetPasswordPage() {
   return (
@@ -96,8 +97,8 @@ function ResetPasswordForm() {
     e.preventDefault()
     setError(null)
 
-    if (password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères.')
+    if (password.length < 12) {
+      setError('Le mot de passe doit contenir au moins 12 caractères.')
       return
     }
     if (password !== confirm) {
@@ -106,6 +107,13 @@ function ResetPasswordForm() {
     }
 
     setLoading(true)
+
+    const hibp = await checkPassword(password)
+    if (hibp.pwned) {
+      setLoading(false)
+      setError(`Ce mot de passe a été compromis dans ${hibp.count.toLocaleString('fr-FR')} fuites de données. Choisis-en un autre.`)
+      return
+    }
 
     // Use the active recovery session to update password directly
     const sb = sbRef.current
