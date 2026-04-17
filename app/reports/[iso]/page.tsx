@@ -272,7 +272,7 @@ export default function ReportPage() {
       <JourneySidebar iso={iso} currentStep="report" userTier={userTier} />
 
       <div className="lg:pl-80 w-full">
-      <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8 overflow-hidden">
+      <div className="max-w-5xl w-full px-4 lg:px-6 py-8 space-y-8 overflow-hidden">
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
