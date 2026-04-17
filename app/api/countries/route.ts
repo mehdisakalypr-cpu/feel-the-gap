@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import type { CountryMapData } from '@/types/database'
 
-export const revalidate = 3600 // 1h cache
+export const revalidate = 300 // 5min cache (opportunity counts should refresh fast after backfills)
 
 export async function GET() {
   const { data, error } = await supabase
@@ -18,9 +18,15 @@ export async function GET() {
   }
 
   // Join opportunity aggregates via SQL view (évite la limite 1000 rows du client)
-  const { data: oppAggs } = await supabase
+  const { data: oppAggs, error: oppErr } = await supabase
     .from('country_opportunity_stats')
     .select('country_iso, opportunity_count, top_opportunity_score')
+    .limit(300)  // ~195 countries max
+
+  if (oppErr) {
+    // Don't silently serve 0-count data — surface it.
+    console.error('[api/countries] country_opportunity_stats query failed:', oppErr.message)
+  }
 
   const oppByCountry: Record<string, { count: number; top: number }> = {}
   for (const row of (oppAggs ?? [])) {
