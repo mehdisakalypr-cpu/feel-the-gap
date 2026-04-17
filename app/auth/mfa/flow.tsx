@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/lib/auth-v2/supabase'
+import { authFetch, parseAuthError } from '@/lib/auth-v2/client-fetch'
 
 export interface MfaFlowProps {
   brand: { name: string; logoUrl?: string }
@@ -38,10 +39,8 @@ export function MfaFlow({ brand, postLoginPath, loginPath }: MfaFlowProps) {
     }
     setBusy(true)
     try {
-      const res = await fetch('/api/auth/mfa/verify', {
+      const res = await authFetch('/api/auth/mfa/verify', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           mfa_token: mfaToken,
           code: trimmed,
@@ -59,7 +58,7 @@ export function MfaFlow({ brand, postLoginPath, loginPath }: MfaFlowProps) {
           }
         | null
       if (!res.ok || !json?.ok) {
-        setError(json?.error ?? 'Code invalide ou expiré')
+        setError(parseAuthError(res, json))
         setBusy(false)
         return
       }
