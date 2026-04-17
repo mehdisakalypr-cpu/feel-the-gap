@@ -1295,6 +1295,10 @@ export default function BusinessPlanPage() {
           userContext: ctx,
         }),
       })
+      if (res.status === 401) {
+        setError('UNAUTHORIZED')
+        return
+      }
       const json = await res.json()
       if (json.error) throw new Error(json.error)
       setPlan(json.plan)
@@ -1351,7 +1355,34 @@ export default function BusinessPlanPage() {
           </div>
         )}
 
-        {error && (
+        {error === 'UNAUTHORIZED' && (
+          <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/30 rounded-2xl p-6 mb-6">
+            <div className="flex items-start gap-4">
+              <span className="text-3xl shrink-0">🔐</span>
+              <div className="flex-1">
+                <div className="font-bold text-white mb-1">Connexion requise pour générer votre plan</div>
+                <p className="text-sm text-gray-300 mb-4">
+                  Les business plans sont réservés aux comptes connectés. Votre sélection d'opportunités et vos paramètres sont préservés — vous reviendrez ici après connexion.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/auth/login?redirect=${encodeURIComponent(`/reports/${iso}/business-plan?opps=${selectedOppIds.join(',')}${urlModels.length ? `&models=${urlModels.join(',')}` : ''}`)}`}
+                    className="inline-flex items-center px-4 py-2 bg-[#C9A84C] text-[#07090F] text-sm font-bold rounded-lg hover:bg-[#E8C97A] transition-colors"
+                  >
+                    Se connecter →
+                  </Link>
+                  <Link
+                    href={`/auth/register?redirect=${encodeURIComponent(`/reports/${iso}/business-plan?opps=${selectedOppIds.join(',')}${urlModels.length ? `&models=${urlModels.join(',')}` : ''}`)}`}
+                    className="inline-flex items-center px-4 py-2 bg-white/10 text-white text-sm font-semibold rounded-lg hover:bg-white/20 transition-colors"
+                  >
+                    Créer un compte gratuit
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {error && error !== 'UNAUTHORIZED' && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5 mb-6">
             {error.includes('429') || error.includes('quota') || error.includes('Too Many Requests') ? (
               <div className="flex items-start gap-3">
