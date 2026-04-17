@@ -1,5 +1,5 @@
 {
-  "nav": { "reports": "보고서", "farming": "파밍", "gemini": "Gemini", "pricing": "요금", "signin": "로그인", "map": "지도" },
+  "nav": { "reports": "보고서", "farming": "파밍", "gemini": "Gemini", "pricing": "요금", "signin": "가입 / 로그인", "map": "지도" },
   "auth": {
     "login_title": "다시 오신 것을 환영합니다", "login_subtitle": "무역 인텔리전스에 접근하려면 로그인하세요",
     "register_title": "계정 만들기", "register_subtitle": "글로벌 무역 기회를 무료로 탐색하세요",

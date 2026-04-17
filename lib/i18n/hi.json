@@ -1,5 +1,5 @@
 {
-  "nav": { "reports": "रिपोर्ट", "farming": "फार्मिंग", "gemini": "Gemini", "pricing": "मूल्य", "signin": "लॉगिन", "map": "नक्शा" },
+  "nav": { "reports": "रिपोर्ट", "farming": "फार्मिंग", "gemini": "Gemini", "pricing": "मूल्य", "signin": "साइन अप / लॉगिन", "map": "नक्शा" },
   "auth": {
     "login_title": "वापस स्वागत है", "login_subtitle": "अपनी व्यापार इंटेलिजेंस तक पहुँचने के लिए लॉगिन करें",
     "register_title": "अपना खाता बनाएँ", "register_subtitle": "वैश्विक व्यापार अवसरों को मुफ्त में खोजना शुरू करें",

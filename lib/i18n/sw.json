@@ -1,5 +1,5 @@
 {
-  "nav": { "reports": "Ripoti", "farming": "Farming", "gemini": "Gemini", "pricing": "Bei", "signin": "Ingia", "map": "Ramani" },
+  "nav": { "reports": "Ripoti", "farming": "Farming", "gemini": "Gemini", "pricing": "Bei", "signin": "Jisajili / Ingia", "map": "Ramani" },
   "auth": {
     "login_title": "Karibu tena", "login_subtitle": "Ingia kupata akili yako ya biashara",
     "register_title": "Unda akaunti yako", "register_subtitle": "Anza kuchunguza fursa za biashara duniani bure",

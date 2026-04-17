@@ -1,5 +1,5 @@
 {
-  "nav": { "reports": "Laporan", "farming": "Farming", "gemini": "Gemini", "pricing": "Harga", "signin": "Masuk", "map": "Peta" },
+  "nav": { "reports": "Laporan", "farming": "Farming", "gemini": "Gemini", "pricing": "Harga", "signin": "Daftar / Masuk", "map": "Peta" },
   "auth": {
     "login_title": "Selamat datang kembali", "login_subtitle": "Masuk untuk mengakses intelijen perdagangan Anda",
     "register_title": "Buat akun Anda", "register_subtitle": "Mulai jelajahi peluang perdagangan global secara gratis",

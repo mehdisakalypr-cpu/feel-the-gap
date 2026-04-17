@@ -1,5 +1,5 @@
 {
-  "nav": { "reports": "Отчёты", "farming": "Фарминг", "gemini": "Gemini", "pricing": "Цены", "signin": "Войти", "map": "Карта" },
+  "nav": { "reports": "Отчёты", "farming": "Фарминг", "gemini": "Gemini", "pricing": "Цены", "signin": "Регистрация / Войти", "map": "Карта" },
   "auth": {
     "login_title": "С возвращением", "login_subtitle": "Войдите для доступа к торговой аналитике",
     "register_title": "Создайте аккаунт", "register_subtitle": "Начните изучать глобальные торговые возможности бесплатно",

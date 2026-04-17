@@ -1,5 +1,5 @@
 {
-  "nav": { "reports": "Report", "farming": "Farming", "gemini": "Gemini", "pricing": "Prezzi", "signin": "Accedi", "map": "Mappa" },
+  "nav": { "reports": "Report", "farming": "Farming", "gemini": "Gemini", "pricing": "Prezzi", "signin": "Registrati / Accedi", "map": "Mappa" },
   "auth": {
     "login_title": "Bentornato", "login_subtitle": "Accedi per consultare la tua intelligence commerciale",
     "register_title": "Crea il tuo account", "register_subtitle": "Inizia a esplorare le opportunità commerciali globali gratuitamente",
