@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import JourneySidebar from '@/components/JourneySidebar'
+import FillTheGapCreditModal from '@/components/FillTheGapCreditModal'
 import { supabase } from '@/lib/supabase'
 import DOMPurify from 'dompurify'
 
@@ -176,6 +177,17 @@ export default function ReportPage() {
   // Minimum opportunity score filter — 0 = no filter, 100 = only perfect.
   const [minScore, setMinScore] = useState(0)
 
+  // ── Fill-the-Gap bulk BP state (Premium / Ultimate only) ───────────────────
+  const [ftgBalance, setFtgBalance] = useState<number | null>(null)
+  const [ftgGrant, setFtgGrant] = useState<number>(0)
+  const [ftgPeriodEnd, setFtgPeriodEnd] = useState<string | null>(null)
+  const [showBpModal, setShowBpModal] = useState(false)
+  const [bpSubmitting, setBpSubmitting] = useState(false)
+  const [flash, setFlash] = useState<{ kind: 'success' | 'error' | 'info'; msg: string } | null>(null)
+
+  // Tier gating — seuls Premium et Ultimate voient les checkboxes + le bouton bulk BP.
+  const canBulkBp = userTier === 'premium' || userTier === 'ultimate'
+
   const toggleOpp = (id: string) => setSelectedOpps(prev => {
     const next = new Set(prev)
     if (next.has(id)) next.delete(id); else next.add(id)
@@ -224,6 +236,29 @@ export default function ReportPage() {
     } catch {}
   }, [iso])
 
+  // Fetch Fill-the-Gap balance (Premium / Ultimate only)
+  useEffect(() => {
+    if (!canBulkBp) return
+    let cancelled = false
+    fetch('/api/credits/fillthegap/balance')
+      .then((r) => r.json())
+      .then((j: { ok?: boolean; balance?: number; grant?: number; periodEnd?: string | null }) => {
+        if (cancelled || !j?.ok) return
+        setFtgBalance(typeof j.balance === 'number' ? j.balance : 0)
+        setFtgGrant(typeof j.grant === 'number' ? j.grant : 0)
+        setFtgPeriodEnd(j.periodEnd ?? null)
+      })
+      .catch(() => { /* silent — non-blocking */ })
+    return () => { cancelled = true }
+  }, [canBulkBp])
+
+  // Auto-dismiss flash after 6s
+  useEffect(() => {
+    if (!flash) return
+    const t = setTimeout(() => setFlash(null), 6000)
+    return () => clearTimeout(t)
+  }, [flash])
+
   // Persist interested opportunities
   useEffect(() => {
     if (!iso) return
@@ -236,10 +271,79 @@ export default function ReportPage() {
     } catch {}
   }, [selectedOpps, iso])
 
+  // Select all visible (filtered) / clear — Premium + Ultimate only
+  const selectAllFiltered = () => {
+    const all = new Set<string>(selectedOpps)
+    // Note: depends on filteredOpps which is computed after loading — we handle empty-case by
+    // selecting every opp visible in the DOM; `opps` is already the post-fetch list and
+    // `minScore` is applied via filteredOpps below. Resolved via `opps` + minScore here.
+    for (const o of opps) {
+      if (minScore === 0 || (o.opportunity_score ?? 0) >= minScore) all.add(o.id)
+    }
+    setSelectedOpps(all)
+  }
+  const clearAllSelection = () => setSelectedOpps(new Set())
+
+  // Submit the bulk BP debit — called from the modal's onConfirm
+  const submitBulkBp = async () => {
+    if (bpSubmitting) return
+    const ids = Array.from(selectedOpps)
+    if (ids.length === 0) return
+    setBpSubmitting(true)
+    try {
+      const res = await fetch('/api/credits/fillthegap/debit-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fillthegap_bp_bulk', opportunity_ids: ids }),
+      })
+      const j = (await res.json().catch(() => ({}))) as {
+        ok?: boolean; balance?: number; queued?: number; error?: string; needed?: number
+      }
+      if (res.status === 402 || j?.error === 'insufficient') {
+        const have = typeof j.balance === 'number' ? j.balance : (ftgBalance ?? 0)
+        const need = typeof j.needed === 'number' ? j.needed : ids.length
+        setFlash({
+          kind: 'error',
+          msg: `Quota insuffisant — il vous reste ${have} crédit${have > 1 ? 's' : ''}, il en faut ${need}.`,
+        })
+        setShowBpModal(false)
+        return
+      }
+      if (!res.ok || !j?.ok) {
+        setFlash({ kind: 'error', msg: 'Impossible de lancer la génération. Réessayez.' })
+        setShowBpModal(false)
+        return
+      }
+      // Success
+      if (typeof j.balance === 'number') setFtgBalance(j.balance)
+      setFlash({
+        kind: 'success',
+        msg: `${j.queued ?? ids.length} business plan${(j.queued ?? ids.length) > 1 ? 's' : ''} en cours de génération.`,
+      })
+      setSelectedOpps(new Set())
+      setShowBpModal(false)
+      // Soft navigation signal — keep user on the report but add a query param for downstream.
+      try {
+        const url = new URL(window.location.href)
+        url.searchParams.set('bp', 'queued')
+        window.history.replaceState({}, '', url.toString())
+      } catch { /* no-op */ }
+    } catch (err) {
+      console.error('[submitBulkBp]', err)
+      setFlash({ kind: 'error', msg: 'Erreur réseau, réessayez.' })
+      setShowBpModal(false)
+    } finally {
+      setBpSubmitting(false)
+    }
+  }
+
   const scrollToOpps = () => {
     document.getElementById('opportunities-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setShowCheckboxHint(true)
-    setTimeout(() => setShowCheckboxHint(false), 8000)
+    // Only show the checkbox hint for users who can actually tick them.
+    if (canBulkBp) {
+      setShowCheckboxHint(true)
+      setTimeout(() => setShowCheckboxHint(false), 8000)
+    }
   }
 
   if (loading) return (
@@ -499,6 +603,33 @@ export default function ReportPage() {
               </span>
             </h2>
 
+            {/* Bulk select controls — Premium / Ultimate only */}
+            {canBulkBp && filteredOpps.length > 0 && (
+              <div className="flex items-center gap-3 mb-3 flex-wrap text-xs">
+                <button
+                  type="button"
+                  onClick={selectAllFiltered}
+                  className="px-3 py-1.5 rounded-lg border border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C] font-semibold hover:bg-[#C9A84C]/20 transition-colors"
+                >
+                  ☑ Tout sélectionner{minScore > 0 ? ' (filtrées)' : ''}
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAllSelection}
+                  disabled={selectedOpps.size === 0}
+                  className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ☐ Tout désélectionner
+                </button>
+                {ftgBalance !== null && (
+                  <span className="text-gray-500 ml-auto">
+                    Crédits Fill the Gap : <span className="text-white font-semibold">{ftgBalance}</span>
+                    {ftgGrant > 0 && <span className="text-gray-600"> / {ftgGrant}</span>}
+                  </span>
+                )}
+              </div>
+            )}
+
             {filteredOpps.length === 0 && (
               <div className="text-center py-10 text-sm text-gray-500 bg-[#0D1117] rounded-2xl border border-white/5">
                 Aucune opportunité ≥ {minScore}%.{' '}
@@ -518,14 +649,14 @@ export default function ReportPage() {
                 return (
                   <div key={opp.id}
                     id={`opp-${opp.id}`}
-                    className="bg-[#0D1117] rounded-2xl overflow-hidden transition-all cursor-pointer scroll-mt-24"
+                    className={`bg-[#0D1117] rounded-2xl overflow-hidden transition-all scroll-mt-24 ${canBulkBp ? 'cursor-pointer' : ''}`}
                     style={{
-                      border: isSelected
+                      border: isSelected && canBulkBp
                         ? '2px solid rgba(201,168,76,0.6)'
                         : '1px solid rgba(201,168,76,0.15)',
-                      boxShadow: isSelected ? '0 0 20px rgba(201,168,76,0.1)' : 'none',
+                      boxShadow: isSelected && canBulkBp ? '0 0 20px rgba(201,168,76,0.1)' : 'none',
                     }}
-                    onClick={() => toggleOpp(opp.id)}
+                    onClick={canBulkBp ? () => toggleOpp(opp.id) : undefined}
                   >
 
                     {/* Header */}
@@ -548,11 +679,20 @@ export default function ReportPage() {
                           <span className="text-xs text-gray-500">Score : <span className="font-bold text-white">{opp.opportunity_score}/100</span></span>
                         </div>
                       </div>
-                      {/* Checkbox + hint popup (first opportunity only) */}
-                      <div className="relative shrink-0">
+                      {/* Checkbox + hint popup (first opportunity only) — Premium/Ultimate only */}
+                      <div className="relative shrink-0" hidden={!canBulkBp}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Sélectionner l'opportunité ${opp.products?.name ?? ''}`}
+                          checked={isSelected}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => toggleOpp(opp.id)}
+                          className="sr-only peer"
+                          tabIndex={canBulkBp ? 0 : -1}
+                        />
                         <div
-                          onClick={e => { e.stopPropagation(); toggleOpp(opp.id) }}
-                          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer ${showCheckboxHint && idx === 0 ? 'ring-4 ring-amber-400/50 animate-pulse' : ''}`}
+                          onClick={canBulkBp ? (e) => { e.stopPropagation(); toggleOpp(opp.id) } : undefined}
+                          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${canBulkBp ? 'cursor-pointer' : 'cursor-default'} ${showCheckboxHint && idx === 0 && canBulkBp ? 'ring-4 ring-amber-400/50 animate-pulse' : ''}`}
                           style={{
                             background: isSelected ? '#C9A84C' : 'rgba(255,255,255,0.05)',
                             border: isSelected ? '2px solid #C9A84C' : '2px solid rgba(255,255,255,0.15)',
@@ -560,7 +700,7 @@ export default function ReportPage() {
                         >
                           {isSelected && <span className="text-[#07090F] text-xs font-bold">✓</span>}
                         </div>
-                        {showCheckboxHint && idx === 0 && (
+                        {showCheckboxHint && idx === 0 && canBulkBp && (
                           <>
                             {/* Mobile: below checkbox, arrow up, wraps to 2 lines if needed */}
                             <div className="md:hidden absolute top-full right-0 mt-2 z-20 animate-in fade-in slide-in-from-top-1 pointer-events-none">
@@ -706,13 +846,24 @@ export default function ReportPage() {
                   · {Array.from(selectedOpps).map(id => opps.find(o => o.id === id)?.products?.name).filter(Boolean).join(', ')}
                 </span>
               </div>
-              <div className="ml-auto flex items-center gap-3">
+              <div className="ml-auto flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => setSelectedOpps(new Set())}
                   className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
                 >
-                  Tout décocher
+                  Effacer
                 </button>
+                {canBulkBp && (
+                  <button
+                    onClick={() => setShowBpModal(true)}
+                    disabled={bpSubmitting || selectedOpps.size === 0}
+                    className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: 'linear-gradient(135deg,#34D399,#10B981)', color: '#07090F' }}
+                    title={`Générer ${selectedOpps.size} business plan(s) — 1 crédit par opportunité`}
+                  >
+                    ⚡ Générer les business plans ({selectedOpps.size})
+                  </button>
+                )}
                 <button
                   onClick={() => setShowModelPanel(true)}
                   className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
@@ -782,6 +933,47 @@ export default function ReportPage() {
 
       {/* Spacer when panel is visible */}
       {selectedOpps.size > 0 && <div className="h-20" />}
+
+      {/* ── Flash message (toast-lite) ── */}
+      {flash && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-20 right-4 z-[110] max-w-sm rounded-xl px-4 py-3 shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2"
+          style={{
+            background: flash.kind === 'success' ? '#065F46' : flash.kind === 'error' ? '#7F1D1D' : '#1E3A8A',
+            color: 'white',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <div className="flex items-start gap-2">
+            <span className="text-base">
+              {flash.kind === 'success' ? '✅' : flash.kind === 'error' ? '⚠️' : 'ℹ️'}
+            </span>
+            <span className="flex-1">{flash.msg}</span>
+            <button
+              onClick={() => setFlash(null)}
+              aria-label="Fermer"
+              className="ml-1 opacity-70 hover:opacity-100"
+            >✕</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk BP confirmation modal (Premium / Ultimate) ── */}
+      {canBulkBp && (
+        <FillTheGapCreditModal
+          open={showBpModal}
+          action="bp_bulk"
+          quantity={selectedOpps.size}
+          balance={ftgBalance ?? 0}
+          monthlyGrant={ftgGrant}
+          periodEnd={ftgPeriodEnd}
+          tier={userTier === 'ultimate' ? 'ultimate' : 'premium'}
+          onClose={() => { if (!bpSubmitting) setShowBpModal(false) }}
+          onConfirm={submitBulkBp}
+        />
+      )}
     </div>
   )
 }

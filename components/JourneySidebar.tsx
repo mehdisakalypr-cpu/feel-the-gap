@@ -30,8 +30,12 @@ const ALL_STEPS: Step[] = [
   { id: 'business_plan', phase: 'feel', tier: 'strategy', labelFr: 'Business plan',              labelEn: 'Business plan',         descFr: '3 scénarios chiffrés',            descEn: '3 costed scenarios',        icon: '💼', href: (iso) => `/country/${iso}/enriched-plan` },
   { id: 'clients',       phase: 'feel', tier: 'strategy', labelFr: 'Clients potentiels',         labelEn: 'Potential customers',   descFr: 'Acheteurs B2B matchés par IA',    descEn: 'AI-matched B2B buyers',     icon: '🎯', href: (iso) => `/country/${iso}/clients` },
   { id: 'videos',        phase: 'fill', tier: 'data',     labelFr: 'Vidéos de ce marché',        labelEn: 'Videos on this market', descFr: 'Formation + insights terrain',    descEn: 'Training + field insights', icon: '🎬', href: (iso) => `/country/${iso}/videos` },
-  { id: 'store',         phase: 'fill', tier: 'premium',  labelFr: 'Site e-commerce en 5 min',   labelEn: 'E-commerce site in 5 min', descFr: 'Mini-site marchand prêt à vendre', descEn: 'Ready-to-sell seller mini-site', icon: '🏪', href: (iso) => `/country/${iso}/store` },
   { id: 'recap',         phase: 'fill', tier: 'explorer', labelFr: 'Synthèse de l\'opportunité', labelEn: 'Opportunity recap',     descFr: 'Tout ce que vous avez débloqué',  descEn: 'Everything you\'ve unlocked', icon: '🎖️', href: (iso) => `/country/${iso}/recap` },
+  // Store is the LAST step of the journey and is optional — it never blocks
+  // completion of the journey.
+  { id: 'store',         phase: 'fill', tier: 'premium',  labelFr: 'Site e-commerce en 5 min',   labelEn: 'E-commerce site in 5 min', descFr: 'Mini-site marchand prêt à vendre', descEn: 'Ready-to-sell seller mini-site', icon: '🏪', href: (iso) => `/country/${iso}/store`, optional: true },
+  // TODO(production-3.0): insert "Méthodes de fabrication" step between
+  // `report` and `business_plan` once the screens/data are available.
 ]
 
 const TIER_RANK: Record<string, number> = {
@@ -70,6 +74,40 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
 
   const [upgradeTarget, setUpgradeTarget] = useState<UpgradeTier | null>(null)
 
+  // Fill-the-Gap monthly quota (Premium 150 / Ultimate 250). Only fetched
+  // when the user is on a tier that has a quota. Gracefully hidden on error.
+  const [ftgQuota, setFtgQuota] = useState<{
+    balance: number
+    grant: number
+    plan: string
+    periodEnd: string | null
+  } | null>(null)
+
+  const showFtgCounter = userTier === 'premium' || userTier === 'ultimate'
+
+  useEffect(() => {
+    if (!showFtgCounter) { setFtgQuota(null); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/credits/fillthegap/balance', { cache: 'no-store' })
+        if (!res.ok) { if (!cancelled) setFtgQuota(null); return }
+        const json = await res.json()
+        if (cancelled) return
+        if (!json?.ok) { setFtgQuota(null); return }
+        setFtgQuota({
+          balance: Number(json.balance ?? 0),
+          grant: Number(json.grant ?? 0),
+          plan: String(json.plan ?? 'free'),
+          periodEnd: json.periodEnd ?? null,
+        })
+      } catch {
+        if (!cancelled) setFtgQuota(null)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [showFtgCounter, userTier])
+
   const refreshProfile = async () => {
     const sb = createSupabaseBrowser()
     const { data: { user } } = await sb.auth.getUser()
@@ -87,8 +125,18 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
 
   const steps = ALL_STEPS.filter(s => s.id !== 'studies' || hasStudies)
   const totalSteps = steps.length
-  const currentIdx = Math.max(0, steps.findIndex(s => s.id === currentStep))
   const accessibleCount = steps.filter(s => userRank >= TIER_RANK[s.tier]).length
+
+  // Optional steps must never block journey completion. We keep them visible
+  // in the sidebar but exclude them from the progress denominator, so the
+  // journey is considered "complete" once every required step is done.
+  const requiredSteps = steps.filter(s => !s.optional)
+  const requiredTotal = requiredSteps.length
+  const currentRequiredIdx = requiredSteps.findIndex(s => s.id === currentStep)
+  // If the user is currently on an optional step (e.g. Store), treat all
+  // required steps as done for the progress bar.
+  const progressCount = currentRequiredIdx >= 0 ? currentRequiredIdx + 1 : requiredTotal
+  const progressPct = requiredTotal > 0 ? (progressCount / requiredTotal) * 100 : 0
 
   return (
     <>
@@ -172,6 +220,11 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
                           <span className="text-base shrink-0 leading-tight">{step.icon}</span>
                           <span className={`text-sm font-semibold leading-tight break-words ${isCurrent ? 'text-amber-300' : hasAccess ? 'text-gray-200' : 'text-gray-400'}`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {label}
+                            {step.optional && (
+                              <span className="ml-2 text-xs text-zinc-400 font-normal">
+                                {L === 'fr' ? '(optionnel)' : '(optional)'}
+                              </span>
+                            )}
                           </span>
                         </div>
                         <div className="text-[10px] text-gray-500 mt-0.5 leading-snug" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc}</div>
@@ -221,13 +274,13 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
             <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1.5">
               <span>{L === 'fr' ? 'Progression' : 'Progress'}</span>
               <span className="text-[#C9A84C] font-bold">
-                {L === 'fr' ? `Étape ${currentIdx + 1}/${totalSteps}` : `Step ${currentIdx + 1}/${totalSteps}`}
+                {L === 'fr' ? `Étape ${progressCount}/${requiredTotal}` : `Step ${progressCount}/${requiredTotal}`}
               </span>
             </div>
             <div className="h-1 bg-white/5 rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#C9A84C] rounded-full transition-all duration-500"
-                style={{ width: `${((currentIdx + 1) / totalSteps) * 100}%` }}
+                style={{ width: `${progressPct}%` }}
               />
             </div>
             <div className="text-[10px] text-gray-500 mt-2">
@@ -235,6 +288,54 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
                 ? `Accès : ${accessibleCount}/${totalSteps} étapes débloquées`
                 : `Access: ${accessibleCount}/${totalSteps} steps unlocked`}
             </div>
+
+            {/* Fill-the-Gap monthly quota counter (Premium 150 / Ultimate 250).
+                Hidden on lower tiers and on API/auth errors. */}
+            {showFtgCounter && ftgQuota && ftgQuota.grant > 0 && (() => {
+              const { balance, grant, periodEnd } = ftgQuota
+              const pct = Math.max(0, Math.min(100, (balance / grant) * 100))
+              const isEmpty = balance === 0
+              const isLow = !isEmpty && balance < grant * 0.1
+              const barColor = isEmpty
+                ? 'bg-red-500'
+                : isLow
+                ? 'bg-orange-500'
+                : 'bg-emerald-500'
+              const dateLocale = L === 'fr' ? 'fr-FR' : 'en-US'
+              const resetDate = periodEnd
+                ? new Date(periodEnd).toLocaleDateString(dateLocale, {
+                    day: '2-digit', month: 'long', year: 'numeric',
+                  })
+                : null
+              return (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                    <span>
+                      {L === 'fr' ? 'Fill the Gap · ' : 'Fill the Gap · '}
+                      <span className="font-bold text-gray-300">{balance}</span>
+                      <span>/{grant}</span>
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full bg-zinc-200 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  {resetDate && (
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      {isEmpty
+                        ? (L === 'fr'
+                            ? `Quota atteint. Reset · ${resetDate}`
+                            : `Quota reached. Reset · ${resetDate}`)
+                        : (L === 'fr'
+                            ? `Reset · ${resetDate}`
+                            : `Reset · ${resetDate}`)}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           <div className="mt-6 pt-5 border-t border-white/5">

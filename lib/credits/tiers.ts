@@ -56,8 +56,8 @@ export function paywallReason(currentTier: PlanTier, feature: Feature): {
     free: 'Disponible gratuitement',
     starter: 'Passe Data (€29/mo, 60 crédits) pour débloquer.',
     strategy: 'Passe Strategy (€99/mo, 100 crédits + méthode dominante + 1 supplier + 1 client).',
-    premium: 'Passe Premium (€149/mo, 200 crédits + bench complet + 5 suppliers + 5 clients).',
-    ultimate: 'Passe Ultimate (€299/mo, tout débloqué + 250 opps Fill-the-Gap/mo + AI engine).',
+    premium: 'Passe Premium (€149/mo, 200 crédits + bench complet + 5 suppliers + 5 clients + 150 opps Fill-the-Gap/mo).',
+    ultimate: 'Passe Ultimate (€299/mo, tout débloqué + 250 opps Fill-the-Gap/mo + AI engine cascade).',
     custom: 'Contacte-nous pour un plan sur mesure.',
   }
   return { ok: false, requiredTier: required, message: msg[required] }

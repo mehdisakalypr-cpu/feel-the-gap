@@ -39,9 +39,21 @@ export const PLAN_PRICE_EUR = {
   custom: 0, // sur devis
 } as const
 
-/** Ultimate-only: hard monthly cap on "Fill the Gap" actions (videos, clients,
- * store, recap, AI engine). Auto-resets on the 1st of each month, no rollover. */
-export const ULTIMATE_FILL_QUOTA = 250 as const
+/** Fill the Gap monthly quota par tier (videos, clients, store, recap, AI engine,
+ * bulk business plans). Auto-reset le 1er du mois à 00:01 UTC, rollover = 0.
+ * Déclenché au passage Feel the Gap -> Fill the Gap. Stocké côté DB dans
+ * `user_fillthegap_quota` (RPC `debit_fillthegap` / `fillthegap_balance`). */
+export const FILLTHEGAP_QUOTA_BY_TIER = {
+  free: 0,
+  starter: 0,
+  strategy: 0,
+  premium: 150,
+  ultimate: 250,
+  custom: 0,
+} as const
+
+/** @deprecated use FILLTHEGAP_QUOTA_BY_TIER.ultimate */
+export const ULTIMATE_FILL_QUOTA = FILLTHEGAP_QUOTA_BY_TIER.ultimate
 
 /** Top-up packs (valides 12 mois) — dégressif, tous > coût/crédit des subscriptions. */
 export const TOPUP_PACKS = [

@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/email-drip",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/reset-fillthegap-credits",
+      "schedule": "1 0 1 * *"
     }
   ]
 }
