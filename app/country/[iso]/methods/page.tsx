@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
+import JourneyNavFooter from '@/components/JourneyNavFooter'
 import { supabase } from '@/lib/supabase'
 import MethodsComparator, {
   type Method,
@@ -291,6 +292,8 @@ function MethodsPageInner() {
               userTier={userTier}
             />
           )}
+
+          <JourneyNavFooter currentStepId="methods" iso={iso!} />
         </div>
       </div>
     </div>

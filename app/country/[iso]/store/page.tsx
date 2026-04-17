@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
+import JourneyNavFooter from '@/components/JourneyNavFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,6 +71,8 @@ export default async function StoreOnboardingPage({ params }: Props) {
             Besoin d'un domaine custom (<span className="text-gray-300">tonnom.com</span>) ? +3€/mo en option depuis le dashboard.
           </p>
         </div>
+
+        <JourneyNavFooter currentStepId="store" iso={iso} />
       </div>
     </div>
   )

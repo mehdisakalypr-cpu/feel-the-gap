@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
+import JourneyNavFooter from '@/components/JourneyNavFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,13 +114,7 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
           </section>
         ))}
 
-        <div className="mt-10 p-5 rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/5">
-          <p className="text-sm text-[#C9A84C] font-semibold mb-1">Next step</p>
-          <p className="text-sm text-gray-300">
-            Vous sentez l'opportunité ? <Link href={`/country/${iso}/enriched-plan`} className="text-[#C9A84C] underline">Générez votre business plan chiffré →</Link> puis{' '}
-            <Link href={`/country/${iso}/store`} className="text-[#C9A84C] underline">lancez votre boutique en 5 min</Link>.
-          </p>
-        </div>
+        <JourneyNavFooter currentStepId="videos" iso={iso} />
       </div>
     </div>
   )

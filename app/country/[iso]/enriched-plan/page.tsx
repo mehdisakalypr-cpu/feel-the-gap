@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Topbar from '@/components/Topbar';
 import JourneySidebar from '@/components/JourneySidebar';
 import JourneyChipsBar from '@/components/JourneyChipsBar';
+import JourneyNavFooter from '@/components/JourneyNavFooter';
 import { useLang } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
 
@@ -844,6 +845,8 @@ export default function EnrichedPlanPage() {
             </footer>
           </div>
         )}
+
+        <JourneyNavFooter currentStepId="business_plan" iso={iso} />
       </main>
     </div>
   );

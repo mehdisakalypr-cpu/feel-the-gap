@@ -6,7 +6,7 @@ import { useLang } from '@/components/LanguageProvider'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import UpgradeOfferModal, { type UpgradeTier } from '@/components/UpgradeOfferModal'
 
-export type JourneyStep = 'country' | 'report' | 'studies' | 'business_plan' | 'clients' | 'videos' | 'store' | 'recap' | 'success'
+export type JourneyStep = 'country' | 'report' | 'studies' | 'methods' | 'business_plan' | 'clients' | 'videos' | 'store' | 'recap' | 'success'
 
 type Phase = 'feel' | 'fill'
 
@@ -24,18 +24,17 @@ interface Step {
 }
 
 const ALL_STEPS: Step[] = [
-  { id: 'country',       phase: 'feel', tier: 'explorer', labelFr: 'Fiche pays',                 labelEn: 'Country sheet',         descFr: 'Vue d\'ensemble du marché',       descEn: 'Market overview',           icon: '🌍', href: (iso) => `/country/${iso}` },
-  { id: 'report',        phase: 'feel', tier: 'data',     labelFr: 'Rapport d\'opportunités',    labelEn: 'Opportunities report',  descFr: 'Analyse détaillée',               descEn: 'Detailed analysis',         icon: '📊', href: (iso) => `/reports/${iso}` },
-  { id: 'studies',       phase: 'feel', tier: 'strategy', labelFr: 'Études approfondies',        labelEn: 'In-depth studies',      descFr: 'Recherche avancée',               descEn: 'Advanced research',         icon: '📑', href: (iso) => `/country/${iso}?tab=studies`, optional: true },
-  { id: 'business_plan', phase: 'feel', tier: 'strategy', labelFr: 'Business plan',              labelEn: 'Business plan',         descFr: '3 scénarios chiffrés',            descEn: '3 costed scenarios',        icon: '💼', href: (iso) => `/country/${iso}/enriched-plan` },
-  { id: 'clients',       phase: 'feel', tier: 'strategy', labelFr: 'Clients potentiels',         labelEn: 'Potential customers',   descFr: 'Acheteurs B2B matchés par IA',    descEn: 'AI-matched B2B buyers',     icon: '🎯', href: (iso) => `/country/${iso}/clients` },
-  { id: 'videos',        phase: 'fill', tier: 'data',     labelFr: 'Vidéos de ce marché',        labelEn: 'Videos on this market', descFr: 'Formation + insights terrain',    descEn: 'Training + field insights', icon: '🎬', href: (iso) => `/country/${iso}/videos` },
-  { id: 'recap',         phase: 'fill', tier: 'explorer', labelFr: 'Synthèse de l\'opportunité', labelEn: 'Opportunity recap',     descFr: 'Tout ce que vous avez débloqué',  descEn: 'Everything you\'ve unlocked', icon: '🎖️', href: (iso) => `/country/${iso}/recap` },
+  { id: 'country',       phase: 'feel', tier: 'explorer', labelFr: 'Fiche pays',                 labelEn: 'Country sheet',            descFr: 'Vue d\'ensemble du marché',         descEn: 'Market overview',                icon: '🌍', href: (iso) => `/country/${iso}` },
+  { id: 'report',        phase: 'feel', tier: 'data',     labelFr: 'Rapport d\'opportunités',    labelEn: 'Opportunities report',     descFr: 'Analyse détaillée',                 descEn: 'Detailed analysis',              icon: '📊', href: (iso) => `/reports/${iso}` },
+  { id: 'studies',       phase: 'feel', tier: 'strategy', labelFr: 'Études approfondies',        labelEn: 'In-depth studies',         descFr: 'Recherche avancée',                 descEn: 'Advanced research',              icon: '📑', href: (iso) => `/country/${iso}?tab=studies`, optional: true },
+  { id: 'methods',       phase: 'feel', tier: 'strategy', labelFr: 'Méthodes de fabrication',    labelEn: 'Production methods',       descFr: 'Comparateur multi-critères',        descEn: 'Multi-criteria comparator',      icon: '🏭', href: (iso) => `/country/${iso}/methods` },
+  { id: 'business_plan', phase: 'feel', tier: 'strategy', labelFr: 'Business plan',              labelEn: 'Business plan',            descFr: '3 scénarios chiffrés',              descEn: '3 costed scenarios',             icon: '💼', href: (iso) => `/country/${iso}/enriched-plan` },
+  { id: 'videos',        phase: 'fill', tier: 'data',     labelFr: 'Vidéos de ce marché',        labelEn: 'Videos on this market',    descFr: 'Formation + insights terrain',      descEn: 'Training + field insights',      icon: '🎬', href: (iso) => `/country/${iso}/videos` },
+  { id: 'clients',       phase: 'feel', tier: 'strategy', labelFr: 'Clients potentiels',         labelEn: 'Potential customers',      descFr: 'Acheteurs B2B matchés par IA',      descEn: 'AI-matched B2B buyers',          icon: '🎯', href: (iso) => `/country/${iso}/clients` },
+  { id: 'recap',         phase: 'fill', tier: 'explorer', labelFr: 'Synthèse de l\'opportunité', labelEn: 'Opportunity recap',        descFr: 'Tout ce que vous avez débloqué',    descEn: 'Everything you\'ve unlocked',    icon: '🎖️', href: (iso) => `/country/${iso}/recap` },
   // Store is the LAST step of the journey and is optional — it never blocks
   // completion of the journey.
-  { id: 'store',         phase: 'fill', tier: 'premium',  labelFr: 'Site e-commerce en 5 min',   labelEn: 'E-commerce site in 5 min', descFr: 'Mini-site marchand prêt à vendre', descEn: 'Ready-to-sell seller mini-site', icon: '🏪', href: (iso) => `/country/${iso}/store`, optional: true },
-  // TODO(production-3.0): insert "Méthodes de fabrication" step between
-  // `report` and `business_plan` once the screens/data are available.
+  { id: 'store',         phase: 'fill', tier: 'premium',  labelFr: 'Site e-commerce en 5 min',   labelEn: 'E-commerce site in 5 min', descFr: 'Mini-site marchand prêt à vendre',  descEn: 'Ready-to-sell seller mini-site', icon: '🏪', href: (iso) => `/country/${iso}/store`, optional: true },
 ]
 
 const TIER_RANK: Record<string, number> = {

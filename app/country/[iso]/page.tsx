@@ -6,6 +6,7 @@ import Link from 'next/link'
 import DOMPurify from 'dompurify'
 import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
+import JourneyNavFooter from '@/components/JourneyNavFooter'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -449,16 +450,9 @@ function CountryPageInner() {
         {activeTab === 'studies' && <StudiesTab iso={iso!} userTier={userTier} country={country} lang={lang} />}
       </div>
 
-      {/* Sticky bottom bar */}
-      <div className="sticky bottom-0 z-40 bg-[#07090F]/95 backdrop-blur-md border-t border-[rgba(201,168,76,.2)] px-4 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0"><span className="text-2xl shrink-0">{country.flag}</span><div className="min-w-0"><div className="text-sm font-semibold text-white truncate">{country.name_fr}</div><div className="text-[11px] text-gray-500">{totalOpps} {t('country.opportunities').toLowerCase()}</div></div></div>
-          <div className="flex gap-2 shrink-0">
-            <Link href={`/reports/${iso}`} className="px-4 py-2 bg-[#34D399]/15 text-[#34D399] font-semibold text-xs rounded-xl border border-[#34D399]/30 hover:bg-[#34D399]/25 transition-colors whitespace-nowrap">{lang === 'fr' ? 'Opportunités' : 'Opportunities'}</Link>
-            <Link href={`/country/${iso}/enriched-plan`} className="px-4 py-2 bg-purple-500/15 text-purple-300 font-semibold text-xs rounded-xl border border-purple-500/30 hover:bg-purple-500/25 transition-colors whitespace-nowrap">{lang === 'fr' ? '3 scénarios ★' : '3 scenarios ★'}</Link>
-            <Link href={`/country/${iso}/plan`} className="px-4 py-2 bg-[#C9A84C] text-[#07090F] font-bold text-xs rounded-xl hover:bg-[#E8C97A] transition-colors whitespace-nowrap">Business plan →</Link>
-          </div>
-        </div>
+      {/* Journey nav — canonical prev/next for the 7-step parcours */}
+      <div className="max-w-5xl mx-auto w-full px-4 pb-10">
+        <JourneyNavFooter currentStepId="country" iso={iso!} />
       </div>
       </div>
     </div>
