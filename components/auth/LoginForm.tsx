@@ -199,6 +199,29 @@ export function LoginForm({
         return
       }
       const sb = createSupabaseBrowser()
+      const success = async () => {
+        // If device supports biometric AND user has NO passkey yet for this site,
+        // propose enrolment on first login. /auth/biometric-setup has a "Plus tard"
+        // opt-out so users can dismiss without friction.
+        try {
+          const PKC = (window as { PublicKeyCredential?: typeof PublicKeyCredential }).PublicKeyCredential
+          const supportsBio = PKC && typeof PKC.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
+            ? await PKC.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false)
+            : false
+          if (supportsBio) {
+            const check = await fetch('/api/auth/webauthn/check', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ email }),
+            }).then(r => r.ok ? r.json() : null).catch(() => null) as { available?: boolean } | null
+            if (check && !check.available) {
+              window.location.assign(`/auth/biometric-setup?next=${encodeURIComponent(postLoginPath)}`)
+              return
+            }
+          }
+        } catch { /* any failure → fall through to default redirect */ }
+        window.location.assign(postLoginPath)
+      }
       if (json.token_hash && json.type) {
         // Per-site password flow (Option C): server minted a magic-link hashed_token.
         const { error: otpErr } = await sb.auth.verifyOtp({
@@ -210,7 +233,7 @@ export function LoginForm({
           setBusy(false)
           return
         }
-        window.location.assign(postLoginPath)
+        await success()
         return
       }
       if (json.access_token && json.refresh_token) {
@@ -224,7 +247,7 @@ export function LoginForm({
           setBusy(false)
           return
         }
-        window.location.assign(postLoginPath)
+        await success()
         return
       }
       // Unexpected shape

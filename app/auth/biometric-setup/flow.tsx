@@ -33,6 +33,13 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
   const [supported, setSupported] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Honour ?next= from LoginForm auto-propose flow.
+  const [nextUrl, setNextUrl] = useState<string>(postLoginPath)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const n = new URL(window.location.href).searchParams.get('next')
+    if (n && n.startsWith('/')) setNextUrl(n)
+  }, [])
 
   useEffect(() => {
     fetch('/api/auth/csrf', { method: 'GET', credentials: 'include' }).catch(() => { /* noop */ })
@@ -142,7 +149,7 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
         setBusy(false)
         return
       }
-      window.location.assign(postLoginPath)
+      window.location.assign(nextUrl)
     } catch (e: unknown) {
       const err = e as { name?: string }
       if (err?.name === 'AbortError' || err?.name === 'NotAllowedError') {
@@ -184,7 +191,7 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
       {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
 
       <a
-        href={postLoginPath}
+        href={nextUrl}
         className="text-center text-sm text-neutral-400 underline-offset-2 hover:text-neutral-200 hover:underline"
       >
         Plus tard

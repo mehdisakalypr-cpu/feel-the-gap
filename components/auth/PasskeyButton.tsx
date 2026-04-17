@@ -41,9 +41,14 @@ function toBase64Url(buf: ArrayBuffer): string {
 
 export function PasskeyButton({ email, postLoginPath, brand, className, label }: PasskeyButtonProps) {
   const [supported, setSupported] = useState<boolean | null>(null)
+  // hasCredential: tri-state — null = unknown, true = a passkey is registered for this
+  // email on this site, false = none. We ONLY render the button when true, so new
+  // visitors never see a non-functional CTA.
+  const [hasCredential, setHasCredential] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
+  // Device capability check — once.
   useEffect(() => {
     let alive = true
     const PKC = typeof window !== 'undefined' ? (window as { PublicKeyCredential?: typeof PublicKeyCredential }).PublicKeyCredential : undefined
@@ -56,6 +61,23 @@ export function PasskeyButton({ email, postLoginPath, brand, className, label }:
       .catch(() => { if (alive) setSupported(false) })
     return () => { alive = false }
   }, [])
+
+  // Server check — only show the button if a passkey actually exists for this email.
+  useEffect(() => {
+    if (!email || !supported) { setHasCredential(null); return }
+    let alive = true
+    const t = setTimeout(() => {
+      fetch('/api/auth/webauthn/check', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then((d: { available?: boolean } | null) => { if (alive) setHasCredential(!!d?.available) })
+        .catch(() => { if (alive) setHasCredential(false) })
+    }, 250) // debounce while user types
+    return () => { alive = false; clearTimeout(t) }
+  }, [email, supported])
 
   async function handleClick() {
     if (busy) return
@@ -145,7 +167,11 @@ export function PasskeyButton({ email, postLoginPath, brand, className, label }:
     }
   }
 
+  // Hide completely unless device supports AND a passkey is actually registered
+  // for this email on this domain. Prevents a non-functional "aucune clé" click
+  // for first-time visitors.
   if (supported === false) return null
+  if (hasCredential !== true) return null
 
   return (
     <div className={className ?? ''}>
