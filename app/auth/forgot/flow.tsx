@@ -106,7 +106,7 @@ export function ForgotFlow({ brand, loginPath, turnstileSiteKey }: ForgotFlowPro
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           code,
-          new_password: newPwd,
+          password: newPwd,
         }),
       })
       const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
