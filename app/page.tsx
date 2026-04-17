@@ -38,7 +38,10 @@ const FEATURE_KEYS = ['f1', 'f2', 'f3', 'f4'] as const
 const STAT_KEYS = ['stat1_label', 'stat2_label', 'stat3_label'] as const
 
 function formatOpps(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`
+  if (n >= 1000) {
+    const rounded = Math.floor(n / 100) * 100
+    return `${rounded.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')}+`
+  }
   return `${n}`
 }
 
