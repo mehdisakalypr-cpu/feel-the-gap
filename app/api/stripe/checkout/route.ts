@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAuthUser } from '@/lib/supabase-server'
+import { detectCountryFromHeaders, getGeoPrice } from '@/lib/geo-pricing'
+import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
 
 /**
- * GET /api/stripe/checkout?plan=starter|premium  → subscription checkout
- * GET /api/stripe/checkout?pack=10|20|30|50      → one-shot credit pack
+ * GET /api/stripe/checkout?plan=starter|premium[&cc=XX]  → subscription checkout
+ * GET /api/stripe/checkout?pack=10|20|30|50              → one-shot credit pack
  *
  * Redirects to Stripe hosted checkout or to /auth/login if not authenticated.
+ *
+ * Geo-pricing: when a subscription plan is requested, the handler applies the
+ * PPP multiplier (from lib/geo-pricing.ts). If the adjusted price matches the
+ * EU baseline, the canonical Stripe Price ID is used. Otherwise the session is
+ * created with an inline price_data describing the geo-adjusted unit_amount so
+ * we don't have to maintain ~195 × 2 Stripe Price objects.
  */
 const PRICE_IDS: Record<string, string | undefined> = {
   plan_starter: process.env.STRIPE_PRICE_STARTER_MONTHLY,
@@ -15,6 +23,16 @@ const PRICE_IDS: Record<string, string | undefined> = {
   pack_20: process.env.STRIPE_PRICE_PACK_20,
   pack_30: process.env.STRIPE_PRICE_PACK_30,
   pack_50: process.env.STRIPE_PRICE_PACK_50,
+}
+
+const PLAN_PRODUCT_IDS: Record<string, string | undefined> = {
+  starter: process.env.STRIPE_PRODUCT_STARTER,
+  premium: process.env.STRIPE_PRODUCT_PREMIUM,
+}
+
+const PLAN_BASE_EUR: Record<string, number> = {
+  starter: PLAN_PRICE_EUR.starter,
+  premium: PLAN_PRICE_EUR.premium,
 }
 
 export async function GET(req: NextRequest) {
@@ -44,17 +62,69 @@ export async function GET(req: NextRequest) {
 
   const base = new URL('/', req.url).origin
   const isPack = !!pack
+
+  // Geo-pricing: resolve country for subscription plans.
+  const ccParam = req.nextUrl.searchParams.get('cc')
+  const detectedCC = ccParam ?? detectCountryFromHeaders(req.headers)
+  let geoMultiplier = 1
+  let geoCountry = 'XX'
+  let lineItem: { price: string; quantity: 1 } | {
+    price_data: {
+      currency: string
+      unit_amount: number
+      product: string
+      recurring: { interval: 'month' }
+    }
+    quantity: 1
+  } = { price: priceId, quantity: 1 }
+
+  if (!isPack && plan && plan in PLAN_BASE_EUR) {
+    const baseEUR = PLAN_BASE_EUR[plan]
+    const gp = getGeoPrice(baseEUR, detectedCC)
+    geoMultiplier = gp.multiplier
+    geoCountry = gp.countryCode
+    // Only build inline price_data when we actually diverge from the baseline
+    // AND we have a Stripe product mapped (otherwise keep the fixed priceId).
+    const productId = PLAN_PRODUCT_IDS[plan]
+    if (gp.multiplier !== 1 && productId) {
+      lineItem = {
+        price_data: {
+          currency: 'eur',
+          unit_amount: gp.price * 100, // cents
+          product: productId,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      }
+    }
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: isPack ? 'payment' : 'subscription',
     customer_email: user.email ?? undefined,
     client_reference_id: user.id,
     metadata: {
+      product: 'ftg',                      // cross-product webhook routing guard
       user_id: user.id,
       kind: isPack ? 'credit_pack' : 'subscription',
       pack_size: pack ?? '',
       plan: plan ?? '',
+      geo_country: geoCountry,
+      geo_multiplier: geoMultiplier.toFixed(3),
     },
-    line_items: [{ price: priceId, quantity: 1 }],
+    ...(isPack ? {} : {
+      subscription_data: {
+        metadata: {
+          product: 'ftg',
+          user_id: user.id,
+          kind: 'subscription',
+          plan: plan ?? '',
+          geo_country: geoCountry,
+          geo_multiplier: geoMultiplier.toFixed(3),
+        },
+      },
+    }),
+    line_items: [lineItem],
     success_url: `${base}/pricing?success=1`,
     cancel_url: `${base}/pricing?cancel=1`,
     allow_promotion_codes: true,
@@ -128,6 +198,7 @@ export async function POST(req: NextRequest) {
         : { customer_email: userEmail }),
       // Métadonnées pour le webhook
       metadata: {
+        product:    'ftg',                 // cross-product webhook routing guard
         user_id:    userId    ?? '',
         user_email: userEmail ?? '',
         plan_label: planLabel ?? '',
@@ -136,6 +207,7 @@ export async function POST(req: NextRequest) {
       },
       subscription_data: {
         metadata: {
+          product:    'ftg',
           user_id:    userId    ?? '',
           user_email: userEmail ?? '',
           plan_label: planLabel ?? '',
