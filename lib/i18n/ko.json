@@ -15,6 +15,7 @@
     "countries_tracked": "추적 중인 국가", "countries_tracked_short": "국가", "opportunities": "확인된 기회",
     "opportunities_qualified": "적격 기회", "opportunities_short": "적격 기회", "markets_analyzed": "분석된 시장",
     "markets_short": "시장", "filter": "필터", "loading": "세계 데이터 로딩 중…",
+    "tile_atlas": "Atlas",
     "tile_standard": "지도", "tile_satellite": "위성", "tile_night": "야경"
   },
   "country": {

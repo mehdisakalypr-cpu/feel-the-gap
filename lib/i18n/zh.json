@@ -39,6 +39,7 @@
     "markets_short": "市场",
     "filter": "筛选",
     "loading": "正在加载全球数据…",
+    "tile_atlas": "Atlas",
     "tile_standard": "地图",
     "tile_satellite": "卫星",
     "tile_night": "夜景"

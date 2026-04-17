@@ -15,7 +15,8 @@
     "countries_tracked": "отслеживаемых стран", "countries_tracked_short": "стран", "opportunities": "выявленных возможностей",
     "opportunities_qualified": "квалифицированных возможностей", "opportunities_short": "квал. возм.",
     "markets_analyzed": "проанализированных рынков", "markets_short": "рынков", "filter": "Фильтр",
-    "loading": "Загрузка мировых данных…", "tile_standard": "Карта", "tile_satellite": "Спутник", "tile_night": "Ночь"
+    "loading": "Загрузка мировых данных…", "tile_atlas": "Atlas",
+    "tile_standard": "Карта", "tile_satellite": "Спутник", "tile_night": "Ночь"
   },
   "country": {
     "imports": "Общий импорт", "exports": "Общий экспорт", "balance": "Торговый баланс", "gdp": "ВВП",

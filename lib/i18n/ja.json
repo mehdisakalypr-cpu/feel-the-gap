@@ -39,6 +39,7 @@
     "markets_short": "市場",
     "filter": "フィルター",
     "loading": "世界データを読み込み中…",
+    "tile_atlas": "Atlas",
     "tile_standard": "マップ",
     "tile_satellite": "衛星",
     "tile_night": "夜景"

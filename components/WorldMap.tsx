@@ -83,8 +83,10 @@ function fmtUsd(v: number | null): string {
 }
 
 const TILE_URLS = {
-  // Carto Voyager — océans bleu clair, forêts vert tendre, roads subtils.
-  // Même style utilisé par The Estate, beaucoup plus lisible que l'OSM brut.
+  // Atlas — National Geographic style: continents relief tan/vert, océans bleu clair,
+  // frontières nettes, labels lisibles. C'est le look cartographique classique.
+  atlas:     { url: 'https://services.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16, attribution: '© Esri · National Geographic' } },
+  // Standard — Carto Voyager (urbain, roads, parcs verts)
   standard:  { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CARTO' } },
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Esri' } },
   night:     { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19 } },
@@ -109,9 +111,9 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
   const [selectedCountry, setSelectedCountry] = useState<CountryMapData | null>(null)
   const [countries, setCountries] = useState<CountryMapData[]>(SEED_COUNTRIES)
   const [mapReady, setMapReady] = useState(false)
-  // Satellite par défaut — plus impactant visuellement à l'atterrissage,
-  // "Voyager" (standard) reste disponible d'un clic pour la lisibilité pure.
-  const [tileMode, setTileMode] = useState<'standard' | 'satellite' | 'night'>('satellite')
+  // Atlas par défaut — look cartographique classique (relief tan/vert, océans clairs,
+  // frontières nettes). Lisible, bright, pro. Satellite/Voyager/Nuit restent accessibles.
+  const [tileMode, setTileMode] = useState<'atlas' | 'standard' | 'satellite' | 'night'>('atlas')
   const [totalMarkets, setTotalMarkets] = useState<number | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tileLayerRef = useRef<any>(null)
@@ -162,10 +164,9 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       leafletMapRef.current = map
       leafletRef.current = L
 
-      // Démarre sur satellite — le useEffect tileMode gère la suite si l'utilisateur switche.
-      tileLayerRef.current = L.tileLayer(TILE_URLS.satellite.url, TILE_URLS.satellite.opts).addTo(map)
-      // Ajoute aussi le label overlay satellite au démarrage (noms pays/villes)
-      labelLayerRef.current = L.tileLayer(SATELLITE_LABEL_URL, { maxZoom: 19, opacity: 1 }).addTo(map)
+      // Démarre sur atlas — look cartographique classique (National Geographic).
+      // Labels déjà intégrés dans la tuile, pas besoin d'overlay séparé.
+      tileLayerRef.current = L.tileLayer(TILE_URLS.atlas.url, TILE_URLS.atlas.opts).addTo(map)
 
       setMapReady(true)
     }
@@ -349,9 +350,10 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       {/* Tile mode switcher — compact (icon-only on mobile, icon+label on md+) */}
       <div className={`absolute top-3 right-3 z-[400] flex gap-0.5 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-lg p-0.5 backdrop-blur-sm ${selectedCountry ? 'hidden md:flex' : ''}`}>
         {([
-          { id: 'standard',  label: t('map.tile_standard'),  icon: '🗺️' },
-          { id: 'satellite', label: t('map.tile_satellite'), icon: '🛰️' },
-          { id: 'night',     label: t('map.tile_night'),     icon: '🌙' },
+          { id: 'atlas',     label: t('map.tile_atlas') || 'Atlas',        icon: '📜' },
+          { id: 'standard',  label: t('map.tile_standard'),                 icon: '🗺️' },
+          { id: 'satellite', label: t('map.tile_satellite'),                icon: '🛰️' },
+          { id: 'night',     label: t('map.tile_night'),                    icon: '🌙' },
         ] as const).map(m => (
           <button
             key={m.id}

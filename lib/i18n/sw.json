@@ -15,7 +15,8 @@
     "countries_tracked": "nchi zinazofuatiliwa", "countries_tracked_short": "nchi", "opportunities": "fursa zilizotambuliwa",
     "opportunities_qualified": "fursa bora", "opportunities_short": "fursa bora",
     "markets_analyzed": "masoko yaliyochambuliwa", "markets_short": "masoko", "filter": "Chuja",
-    "loading": "Inapakia data ya dunia…", "tile_standard": "Ramani", "tile_satellite": "Setilaiti", "tile_night": "Usiku"
+    "loading": "Inapakia data ya dunia…", "tile_atlas": "Atlas",
+    "tile_standard": "Ramani", "tile_satellite": "Setilaiti", "tile_night": "Usiku"
   },
   "country": {
     "imports": "Jumla ya Uagizaji", "exports": "Jumla ya Usafirishaji", "balance": "Mizani ya Biashara", "gdp": "GDP",

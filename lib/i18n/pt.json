@@ -39,6 +39,7 @@
     "markets_short": "mercados",
     "filter": "Filtrar",
     "loading": "Carregando dados mundiais…",
+    "tile_atlas": "Atlas",
     "tile_standard": "Mapa",
     "tile_satellite": "Satélite",
     "tile_night": "Noturno"

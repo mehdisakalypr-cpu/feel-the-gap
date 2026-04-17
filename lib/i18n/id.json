@@ -15,7 +15,8 @@
     "countries_tracked": "negara dipantau", "countries_tracked_short": "negara", "opportunities": "peluang teridentifikasi",
     "opportunities_qualified": "peluang berkualitas", "opportunities_short": "peluang berkualitas",
     "markets_analyzed": "pasar dianalisis", "markets_short": "pasar", "filter": "Filter",
-    "loading": "Memuat data dunia…", "tile_standard": "Peta", "tile_satellite": "Satelit", "tile_night": "Malam"
+    "loading": "Memuat data dunia…", "tile_atlas": "Atlas",
+    "tile_standard": "Peta", "tile_satellite": "Satelit", "tile_night": "Malam"
   },
   "country": {
     "imports": "Total Impor", "exports": "Total Ekspor", "balance": "Neraca Perdagangan", "gdp": "PDB",

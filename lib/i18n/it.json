@@ -15,7 +15,8 @@
     "countries_tracked": "paesi monitorati", "countries_tracked_short": "paesi", "opportunities": "opportunità identificate",
     "opportunities_qualified": "opportunità qualificate", "opportunities_short": "opp. qualificate",
     "markets_analyzed": "mercati analizzati", "markets_short": "mercati", "filter": "Filtra",
-    "loading": "Caricamento dati mondiali…", "tile_standard": "Mappa", "tile_satellite": "Satellite", "tile_night": "Notturna"
+    "loading": "Caricamento dati mondiali…", "tile_atlas": "Atlas",
+    "tile_standard": "Mappa", "tile_satellite": "Satellite", "tile_night": "Notturna"
   },
   "country": {
     "imports": "Importazioni totali", "exports": "Esportazioni totali", "balance": "Bilancia commerciale", "gdp": "PIL",
