@@ -85,7 +85,7 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
           authenticatorSelection?: AuthenticatorSelectionCriteria
           attestation?: AttestationConveyancePreference
         }
-        state?: string
+        challengeToken?: string
       }
       if (!startJson?.options?.challenge) {
         setError('Impossible de configurer la biométrie')
@@ -130,8 +130,8 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
         credentials: 'include',
         body: JSON.stringify({
           action: 'finish',
-          state: startJson.state,
-          credential: {
+          challengeToken: startJson.challengeToken,
+          response: {
             id: cred.id,
             rawId: toBase64Url(cred.rawId),
             type: cred.type,
