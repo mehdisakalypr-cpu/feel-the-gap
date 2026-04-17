@@ -46,6 +46,7 @@ const PUBLIC_API = new Set([
   '/api/track',                       // Lightweight analytics
   '/api/cron/collect',                // Cron secret-verified internally
   '/api/cron/research',               // Cron secret-verified internally
+  '/api/admin/refresh-all',           // Dual-gated: admin cookie OR x-cron-secret — route handler enforces
   '/api/reports/enriched-plan',       // Public consumer of /country/[iso]/enriched-plan
   '/api/demo/request',                // Public demo request (create + check status)
   '/api/demo/tour',                   // Public tour steps
