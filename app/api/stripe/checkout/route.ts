@@ -5,7 +5,7 @@ import { detectCountryFromHeaders, getGeoPrice } from '@/lib/geo-pricing'
 import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
 
 /**
- * GET /api/stripe/checkout?plan=starter|strategy|premium|ultimate[&cc=XX]  → subscription checkout
+ * GET /api/stripe/checkout?plan=solo_producer|starter|strategy|premium|ultimate[&cc=XX]  → subscription checkout
  * GET /api/stripe/checkout?pack=10|20|30|50              → one-shot credit pack
  *
  * Redirects to Stripe hosted checkout or to /auth/login if not authenticated.
@@ -17,6 +17,7 @@ import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
  * we don't have to maintain ~195 × 2 Stripe Price objects.
  */
 const PRICE_IDS: Record<string, string | undefined> = {
+  plan_solo_producer: process.env.STRIPE_PRICE_SOLO_PRODUCER_MONTHLY,
   plan_starter:  process.env.STRIPE_PRICE_STARTER_MONTHLY,
   plan_strategy: process.env.STRIPE_PRICE_STRATEGY_MONTHLY,
   plan_premium:  process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
@@ -28,6 +29,7 @@ const PRICE_IDS: Record<string, string | undefined> = {
 }
 
 const PLAN_PRODUCT_IDS: Record<string, string | undefined> = {
+  solo_producer: process.env.STRIPE_PRODUCT_SOLO_PRODUCER,
   starter:  process.env.STRIPE_PRODUCT_STARTER,
   strategy: process.env.STRIPE_PRODUCT_STRATEGY,
   premium:  process.env.STRIPE_PRODUCT_PREMIUM,
@@ -35,6 +37,7 @@ const PLAN_PRODUCT_IDS: Record<string, string | undefined> = {
 }
 
 const PLAN_BASE_EUR: Record<string, number> = {
+  solo_producer: PLAN_PRICE_EUR.solo_producer,
   starter:  PLAN_PRICE_EUR.starter,
   strategy: PLAN_PRICE_EUR.strategy,
   premium:  PLAN_PRICE_EUR.premium,

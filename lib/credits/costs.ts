@@ -20,6 +20,7 @@ export type CreditAction = keyof typeof CREDIT_COSTS
 /** Tier plans: crédits inclus par mois. Free = 0 (Demo BP statique gratuit). */
 export const PLAN_MONTHLY_GRANT = {
   free: 0,
+  solo_producer: 30,  // 1 pays × 1 opportunité × parcours complet (cultiver + vendre local-to-local)
   starter: 60,
   strategy: 100,
   premium: 200,
@@ -29,9 +30,10 @@ export const PLAN_MONTHLY_GRANT = {
 
 export type PlanTier = keyof typeof PLAN_MONTHLY_GRANT
 
-/** Confirmed ladder 2026-04-17: 29 / 99 / 149 / 299 — aligned with BUSINESS_MODELS.md. */
+/** Confirmed ladder 2026-04-17: 19.99 / 29 / 99 / 149 / 299 — aligned with BUSINESS_MODELS.md. */
 export const PLAN_PRICE_EUR = {
   free: 0,
+  solo_producer: 19.99,
   starter: 29,
   strategy: 99,
   premium: 149,
@@ -45,6 +47,7 @@ export const PLAN_PRICE_EUR = {
  * `user_fillthegap_quota` (RPC `debit_fillthegap` / `fillthegap_balance`). */
 export const FILLTHEGAP_QUOTA_BY_TIER = {
   free: 0,
+  solo_producer: 0,
   starter: 0,
   strategy: 0,
   premium: 150,

@@ -430,10 +430,40 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── customer.subscription.created — sync Fill the Gap quota ─────────────
+  if (event.type === 'customer.subscription.created') {
+    const sub = event.data.object as import('stripe').Stripe.Subscription
+    const plan = sub.metadata?.plan ?? 'free'
+    const userId = sub.metadata?.user_id
+    if (userId && ['free','solo_producer','starter','strategy','premium','ultimate','custom'].includes(plan)) {
+      try {
+        await supabaseAdmin.rpc('sync_fillthegap_quota', { p_user_id: userId, p_plan: plan })
+        console.log(`[stripe-webhook] Fill the Gap quota synced for ${userId} → ${plan}`)
+      } catch (err) {
+        console.error(`[stripe-webhook] Failed to sync FtG quota for ${userId}:`, err)
+        // Do NOT throw — sub update is primary, quota is secondary
+      }
+    }
+  }
+
   // ── customer.subscription.updated — annulation programmée ───────────────
   if (event.type === 'customer.subscription.updated') {
     const sub  = event.data.object as import('stripe').Stripe.Subscription
     const prev = event.data.previous_attributes as Record<string, unknown>
+
+    // After successful subscription sync/tier update, sync the Fill the Gap quota
+    const prevMeta = prev?.metadata as Record<string, string> | undefined
+    const plan = sub.metadata?.plan ?? prevMeta?.plan ?? 'free'
+    const userId = sub.metadata?.user_id
+    if (userId && ['free','solo_producer','starter','strategy','premium','ultimate','custom'].includes(plan)) {
+      try {
+        await supabaseAdmin.rpc('sync_fillthegap_quota', { p_user_id: userId, p_plan: plan })
+        console.log(`[stripe-webhook] Fill the Gap quota synced for ${userId} → ${plan}`)
+      } catch (err) {
+        console.error(`[stripe-webhook] Failed to sync FtG quota for ${userId}:`, err)
+        // Do NOT throw — sub update is primary, quota is secondary
+      }
+    }
 
     // Annulation programmée (cancel_at_period_end vient de passer à true)
     if (sub.cancel_at_period_end && !prev?.cancel_at_period_end) {
@@ -498,6 +528,14 @@ export async function POST(req: NextRequest) {
       .from('profiles')
       .update({ tier: 'explorer', stripe_subscription_id: null })
       .eq('stripe_subscription_id', sub.id)
+
+    // Revert to free plan → quota zeroed on next reset
+    const deletedUserId = sub.metadata?.user_id
+    if (deletedUserId) {
+      try {
+        await supabaseAdmin.rpc('sync_fillthegap_quota', { p_user_id: deletedUserId, p_plan: 'free' })
+      } catch { /* quota sync secondary — swallow */ }
+    }
 
     // Email de fin
     const Stripe = (await import('stripe')).default

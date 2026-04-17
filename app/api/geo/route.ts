@@ -15,6 +15,7 @@ import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
 export async function GET(req: NextRequest) {
   const country = detectCountryFromHeaders(req.headers)
 
+  const solo_producer = getGeoPrice(PLAN_PRICE_EUR.solo_producer, country)
   const starter  = getGeoPrice(PLAN_PRICE_EUR.starter,  country)
   const strategy = getGeoPrice(PLAN_PRICE_EUR.strategy, country)
   const premium  = getGeoPrice(PLAN_PRICE_EUR.premium,  country)
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
     multiplier: starter.multiplier,
     currency: starter.currency,
     plans: {
+      solo_producer: { baseEUR: solo_producer.baseEUR, price: solo_producer.price, currency: solo_producer.currency },
       starter:  { baseEUR: starter.baseEUR,  price: starter.price,  currency: starter.currency },
       strategy: { baseEUR: strategy.baseEUR, price: strategy.price, currency: strategy.currency },
       premium:  { baseEUR: premium.baseEUR,  price: premium.price,  currency: premium.currency },

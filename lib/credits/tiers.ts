@@ -18,16 +18,16 @@ export type Feature =
 
 /** Matrice feature × tier. true = feature autorisée (sous réserve crédits si action payante). */
 export const FEATURE_ACCESS: Record<Feature, Record<PlanTier, boolean>> = {
-  map_view:                 { free: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  country_list:             { free: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  demo_bp:                  { free: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  opportunity_detail:       { free: false, starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  bp_generate:              { free: false, starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  training_youtube:         { free: false, starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  ecommerce_site_propose:   { free: false, starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
-  client_list:              { free: false, starter: false, strategy: true,  premium: true,  ultimate: true,  custom: true },
-  client_contact_reveal:    { free: false, starter: false, strategy: true,  premium: true,  ultimate: true,  custom: true },
-  site_creation:            { free: false, starter: false, strategy: true,  premium: true,  ultimate: true,  custom: true },
+  map_view:                 { free: true,  solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  country_list:             { free: true,  solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  demo_bp:                  { free: true,  solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  opportunity_detail:       { free: false, solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  bp_generate:              { free: false, solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  training_youtube:         { free: false, solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  ecommerce_site_propose:   { free: false, solo_producer: true,  starter: true,  strategy: true,  premium: true,  ultimate: true,  custom: true },
+  client_list:              { free: false, solo_producer: false, starter: false, strategy: true,  premium: true,  ultimate: true,  custom: true },
+  client_contact_reveal:    { free: false, solo_producer: false, starter: false, strategy: true,  premium: true,  ultimate: true,  custom: true },
+  site_creation:            { free: false, solo_producer: false, starter: false, strategy: true,  premium: true,  ultimate: true,  custom: true },
 }
 
 export function canAccess(tier: PlanTier, feature: Feature): boolean {
@@ -37,6 +37,7 @@ export function canAccess(tier: PlanTier, feature: Feature): boolean {
 /** Minimum tier required for a feature (null = free ok). */
 export function minTierFor(feature: Feature): PlanTier {
   if (FEATURE_ACCESS[feature].free) return 'free'
+  if (FEATURE_ACCESS[feature].solo_producer) return 'solo_producer'
   if (FEATURE_ACCESS[feature].starter) return 'starter'
   if (FEATURE_ACCESS[feature].strategy) return 'strategy'
   if (FEATURE_ACCESS[feature].premium) return 'premium'
@@ -54,6 +55,7 @@ export function paywallReason(currentTier: PlanTier, feature: Feature): {
   const required = minTierFor(feature)
   const msg: Record<PlanTier, string> = {
     free: 'Disponible gratuitement',
+    solo_producer: 'Passe Solo Producer (€19.99/mo, 1 pays × 1 opportunité × parcours complet — cultiver et vendre local-to-local).',
     starter: 'Passe Data (€29/mo, 60 crédits) pour débloquer.',
     strategy: 'Passe Strategy (€99/mo, 100 crédits + méthode dominante + 1 supplier + 1 client).',
     premium: 'Passe Premium (€149/mo, 200 crédits + bench complet + 5 suppliers + 5 clients + 150 opps Fill-the-Gap/mo).',

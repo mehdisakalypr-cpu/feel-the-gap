@@ -12,6 +12,7 @@ type GeoInfo = {
   countryName: string
   multiplier: number
   plans: {
+    solo_producer?: { baseEUR: number; price: number; currency: string }
     starter:  { baseEUR: number; price: number; currency: string }
     strategy?: { baseEUR: number; price: number; currency: string }
     premium:  { baseEUR: number; price: number; currency: string }
@@ -153,21 +154,24 @@ function Subscriptions({
   geo: GeoInfo | null
   onUpgradeClick: (e: React.MouseEvent<HTMLAnchorElement>, agreement: ContractGateAgreement, next: string) => void
 }) {
+  const soloPrice     = geo?.plans.solo_producer?.price ?? PLAN_PRICE_EUR.solo_producer
   const starterPrice  = geo?.plans.starter.price  ?? PLAN_PRICE_EUR.starter
   const strategyPrice = geo?.plans.strategy?.price ?? PLAN_PRICE_EUR.strategy
   const premiumPrice  = geo?.plans.premium.price  ?? PLAN_PRICE_EUR.premium
   const ultimatePrice = geo?.plans.ultimate?.price ?? PLAN_PRICE_EUR.ultimate
+  const soloBase      = PLAN_PRICE_EUR.solo_producer
   const starterBase   = PLAN_PRICE_EUR.starter
   const strategyBase  = PLAN_PRICE_EUR.strategy
   const premiumBase   = PLAN_PRICE_EUR.premium
   const ultimateBase  = PLAN_PRICE_EUR.ultimate
   const geoSuffix = geo && geo.multiplier !== 1 ? `&cc=${geo.country}` : ''
+  const soloHref     = `/api/stripe/checkout?plan=solo_producer${geoSuffix}`
   const starterHref  = `/api/stripe/checkout?plan=starter${geoSuffix}`
   const strategyHref = `/api/stripe/checkout?plan=strategy${geoSuffix}`
   const premiumHref  = `/api/stripe/checkout?plan=premium${geoSuffix}`
   const ultimateHref = `/api/stripe/checkout?plan=ultimate${geoSuffix}`
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       <PlanCard
         name="Free" price="€0" period="" credits={PLAN_MONTHLY_GRANT.free}
         tagline="Explore avant d'acheter"
@@ -179,6 +183,24 @@ function Subscriptions({
           { label: 'Fill the Gap', yes: false },
         ]}
         ctaLabel="Commencer gratuitement" ctaHref="/auth/register"
+      />
+      <PlanCard
+        name="Solo Producer" price={`€${soloPrice}`}
+        basePrice={soloPrice !== soloBase ? `€${soloBase}` : undefined}
+        period="/mois"
+        credits={PLAN_MONTHLY_GRANT.solo_producer}
+        tagline="Cultiver local, vendre local"
+        features={[
+          { label: 'Map monde + fiche pays', yes: true },
+          { label: `${PLAN_MONTHLY_GRANT.solo_producer} crédits IA/mois inclus`, yes: true },
+          { label: '1 pays × 1 opportunité', yes: true },
+          { label: 'Business plan IA complet', yes: true },
+          { label: 'Training YouTube illimité', yes: true },
+          { label: 'Boutique intégrée (bientôt)', yes: true },
+          { label: 'Fill the Gap', yes: false },
+        ]}
+        ctaLabel="Démarrer à €19.99/mo" ctaHref={soloHref}
+        onCtaClick={e => onUpgradeClick(e, 'data', soloHref)}
       />
       <PlanCard
         name="Data" price={`€${starterPrice}`}
