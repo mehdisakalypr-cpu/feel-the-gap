@@ -354,7 +354,7 @@ export default function AccountPage() {
         <h1 className="text-2xl font-bold text-white mb-6">{t('account.title')}</h1>
 
         {/* Profile */}
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+        <div id="profile" className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4 scroll-mt-20">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 rounded-full bg-[#C9A84C]/20 flex items-center justify-center text-xl font-bold text-[#C9A84C]">
               {user?.email?.[0]?.toUpperCase() ?? '?'}
@@ -373,7 +373,7 @@ export default function AccountPage() {
         </div>
 
         {/* Usage */}
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+        <div id="usage" className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4 scroll-mt-20">
           <h2 className="font-semibold text-white mb-4">{t('account.this_month')}</h2>
           <div className="flex gap-3">
             <div className="flex-1 bg-white/5 rounded-xl p-3 text-center">
@@ -422,14 +422,14 @@ export default function AccountPage() {
 
         {/* Manage subscription */}
         {tierCfg.paid && (
-          <ManageSubscriptionBtn />
+          <div id="subscription" className="scroll-mt-20"><ManageSubscriptionBtn /></div>
         )}
 
         {/* Parrainage */}
-        <ReferralBlock />
+        <div id="referral" className="scroll-mt-20"><ReferralBlock /></div>
 
         {/* Biometric setup */}
-        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+        <div id="biometric" className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4 scroll-mt-20">
           <div className="font-semibold text-white mb-1">Connexion biométrique</div>
           <div className="text-sm text-gray-400 mb-4">Activez l'empreinte digitale ou Face ID pour vous connecter instantanément.</div>
           <button
@@ -454,7 +454,7 @@ export default function AccountPage() {
         {/* Changer le mot de passe — exige la vérification du mot de passe actuel
             pour éviter qu un attaquant avec un cookie détourné puisse modifier
             le login sans prouver qu il connaît l actuel. */}
-        {user?.email && <PasswordChangeBlock email={user.email} />}
+        {user?.email && <div id="password" className="scroll-mt-20"><PasswordChangeBlock email={user.email} /></div>}
 
         {/* Links */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl divide-y divide-white/5">

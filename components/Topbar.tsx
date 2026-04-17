@@ -33,6 +33,103 @@ const ROLE_CONFIG: Record<UserRole, { label: string; icon: string; color: string
 
 const ALL_ROLES: UserRole[] = ['entrepreneur', 'financeur', 'investisseur', 'influenceur']
 
+function ProfileMenu({ userInitial, fr, isAdminUser }: { userInitial: string; fr: boolean; isAdminUser: boolean }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const cancelClose = () => {
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null }
+  }
+  const scheduleClose = () => {
+    cancelClose()
+    closeTimerRef.current = setTimeout(() => setOpen(false), 180)
+  }
+
+  async function handleSignOut() {
+    cancelClose(); setOpen(false)
+    const sb = createSupabaseBrowser()
+    await sb.auth.signOut()
+    router.push('/')
+  }
+
+  type Item = { href?: string; onClick?: () => void; label: string; icon: string; danger?: boolean }
+  const items: Item[] = [
+    { href: '/account#profile',      icon: '👤', label: fr ? 'Mon profil'         : 'My profile' },
+    { href: '/account#subscription', icon: '💳', label: fr ? 'Mon abonnement'     : 'My subscription' },
+    { href: '/account/purchases',    icon: '🧾', label: fr ? 'Mes achats'         : 'My purchases' },
+    { href: '/account#referral',     icon: '🎁', label: fr ? 'Parrainage'         : 'Referral' },
+    { href: '/account#biometric',    icon: '🔒', label: fr ? 'Biométrie'          : 'Biometrics' },
+    { href: '/account#password',     icon: '🔑', label: fr ? 'Mot de passe'       : 'Password' },
+    ...(isAdminUser ? [{ href: '/admin', icon: '🛡️', label: fr ? 'Administration' : 'Admin' }] : []),
+    { onClick: handleSignOut,        icon: '⏻', label: fr ? 'Se déconnecter'     : 'Sign out', danger: true },
+  ]
+
+  return (
+    <div
+      className="relative ml-1 shrink-0"
+      onMouseEnter={() => { cancelClose(); setOpen(true) }}
+      onMouseLeave={scheduleClose}
+      onFocus={() => { cancelClose(); setOpen(true) }}
+      onBlur={scheduleClose}
+    >
+      <Link
+        href="/account"
+        className="flex items-center group"
+        title={fr ? 'Mon compte' : 'My account'}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors shrink-0">
+          {userInitial}
+        </div>
+      </Link>
+
+      {open && (
+        <>
+          {/* Invisible bridge — prevents dropdown closing when cursor crosses the 6px gap */}
+          <div className="absolute right-0 top-8 w-48 h-2" aria-hidden />
+          <div
+            role="menu"
+            className="absolute right-0 top-10 w-56 bg-[#0D1117] border border-[rgba(201,168,76,.2)] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,.55)] overflow-hidden z-50 animate-[fadeIn_.14s_ease-out]"
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
+          >
+            {items.map((it, i) => {
+              const inner = (
+                <>
+                  <span className="text-sm w-5 text-center shrink-0">{it.icon}</span>
+                  <span className={`flex-1 text-[13px] ${it.danger ? 'text-red-400' : 'text-gray-200'}`}>{it.label}</span>
+                  {it.href && <span className="text-gray-600 text-[11px]">→</span>}
+                </>
+              )
+              const common = 'flex items-center gap-2.5 px-3 py-2.5 hover:bg-white/5 transition-colors cursor-pointer w-full text-left'
+              if (it.href) {
+                return (
+                  <Link key={i} href={it.href} className={common} role="menuitem" onClick={() => setOpen(false)}>
+                    {inner}
+                  </Link>
+                )
+              }
+              return (
+                <button key={i} type="button" onClick={it.onClick} className={common} role="menuitem">
+                  {inner}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 function LangSwitcher({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -342,11 +439,8 @@ export default function Topbar() {
                   )}
                 </div>
               )}
-              <Link href="/account" className="ml-1 flex items-center group shrink-0" title={fr ? 'Mon compte' : 'My account'}>
-                <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors shrink-0">
-                  {userInitial}
-                </div>
-              </Link>
+              <ProfileMenu userInitial={userInitial} fr={fr} isAdminUser={isAdminUser} />
+
             </>
           ) : (
             <Link href="/auth/login" className="ml-1 px-3 py-1.5 bg-[#C9A84C] text-[#07090F] font-semibold rounded-lg hover:bg-[#E8C97A] transition-colors text-xs whitespace-nowrap shrink-0">
