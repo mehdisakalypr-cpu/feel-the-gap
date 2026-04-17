@@ -176,6 +176,44 @@ export default function Topbar() {
         </span>
       </Link>
 
+      {/* Current plan — always visible, top-left after brand */}
+      {tier && (
+        <Link
+          href="/account"
+          className="hidden md:inline-flex items-center gap-1.5 shrink-0 pl-2 pr-2.5 py-1 rounded-full border text-[11px] font-medium whitespace-nowrap leading-none transition-colors hover:bg-white/5"
+          style={{
+            background: (TIER_CONFIG[tier]?.color ?? '#9CA3AF') + '14',
+            borderColor: (TIER_CONFIG[tier]?.color ?? '#9CA3AF') + '40',
+            color: TIER_CONFIG[tier]?.color ?? '#9CA3AF',
+          }}
+          title={fr ? 'Gérer mon abonnement' : 'Manage subscription'}
+        >
+          <span className="text-gray-400">{fr ? 'Offre actuelle :' : 'Current plan:'}</span>
+          <span className="font-bold">
+            {tier === 'free' || tier === 'explorer'
+              ? (fr ? 'Gratuit' : 'Free')
+              : (TIER_CONFIG[tier]?.label ?? tier)}
+          </span>
+        </Link>
+      )}
+      {/* Mobile compact variant */}
+      {tier && (
+        <Link
+          href="/account"
+          className="md:hidden inline-flex items-center shrink-0 px-2 py-0.5 rounded-full border text-[10px] font-bold whitespace-nowrap leading-none"
+          style={{
+            background: (TIER_CONFIG[tier]?.color ?? '#9CA3AF') + '22',
+            borderColor: (TIER_CONFIG[tier]?.color ?? '#9CA3AF') + '44',
+            color: TIER_CONFIG[tier]?.color ?? '#9CA3AF',
+          }}
+          aria-label={fr ? 'Offre actuelle' : 'Current plan'}
+        >
+          {tier === 'free' || tier === 'explorer'
+            ? (fr ? 'Gratuit' : 'Free')
+            : (TIER_CONFIG[tier]?.label ?? tier)}
+        </Link>
+      )}
+
       {/* Search */}
       <form onSubmit={handleSearch} className="relative w-40 md:w-56 shrink-0">
         <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -304,18 +342,7 @@ export default function Topbar() {
                   )}
                 </div>
               )}
-              <Link href="/account" className="ml-1 flex items-center gap-1.5 group shrink-0" title={tier ? (TIER_CONFIG[tier]?.label ?? tier) + ' plan' : undefined}>
-                {tier && TIER_CONFIG[tier] && (
-                  <span
-                    className="px-1.5 py-0.5 md:px-2 rounded-full text-[9px] md:text-[10px] font-bold inline-block whitespace-nowrap leading-none"
-                    style={{
-                      background: TIER_CONFIG[tier].color + '22',
-                      color: TIER_CONFIG[tier].color,
-                      border: `1px solid ${TIER_CONFIG[tier].color}44`,
-                    }}>
-                    {TIER_CONFIG[tier].label}
-                  </span>
-                )}
+              <Link href="/account" className="ml-1 flex items-center group shrink-0" title={fr ? 'Mon compte' : 'My account'}>
                 <div className="w-8 h-8 rounded-full bg-[#C9A84C] text-[#07090F] font-bold text-xs flex items-center justify-center group-hover:bg-[#E8C97A] transition-colors shrink-0">
                   {userInitial}
                 </div>
