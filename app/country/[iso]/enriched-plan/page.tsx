@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Topbar from '@/components/Topbar';
 import JourneySidebar from '@/components/JourneySidebar';
+import JourneyChipsBar from '@/components/JourneyChipsBar';
 import { useLang } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
 
@@ -382,6 +383,9 @@ export default function EnrichedPlanPage() {
       <JourneySidebar iso={iso} currentStep="business_plan" userTier={userTier} />
 
       <main className="lg:ml-80 px-4 lg:px-8 py-6 sm:py-10">
+        {/* Chips bar — active product context, scroll-sticky. */}
+        <JourneyChipsBar userTier={userTier} />
+
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">

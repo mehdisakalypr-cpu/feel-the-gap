@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import JourneyChipsBar from '@/components/JourneyChipsBar'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,8 @@ export default async function StoreOnboardingPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
       <div className="max-w-5xl mx-auto px-6 py-12">
+        {/* Chips bar — active product context, scroll-sticky. */}
+        <JourneyChipsBar className="mb-4" />
         <Link href={`/country/${iso}`} className="text-[#C9A84C] text-sm hover:underline mb-4 inline-block">← Fiche pays</Link>
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🏪</span>

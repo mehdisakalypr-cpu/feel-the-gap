@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import JourneySidebar from '@/components/JourneySidebar'
+import JourneyChipsBar from '@/components/JourneyChipsBar'
 import FillTheGapCreditModal from '@/components/FillTheGapCreditModal'
 import { supabase } from '@/lib/supabase'
+import { useJourneyContext } from '@/lib/journey/context'
 import DOMPurify from 'dompurify'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -152,6 +154,19 @@ const RISK_COLOR: Record<string, string> = {
   'Faible': '#34D399', 'Modéré': '#FBBF24', 'Élevé': '#F97316', 'Très élevé': '#EF4444',
 }
 
+// Turn a free-form product name into a stable slug for the journey store.
+// "Cocoa beans" -> "cocoa-beans", "Café Arabica" -> "cafe-arabica".
+function productSlugFromName(name: string | null | undefined): string | null {
+  if (!name) return null
+  const slug = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return slug || null
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const MODELS = [
@@ -187,6 +202,16 @@ export default function ReportPage() {
 
   // Tier gating — seuls Premium et Ultimate voient les checkboxes + le bouton bulk BP.
   const canBulkBp = userTier === 'premium' || userTier === 'ultimate'
+
+  // Journey store — when user ticks opportunities, mirror the unique product
+  // slugs into the store so every downstream step (plan, clients, videos,
+  // store, recap) shows them as chips and scopes data accordingly.
+  const setSelectedProductsInStore = useJourneyContext((s) => s.setSelectedProducts)
+  const setIsoInStore = useJourneyContext((s) => s.setIso)
+
+  useEffect(() => {
+    if (iso) setIsoInStore(iso)
+  }, [iso, setIsoInStore])
 
   const toggleOpp = (id: string) => setSelectedOpps(prev => {
     const next = new Set(prev)
@@ -270,6 +295,22 @@ export default function ReportPage() {
       }))
     } catch {}
   }, [selectedOpps, iso])
+
+  // Mirror checked opportunities → journey store (`selectedProducts`).
+  // Dedupe by product slug. The store's `setSelectedProducts` preserves
+  // `activeProduct` when it remains in the list, or falls back to the first.
+  useEffect(() => {
+    if (opps.length === 0) return
+    const slugs: string[] = []
+    for (const id of selectedOpps) {
+      const opp = opps.find((o) => o.id === id)
+      const slug = productSlugFromName(opp?.products?.name)
+      if (slug) slugs.push(slug)
+    }
+    // Dedupe while preserving the tick order.
+    const unique = Array.from(new Set(slugs))
+    setSelectedProductsInStore(unique)
+  }, [selectedOpps, opps, setSelectedProductsInStore])
 
   // Select all visible (filtered) / clear — Premium + Ultimate only
   const selectAllFiltered = () => {
@@ -376,6 +417,9 @@ export default function ReportPage() {
       <JourneySidebar iso={iso} currentStep="report" userTier={userTier} />
 
       <main className="lg:ml-80 px-4 lg:px-8 py-8 space-y-8 overflow-x-hidden">
+
+        {/* Chips bar — active product context, scroll-sticky. */}
+        <JourneyChipsBar userTier={userTier} />
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-2 text-xs text-gray-500">

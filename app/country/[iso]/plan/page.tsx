@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
+import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase, createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
+import { useJourneyContext } from '@/lib/journey/context'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -375,8 +377,21 @@ function BuyerCard({ buyer }: { buyer: Buyer }) {
 function BusinessPlanContent({ country, opps, userTier }: { country: Country; opps: Opportunity[]; userTier: string }) {
   const { lang } = useLang()
   const isPremium = TIER_RANK[userTier] >= TIER_RANK['premium']
-  // Cache key scoped by country + lang so regenerating after a lang switch still works.
-  const cacheKey = `ftg_plan_${country.id}_${lang}`
+  // Active product from the journey store — when set, we scope the plan to
+  // opportunities whose product slug matches and key the cache per product
+  // so switching chips re-renders with fresh (or cached-per-product) data.
+  const activeProduct = useJourneyContext((s) => s.activeProduct)
+  const normalizedActive = activeProduct ? activeProduct.toLowerCase() : null
+  const scopedOpps = normalizedActive
+    ? opps.filter((o) => {
+        const name = (o.products?.name ?? '').toLowerCase()
+        return name.includes(normalizedActive)
+      })
+    : opps
+  const effectiveOpps = scopedOpps.length > 0 ? scopedOpps : opps
+  // Cache key scoped by country + lang + active product so regenerating
+  // after a lang or chip switch still works.
+  const cacheKey = `ftg_plan_${country.id}_${lang}${normalizedActive ? `_${normalizedActive}` : ''}`
   const [plan, setPlan] = useState<PlanData | null>(null)
   const [generating, setGenerating] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -487,11 +502,11 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: buildPrompt(country, opps, lang, isPremium) }],
+          messages: [{ role: 'user', content: buildPrompt(country, effectiveOpps, lang, isPremium) }],
           context: {
             country: country.name_fr,
             iso: country.id,
-            product: country.top_import_category ?? 'général',
+            product: normalizedActive ?? country.top_import_category ?? 'général',
             category: country.top_import_category ?? 'général',
             strategy: 'trade',
           },
@@ -615,7 +630,7 @@ function BusinessPlanContent({ country, opps, userTier }: { country: Country; op
             {[
               { label: 'PIB', value: fmtUsd(country.gdp_usd) },
               { label: lang === 'fr' ? 'Imports' : 'Imports', value: fmtUsd(country.total_imports_usd) },
-              { label: lang === 'fr' ? 'Opportunités' : 'Opportunities', value: String(opps.length) + ' identifiées' },
+              { label: lang === 'fr' ? 'Opportunités' : 'Opportunities', value: String(effectiveOpps.length) + ' identifiées' },
             ].map(s => (
               <div key={s.label} className="bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl px-4 py-3 text-center">
                 <div className="text-base font-bold text-[#C9A84C]">{s.value}</div>
@@ -1049,6 +1064,13 @@ export default function PlanPage() {
   const [opps, setOpps] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [userTier, setUserTier] = useState<string>('standard')
+  const setIsoInStore = useJourneyContext((s) => s.setIso)
+
+  // Mirror the current iso into the journey store so deep-links and every
+  // downstream step see the same country context.
+  useEffect(() => {
+    if (iso) setIsoInStore(iso.toUpperCase())
+  }, [iso, setIsoInStore])
 
   useEffect(() => {
     if (!iso) return
@@ -1090,6 +1112,9 @@ export default function PlanPage() {
     <div className="min-h-screen flex flex-col bg-[#07090F] overflow-x-hidden">
       <Topbar />
       <div className="max-w-4xl mx-auto w-full px-4 py-8 overflow-hidden">
+        {/* Chips bar — active product context, scroll-sticky. */}
+        <JourneyChipsBar userTier={userTier} className="mb-4" />
+
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-5">
           <Link href="/reports" className="hover:text-gray-300">{t('reports.title')}</Link>

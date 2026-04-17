@@ -1,10 +1,9 @@
-// CountrySidebar removed — JourneySidebar is the canonical menu now.
-// Pages under /country/[iso]/* render JourneySidebar themselves when needed.
 // `JourneyContextProvider` keeps the journey store (active product + iso)
-// in sync with `?product=&iso=` across every step of the journey.
+// in sync with `?product=&iso=` across every step of the journey — the
+// reports page feeds the store with `selectedProducts` from checked opps.
 import JourneyContextProvider from '@/components/JourneyContextProvider'
 
-export default function CountryLayout({
+export default function ReportIsoLayout({
   children,
 }: {
   children: React.ReactNode

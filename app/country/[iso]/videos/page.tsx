@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import JourneyChipsBar from '@/components/JourneyChipsBar'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: Promise<{ iso: string }>; searchParams: Promise<{ q?: string }> }
+type Props = { params: Promise<{ iso: string }>; searchParams: Promise<{ q?: string; product?: string }> }
 
 type YoutubeInsight = {
   id: string
@@ -28,7 +29,7 @@ function formatViews(n: number | null): string {
 
 export default async function VideosMarchePage({ params, searchParams }: Props) {
   const { iso } = await params
-  const { q } = await searchParams
+  const { q, product } = await searchParams
   const db = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -44,6 +45,12 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
   // Scope to country when present; falls back to global most-relevant.
   query = query.or(`country_iso.eq.${iso.toUpperCase()},country_iso.is.null`)
   if (q) query = query.ilike('title', `%${q}%`)
+  // Product chip context — loose title match (the store holds slug-y values
+  // like "cacao" or "arabica-coffee", we strip the dashes for the ilike).
+  if (product) {
+    const productLike = product.replace(/[-_]+/g, ' ')
+    query = query.ilike('title', `%${productLike}%`)
+  }
   const { data: rawVideos } = await query
   const videos = (rawVideos ?? []) as YoutubeInsight[]
 
@@ -58,6 +65,8 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
       <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Chips bar — active product context, scroll-sticky. */}
+        <JourneyChipsBar className="mb-4" />
         <Link href={`/country/${iso}`} className="text-[#C9A84C] text-sm hover:underline mb-4 inline-block">← Fiche pays</Link>
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🎬</span>
