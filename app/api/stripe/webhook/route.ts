@@ -105,6 +105,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
+  // ── Cross-product routing guard ───────────────────────────────────────────
+  // The same Stripe account can be shared by multiple products (FTG, OFA, …).
+  // If an event carries metadata.product for a product other than FTG, we
+  // early-return 200 so the other product's webhook can handle it without
+  // producing noise here. Legacy events without metadata.product fall through.
+  const FTG_PRODUCTS = new Set(['ftg', 'feel-the-gap', 'feelthegap'])
+  function extractProduct(ev: typeof event): string | null {
+    const obj = ev.data.object as unknown as { metadata?: Record<string, string> | null }
+    const p = obj?.metadata?.product
+    return typeof p === 'string' && p.length > 0 ? p.toLowerCase() : null
+  }
+  const product = extractProduct(event)
+  if (product && !FTG_PRODUCTS.has(product)) {
+    console.log(`[webhook] skip event=${event.type} product=${product} (not FTG)`)
+    return NextResponse.json({ received: true, skipped: true, product })
+  }
+
   // ── checkout.session.completed ───────────────────────────────────────────
   if (event.type === 'checkout.session.completed') {
     const session    = event.data.object as import('stripe').Stripe.Checkout.Session
