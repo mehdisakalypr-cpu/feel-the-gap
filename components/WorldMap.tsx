@@ -241,9 +241,10 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
   // Re-render markers whenever map is ready, countries, or filter changes
   useEffect(() => {
     if (!mapReady || !leafletMapRef.current || !leafletRef.current) return
+    const withOpps = countries.filter(c => (c.opportunity_count ?? 0) > 0)
     const filtered = activeCategories.length === 0
-      ? countries
-      : countries.filter(c => c.top_import_category && activeCategories.includes(c.top_import_category))
+      ? withOpps
+      : withOpps.filter(c => c.top_import_category && activeCategories.includes(c.top_import_category))
     renderMarkers(leafletRef.current, leafletMapRef.current, filtered, openPanel, t)
 
     // Re-render on zoom end — overlap detection depends on current zoom
