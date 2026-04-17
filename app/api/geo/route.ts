@@ -15,8 +15,10 @@ import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
 export async function GET(req: NextRequest) {
   const country = detectCountryFromHeaders(req.headers)
 
-  const starter = getGeoPrice(PLAN_PRICE_EUR.starter, country)
-  const premium = getGeoPrice(PLAN_PRICE_EUR.premium, country)
+  const starter  = getGeoPrice(PLAN_PRICE_EUR.starter,  country)
+  const strategy = getGeoPrice(PLAN_PRICE_EUR.strategy, country)
+  const premium  = getGeoPrice(PLAN_PRICE_EUR.premium,  country)
+  const ultimate = getGeoPrice(PLAN_PRICE_EUR.ultimate, country)
 
   // Keep the legacy tier shape for older callers (admin dashboards).
   const tier = getTierForCountry(country)
@@ -27,8 +29,10 @@ export async function GET(req: NextRequest) {
     multiplier: starter.multiplier,
     currency: starter.currency,
     plans: {
-      starter: { baseEUR: starter.baseEUR, price: starter.price, currency: starter.currency },
-      premium: { baseEUR: premium.baseEUR, price: premium.price, currency: premium.currency },
+      starter:  { baseEUR: starter.baseEUR,  price: starter.price,  currency: starter.currency },
+      strategy: { baseEUR: strategy.baseEUR, price: strategy.price, currency: strategy.currency },
+      premium:  { baseEUR: premium.baseEUR,  price: premium.price,  currency: premium.currency },
+      ultimate: { baseEUR: ultimate.baseEUR, price: ultimate.price, currency: ultimate.currency },
     },
     tier: {
       id: tier.id,

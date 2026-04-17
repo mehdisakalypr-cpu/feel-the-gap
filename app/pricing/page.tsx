@@ -12,8 +12,10 @@ type GeoInfo = {
   countryName: string
   multiplier: number
   plans: {
-    starter: { baseEUR: number; price: number; currency: string }
-    premium: { baseEUR: number; price: number; currency: string }
+    starter:  { baseEUR: number; price: number; currency: string }
+    strategy?: { baseEUR: number; price: number; currency: string }
+    premium:  { baseEUR: number; price: number; currency: string }
+    ultimate?: { baseEUR: number; price: number; currency: string }
   }
 }
 
@@ -151,15 +153,21 @@ function Subscriptions({
   geo: GeoInfo | null
   onUpgradeClick: (e: React.MouseEvent<HTMLAnchorElement>, agreement: ContractGateAgreement, next: string) => void
 }) {
-  const starterPrice = geo?.plans.starter.price ?? PLAN_PRICE_EUR.starter
-  const premiumPrice = geo?.plans.premium.price ?? PLAN_PRICE_EUR.premium
-  const starterBase = PLAN_PRICE_EUR.starter
-  const premiumBase = PLAN_PRICE_EUR.premium
+  const starterPrice  = geo?.plans.starter.price  ?? PLAN_PRICE_EUR.starter
+  const strategyPrice = geo?.plans.strategy?.price ?? PLAN_PRICE_EUR.strategy
+  const premiumPrice  = geo?.plans.premium.price  ?? PLAN_PRICE_EUR.premium
+  const ultimatePrice = geo?.plans.ultimate?.price ?? PLAN_PRICE_EUR.ultimate
+  const starterBase   = PLAN_PRICE_EUR.starter
+  const strategyBase  = PLAN_PRICE_EUR.strategy
+  const premiumBase   = PLAN_PRICE_EUR.premium
+  const ultimateBase  = PLAN_PRICE_EUR.ultimate
   const geoSuffix = geo && geo.multiplier !== 1 ? `&cc=${geo.country}` : ''
-  const starterHref = `/api/stripe/checkout?plan=starter${geoSuffix}`
-  const premiumHref = `/api/stripe/checkout?plan=premium${geoSuffix}`
+  const starterHref  = `/api/stripe/checkout?plan=starter${geoSuffix}`
+  const strategyHref = `/api/stripe/checkout?plan=strategy${geoSuffix}`
+  const premiumHref  = `/api/stripe/checkout?plan=premium${geoSuffix}`
+  const ultimateHref = `/api/stripe/checkout?plan=ultimate${geoSuffix}`
   return (
-    <div className="grid md:grid-cols-3 gap-6">
+    <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
       <PlanCard
         name="Free" price="€0" period="" credits={PLAN_MONTHLY_GRANT.free}
         tagline="Explore avant d'acheter"
@@ -168,47 +176,77 @@ function Subscriptions({
           { label: 'Demo BP pour toutes les opportunités', yes: true },
           { label: 'Détail opportunité complet', yes: false },
           { label: 'Business plan IA', yes: false },
-          { label: 'Training YouTube', yes: false },
-          { label: 'Clients potentiels', yes: false },
+          { label: 'Fill the Gap', yes: false },
         ]}
         ctaLabel="Commencer gratuitement" ctaHref="/auth/register"
       />
       <PlanCard
-        name="Starter" price={`€${starterPrice}`}
+        name="Data" price={`€${starterPrice}`}
         basePrice={starterPrice !== starterBase ? `€${starterBase}` : undefined}
         period="/mois"
-        credits={PLAN_MONTHLY_GRANT.starter} highlight
-        tagline="Débloque tout le parcours"
+        credits={PLAN_MONTHLY_GRANT.starter}
+        tagline="Tout du parcours"
         features={[
           { label: 'Tout du Free', yes: true },
-          { label: '60 crédits/mois inclus', yes: true },
-          { label: 'Détail opportunité (1 cr)', yes: true },
-          { label: 'Business plan IA (10 cr = 6 BPs/mois)', yes: true },
-          { label: 'Training YouTube — illimité', yes: true },
-          { label: 'Proposer site e-commerce', yes: true },
-          { label: 'Clients potentiels', yes: false },
-          { label: 'Création site clé en main', yes: false },
+          { label: `${PLAN_MONTHLY_GRANT.starter} crédits IA/mois`, yes: true },
+          { label: 'Détail opportunité', yes: true },
+          { label: 'Business plan IA', yes: true },
+          { label: 'Training YouTube', yes: true },
+          { label: 'Fill the Gap', yes: false },
         ]}
-        ctaLabel="Passer Starter" ctaHref={starterHref}
+        ctaLabel="Passer Data" ctaHref={starterHref}
         onCtaClick={e => onUpgradeClick(e, 'data', starterHref)}
+      />
+      <PlanCard
+        name="Strategy" price={`€${strategyPrice}`}
+        basePrice={strategyPrice !== strategyBase ? `€${strategyBase}` : undefined}
+        period="/mois"
+        credits={PLAN_MONTHLY_GRANT.strategy}
+        tagline="Méthode + 1 supplier + 1 client"
+        features={[
+          { label: 'Tout du Data', yes: true },
+          { label: `${PLAN_MONTHLY_GRANT.strategy} crédits IA/mois`, yes: true },
+          { label: 'Méthode de fabrication dominante', yes: true },
+          { label: '1 supplier clé', yes: true },
+          { label: '1 client n°1 du pays', yes: true },
+          { label: 'Fill the Gap', yes: false },
+        ]}
+        ctaLabel="Passer Strategy" ctaHref={strategyHref}
+        onCtaClick={e => onUpgradeClick(e, 'premium', strategyHref)}
       />
       <PlanCard
         name="Premium" price={`€${premiumPrice}`}
         basePrice={premiumPrice !== premiumBase ? `€${premiumBase}` : undefined}
         period="/mois"
-        credits={PLAN_MONTHLY_GRANT.premium}
-        tagline="Parcours complet + ventes"
+        credits={PLAN_MONTHLY_GRANT.premium} highlight
+        tagline="Bench complet + 5/5"
         features={[
-          { label: 'Tout du Starter', yes: true },
-          { label: '120 crédits/mois inclus', yes: true },
-          { label: 'Liste clients potentiels (5 cr/contact)', yes: true },
-          { label: 'Coordonnées + données aide ventes', yes: true },
-          { label: 'Création site e-commerce clé en main', yes: true },
-          { label: '1er site offert (économise 30 cr)', yes: true },
-          { label: 'Support prioritaire', yes: true },
+          { label: 'Tout du Strategy', yes: true },
+          { label: `${PLAN_MONTHLY_GRANT.premium} crédits IA/mois`, yes: true },
+          { label: 'Bench complet des méthodes', yes: true },
+          { label: '5 suppliers + 5 clients', yes: true },
+          { label: '150 opps Fill the Gap/mois', yes: true },
+          { label: 'Site e-commerce clé en main', yes: true },
         ]}
         ctaLabel="Passer Premium" ctaHref={premiumHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', premiumHref)}
+      />
+      <PlanCard
+        name="Ultimate" price={`€${ultimatePrice}`}
+        basePrice={ultimatePrice !== ultimateBase ? `€${ultimateBase}` : undefined}
+        period="/mois"
+        credits={PLAN_MONTHLY_GRANT.ultimate}
+        tagline="Tout illimité + AI engine"
+        features={[
+          { label: 'Tout du Premium', yes: true },
+          { label: `${PLAN_MONTHLY_GRANT.ultimate} crédits IA/mois`, yes: true },
+          { label: 'Méthodes + suppliers + clients illimités', yes: true },
+          { label: '250 opps Fill the Gap/mois', yes: true },
+          { label: 'AI engine cascade ×3', yes: true },
+          { label: 'Support VIP dédié', yes: true },
+        ]}
+        ctaLabel="Passer Ultimate" ctaHref={ultimateHref}
+        onCtaClick={e => onUpgradeClick(e, 'premium', ultimateHref)}
       />
     </div>
   )

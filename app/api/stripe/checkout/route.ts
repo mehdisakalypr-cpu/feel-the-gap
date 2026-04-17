@@ -5,7 +5,7 @@ import { detectCountryFromHeaders, getGeoPrice } from '@/lib/geo-pricing'
 import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
 
 /**
- * GET /api/stripe/checkout?plan=starter|premium[&cc=XX]  → subscription checkout
+ * GET /api/stripe/checkout?plan=starter|strategy|premium|ultimate[&cc=XX]  → subscription checkout
  * GET /api/stripe/checkout?pack=10|20|30|50              → one-shot credit pack
  *
  * Redirects to Stripe hosted checkout or to /auth/login if not authenticated.
@@ -17,8 +17,10 @@ import { PLAN_PRICE_EUR } from '@/lib/credits/costs'
  * we don't have to maintain ~195 × 2 Stripe Price objects.
  */
 const PRICE_IDS: Record<string, string | undefined> = {
-  plan_starter: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-  plan_premium: process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+  plan_starter:  process.env.STRIPE_PRICE_STARTER_MONTHLY,
+  plan_strategy: process.env.STRIPE_PRICE_STRATEGY_MONTHLY,
+  plan_premium:  process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+  plan_ultimate: process.env.STRIPE_PRICE_ULTIMATE_MONTHLY,
   pack_10: process.env.STRIPE_PRICE_PACK_10,
   pack_20: process.env.STRIPE_PRICE_PACK_20,
   pack_30: process.env.STRIPE_PRICE_PACK_30,
@@ -26,13 +28,17 @@ const PRICE_IDS: Record<string, string | undefined> = {
 }
 
 const PLAN_PRODUCT_IDS: Record<string, string | undefined> = {
-  starter: process.env.STRIPE_PRODUCT_STARTER,
-  premium: process.env.STRIPE_PRODUCT_PREMIUM,
+  starter:  process.env.STRIPE_PRODUCT_STARTER,
+  strategy: process.env.STRIPE_PRODUCT_STRATEGY,
+  premium:  process.env.STRIPE_PRODUCT_PREMIUM,
+  ultimate: process.env.STRIPE_PRODUCT_ULTIMATE,
 }
 
 const PLAN_BASE_EUR: Record<string, number> = {
-  starter: PLAN_PRICE_EUR.starter,
-  premium: PLAN_PRICE_EUR.premium,
+  starter:  PLAN_PRICE_EUR.starter,
+  strategy: PLAN_PRICE_EUR.strategy,
+  premium:  PLAN_PRICE_EUR.premium,
+  ultimate: PLAN_PRICE_EUR.ultimate,
 }
 
 export async function GET(req: NextRequest) {
