@@ -21,24 +21,27 @@ export type CreditAction = keyof typeof CREDIT_COSTS
 export const PLAN_MONTHLY_GRANT = {
   free: 0,
   starter: 60,
-  strategy: 90,
-  premium: 120,
+  strategy: 100,
+  premium: 200,
+  ultimate: 500,    // generous quota; Ultimate also caps Fill-the-Gap usage at 250 opps/mo (separate counter)
   custom: 10000, // enterprise/agency pré-set ajustable au deal
 } as const
 
 export type PlanTier = keyof typeof PLAN_MONTHLY_GRANT
 
+/** Confirmed ladder 2026-04-17: 29 / 99 / 149 / 299 — aligned with BUSINESS_MODELS.md. */
 export const PLAN_PRICE_EUR = {
   free: 0,
   starter: 29,
-  // Strategy = mid-tier between Data and Premium. Provisional 49 € until
-  // the user confirms (legacy BUSINESS_MODELS.md had 99 € but Premium was
-  // also 149 € then; current Premium is 79 € so 49 € keeps a coherent ladder
-  // and stays below the 50 € psychological barrier).
-  strategy: 49,
-  premium: 79,
+  strategy: 99,
+  premium: 149,
+  ultimate: 299,
   custom: 0, // sur devis
 } as const
+
+/** Ultimate-only: hard monthly cap on "Fill the Gap" actions (videos, clients,
+ * store, recap, AI engine). Auto-resets on the 1st of each month, no rollover. */
+export const ULTIMATE_FILL_QUOTA = 250 as const
 
 /** Top-up packs (valides 12 mois) — dégressif, tous > coût/crédit des subscriptions. */
 export const TOPUP_PACKS = [

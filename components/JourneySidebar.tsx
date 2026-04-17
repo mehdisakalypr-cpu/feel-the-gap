@@ -39,13 +39,15 @@ const TIER_RANK: Record<string, number> = {
   basic: 1, data: 1,
   standard: 2, strategy: 2,
   premium: 3,
-  enterprise: 4,
+  ultimate: 4,
+  enterprise: 5,
 }
 
 const TIER_LABELS: Record<string, { fr: string; en: string; color: string }> = {
   data:     { fr: 'Data',     en: 'Data',     color: '#60A5FA' },
   strategy: { fr: 'Strategy', en: 'Strategy', color: '#C9A84C' },
   premium:  { fr: 'Premium',  en: 'Premium',  color: '#A78BFA' },
+  ultimate: { fr: 'Ultimate', en: 'Ultimate', color: '#34D399' },
 }
 
 interface JourneySidebarProps {

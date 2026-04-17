@@ -41,7 +41,7 @@ export function CountrySidebar({
   const [paywall, setPaywall] = useState<null | { feature: Feature; requiredTier: 'starter' | 'premium' }>(null)
 
   function handleClick(item: MenuItem, e: React.MouseEvent) {
-    const rank = { free: 0, starter: 1, strategy: 2, premium: 3, custom: 4 }
+    const rank = { free: 0, starter: 1, strategy: 2, premium: 3, ultimate: 4, custom: 5 }
     const userRank = rank[userTier] ?? 0
     const needRank = rank[item.minTier ?? 'free']
     if (needRank > userRank && item.feature) {
@@ -59,7 +59,7 @@ export function CountrySidebar({
         </div>
         <nav className="p-2 space-y-0.5">
           {MENU_ITEMS.map((item) => {
-            const rank = { free: 0, starter: 1, strategy: 2, premium: 3, custom: 4 }
+            const rank = { free: 0, starter: 1, strategy: 2, premium: 3, ultimate: 4, custom: 5 }
             const locked = (rank[item.minTier ?? 'free']) > (rank[userTier] ?? 0)
             const href = `/country/${iso}${item.href}`
             const active = pathname === href

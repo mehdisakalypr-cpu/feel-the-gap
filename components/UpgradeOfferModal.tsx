@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
-export type UpgradeTier = 'data' | 'strategy' | 'premium'
+export type UpgradeTier = 'data' | 'strategy' | 'premium' | 'ultimate'
 
 const TIER_META: Record<UpgradeTier, {
   name: string
@@ -16,7 +16,7 @@ const TIER_META: Record<UpgradeTier, {
   data: {
     name: 'Data',
     nameFr: 'Data',
-    monthlyEur: 19,
+    monthlyEur: 29,
     emoji: '📊',
     color: '#60A5FA',
     perks: {
@@ -27,23 +27,34 @@ const TIER_META: Record<UpgradeTier, {
   strategy: {
     name: 'Strategy',
     nameFr: 'Strategy',
-    monthlyEur: 49,
+    monthlyEur: 99,
     emoji: '💼',
     color: '#C9A84C',
     perks: {
-      fr: ['Études approfondies', 'Business plans 3 scénarios', 'Clients B2B matchés IA'],
-      en: ['In-depth studies', '3-scenario business plans', 'AI-matched B2B buyers'],
+      fr: ['Méthode de fabrication dominante', '1 fournisseur clé', '1 client n°1 du pays', 'Business plan 3 scénarios'],
+      en: ['Dominant manufacturing method', '1 key supplier', '1 top client in country', '3-scenario business plan'],
     },
   },
   premium: {
     name: 'Premium',
     nameFr: 'Premium',
-    monthlyEur: 99,
+    monthlyEur: 149,
     emoji: '🏪',
     color: '#A78BFA',
     perks: {
-      fr: ['Site e-commerce clé en main', 'Support prioritaire', 'Toutes les offres inférieures'],
-      en: ['Ready-to-sell e-commerce', 'Priority support', 'All lower tiers included'],
+      fr: ['Benchmark complet des méthodes', '5 fournisseurs vérifiés', '5 clients B2B matchés IA', 'Site e-commerce clé en main'],
+      en: ['Full method benchmark', '5 verified suppliers', '5 AI-matched B2B clients', 'Ready-to-sell e-commerce'],
+    },
+  },
+  ultimate: {
+    name: 'Ultimate',
+    nameFr: 'Ultimate',
+    monthlyEur: 299,
+    emoji: '🚀',
+    color: '#34D399',
+    perks: {
+      fr: ['Tout débloqué — illimité', '250 opportunités Fill-the-Gap/mois', 'AI engine personnalisé en cascade', 'Optimisation continue de votre projet'],
+      en: ['Everything unlocked — unlimited', '250 Fill-the-Gap opportunities/month', 'Personalized AI engine cascade', 'Continuous project optimization'],
     },
   },
 }
@@ -61,9 +72,11 @@ interface UpgradeOfferModalProps {
 function tierMonthly(t: string): number {
   const map: Record<string, number> = {
     free: 0, explorer: 0,
-    basic: 19, data: 19,
-    standard: 49, strategy: 49,
-    premium: 99, enterprise: 299,
+    basic: 29, data: 29,
+    standard: 99, strategy: 99,
+    premium: 149,
+    ultimate: 299,
+    enterprise: 0,
   }
   return map[t] ?? 0
 }
