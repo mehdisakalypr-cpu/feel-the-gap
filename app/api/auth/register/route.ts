@@ -28,6 +28,7 @@ import {
   sendEmail,
   renderOtpEmail,
   logEvent,
+  setSitePassword,
 } from '@/lib/auth-v2'
 
 export const runtime = 'nodejs'
@@ -97,28 +98,52 @@ export async function POST(req: NextRequest) {
 
   const admin = supabaseAdmin()
 
-  // Create user — email_confirm:true means Supabase trusts the address; we still send a separate OTP
-  // (purpose=email_verify) to assert ownership via our own pipeline. This avoids the dual-link
-  // problem (Supabase magic-link + our OTP both targeting inbox confusion).
+  // Create the Supabase auth.users row with a RANDOM placeholder password — we
+  // never use Supabase's built-in signInWithPassword for this user. The real,
+  // per-site password lives in public.auth_site_passwords (Option C, 2026-04-17).
+  const placeholderPassword = crypto.randomBytes(32).toString('base64url')
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password,
+    password: placeholderPassword,
     email_confirm: true,
     user_metadata: displayName ? { display_name: displayName } : undefined,
   })
 
-  if (createErr || !created?.user) {
-    const msg = (createErr?.message ?? '').toLowerCase()
-    const exists = msg.includes('already') || msg.includes('duplicate') || msg.includes('registered')
-    await logEvent({ event: 'register_fail', ip, ua, meta: { reason: exists ? 'exists' : 'supabase_error' } })
-    // Anti-enumeration: respond with the same shape on "exists" as on success.
-    if (exists) {
-      return NextResponse.json({ ok: true, require_verify: true }, { headers: { 'Cache-Control': 'no-store' } })
-    }
+  let user: { id: string; email: string | null } | null = created?.user
+    ? { id: created.user.id, email: created.user.email ?? email }
+    : null
+  const msg = (createErr?.message ?? '').toLowerCase()
+  const exists = msg.includes('already') || msg.includes('duplicate') || msg.includes('registered')
+
+  if (createErr && !exists) {
+    await logEvent({ event: 'register_fail', ip, ua, meta: { reason: 'supabase_error', err: createErr.message.slice(0, 140) } })
     return jsonError(500, 'Registration failed')
   }
 
-  const user = created.user
+  // If the user already existed in auth.users (e.g. registered on another site),
+  // we still let them create a site-specific password here — same email, new
+  // per-site credential. Resolve their user_id via profiles.
+  if (!user) {
+    const { data: profile } = await admin.from('profiles').select('id').eq('email', email).maybeSingle()
+    if (profile?.id) {
+      user = { id: profile.id as string, email }
+    }
+  }
+
+  if (!user) {
+    await logEvent({ event: 'register_fail', ip, ua, meta: { reason: 'no_user_resolved' } })
+    // Anti-enumeration: look successful even when something failed upstream.
+    return NextResponse.json({ ok: true, require_verify: true }, { headers: { 'Cache-Control': 'no-store' } })
+  }
+
+  // Store the real, per-site password.
+  try {
+    await setSitePassword(email, password)
+  } catch (e) {
+    await logEvent({ userId: user.id, event: 'register_fail', ip, ua, meta: { reason: 'site_password', err: (e as Error).message.slice(0, 140) } })
+    return jsonError(500, 'Registration failed')
+  }
+
   try { await grantAccess(user.id, 'user') } catch { /* non-fatal — admin can re-grant */ }
 
   // Email verify OTP

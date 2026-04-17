@@ -29,8 +29,8 @@ import {
   issueCsrfToken,
   attachCsrfCookie,
   logEvent,
+  verifySitePassword,
 } from '@/lib/auth-v2'
-import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -108,54 +108,64 @@ export async function POST(req: NextRequest) {
     return jsonError(400, 'Vérification anti-bot échouée')
   }
 
-  // Password verification via a request-scoped anon client (avoids module-scope session leak).
-  const anon = createClient(cfg.supabase.url, cfg.supabase.anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
-  })
-  const { data, error } = await anon.auth.signInWithPassword({ email, password })
-
-  if (error || !data?.user || !data.session) {
-    // Pad timing so "unknown email" and "wrong password" cost the same.
+  // PER-SITE password verification (2026-04-17 Option C).
+  // The Supabase auth.users.password is IGNORED here — each site has its own
+  // bcrypt hash in public.auth_site_passwords (email, site_slug). A compromised
+  // password on one site cannot authenticate on another.
+  const pwOk = await verifySitePassword(email, password)
+  if (!pwOk) {
     await timingPad()
     await logEvent({ event: 'login_fail', ip, ua, meta: { reason: 'bad_credentials' } })
     return jsonError(401, 'Identifiants invalides')
   }
 
-  const user = data.user
-  const session = data.session
+  // Resolve user_id from Supabase auth.users (matched by email).
+  const admin = supabaseAdmin()
+  const { data: profileRow } = await admin.from('profiles').select('id').eq('email', email).maybeSingle()
+  const userId = profileRow?.id as string | undefined
+  if (!userId) {
+    await timingPad()
+    await logEvent({ event: 'login_fail', ip, ua, meta: { reason: 'no_profile' } })
+    return jsonError(401, 'Identifiants invalides')
+  }
 
-  // Site access check — user might exist in Supabase but not on this site.
-  const hasAccess = await userHasAccess(user.id)
+  // Site access check.
+  const hasAccess = await userHasAccess(userId)
   if (!hasAccess) {
-    // Revoke the session we just obtained (do not leak cookies back to client).
-    try { await supabaseAdmin().auth.admin.signOut(user.id, 'global') } catch { /* best-effort */ }
-    await logEvent({ userId: user.id, event: 'login_fail', ip, ua, meta: { reason: 'no_site_access' } })
+    await logEvent({ userId, event: 'login_fail', ip, ua, meta: { reason: 'no_site_access' } })
     return jsonError(403, 'Accès non autorisé')
   }
 
-  // 2FA gate — if TOTP is active, do NOT return session tokens.
-  if (await hasActiveTotp(user.id)) {
-    // Sign out the ephemeral session just obtained — client must complete MFA first.
-    try { await supabaseAdmin().auth.admin.signOut(user.id, 'global') } catch { /* best-effort */ }
-    const mfaToken = signMfaToken(user.id)
+  // 2FA gate — if TOTP is active, do NOT mint a session yet.
+  if (await hasActiveTotp(userId)) {
+    const mfaToken = signMfaToken(userId)
     const res = NextResponse.json({ ok: true, require_mfa: true, mfa_token: mfaToken })
     res.headers.set('Cache-Control', 'no-store')
     attachCsrfCookie(res, issueCsrfToken())
-    await logEvent({ userId: user.id, event: 'login_ok', ip, ua, meta: { mfa_required: true } })
+    await logEvent({ userId, event: 'login_ok', ip, ua, meta: { mfa_required: true } })
     return res
   }
 
-  // Success — return tokens (client posts to Supabase to set cookies).
+  // Mint a one-shot magic link via Supabase admin so the client can materialize
+  // the session without us ever holding the user's Supabase password.
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  })
+  const hashedToken = link?.properties?.hashed_token
+  if (linkErr || !hashedToken) {
+    await logEvent({ userId, event: 'login_fail', ip, ua, meta: { reason: 'link_issue', err: linkErr?.message?.slice(0, 140) } })
+    return jsonError(500, 'Session issuance failed')
+  }
+
   const res = NextResponse.json({
     ok: true,
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-    expires_in: session.expires_in,
-    token_type: session.token_type,
-    user: { id: user.id, email: user.email ?? email },
+    token_hash: hashedToken,
+    type: 'magiclink',
+    user: { id: userId, email },
   })
   res.headers.set('Cache-Control', 'no-store')
   attachCsrfCookie(res, issueCsrfToken())
-  await logEvent({ userId: user.id, event: 'login_ok', ip, ua })
+  await logEvent({ userId, event: 'login_ok', ip, ua })
   return res
 }

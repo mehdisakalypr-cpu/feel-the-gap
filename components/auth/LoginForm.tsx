@@ -187,7 +187,7 @@ export function LoginForm({
         body: JSON.stringify({ email, password, captchaToken, remember }),
       })
       const json = (await res.json().catch(() => null)) as
-        | { ok?: boolean; require_mfa?: boolean; mfa_token?: string; access_token?: string; refresh_token?: string; error?: string }
+        | { ok?: boolean; require_mfa?: boolean; mfa_token?: string; access_token?: string; refresh_token?: string; token_hash?: string; type?: 'magiclink' | 'email'; error?: string }
         | null
       if (!res.ok || !json?.ok) {
         setError(json?.error === 'Accès non autorisé' ? 'Accès non autorisé' : 'Identifiants invalides')
@@ -198,9 +198,23 @@ export function LoginForm({
         window.location.assign(`/auth/mfa?token=${encodeURIComponent(json.mfa_token)}`)
         return
       }
+      const sb = createSupabaseBrowser()
+      if (json.token_hash && json.type) {
+        // Per-site password flow (Option C): server minted a magic-link hashed_token.
+        const { error: otpErr } = await sb.auth.verifyOtp({
+          token_hash: json.token_hash,
+          type: json.type,
+        })
+        if (otpErr) {
+          setError('Identifiants invalides')
+          setBusy(false)
+          return
+        }
+        window.location.assign(postLoginPath)
+        return
+      }
       if (json.access_token && json.refresh_token) {
-        // Post tokens to the SSR cookie via browser client so middleware picks them up.
-        const sb = createSupabaseBrowser()
+        // Legacy path (kept for backwards compat if ever needed).
         const { error: setErr } = await sb.auth.setSession({
           access_token: json.access_token,
           refresh_token: json.refresh_token,

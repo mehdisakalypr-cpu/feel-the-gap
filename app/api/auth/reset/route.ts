@@ -21,6 +21,7 @@ import {
   revokeAllSessions,
   deleteCredentialsForUser,
   logEvent,
+  setSitePassword,
 } from '@/lib/auth-v2'
 
 export const runtime = 'nodejs'
@@ -105,13 +106,17 @@ export async function POST(req: NextRequest) {
 
   const userId = profile.id as string
 
-  const { error: updateErr } = await admin.auth.admin.updateUserById(userId, { password })
-  if (updateErr) {
-    await logEvent({ userId, event: 'reset_verify_fail', ip, ua, meta: { reason: 'supabase_update', err: updateErr.message.slice(0, 140) } })
+  // Per-site password rotation (Option C) — we do NOT touch
+  // auth.users.encrypted_password anymore; that field holds a placeholder and
+  // the real credential lives in public.auth_site_passwords (email, site_slug).
+  try {
+    await setSitePassword(email, password)
+  } catch (e) {
+    await logEvent({ userId, event: 'reset_verify_fail', ip, ua, meta: { reason: 'site_password', err: (e as Error).message.slice(0, 140) } })
     return jsonError(500, 'Reset failed')
   }
 
-  // Tear down everything — force full re-auth.
+  // Tear down everything — force full re-auth on THIS site.
   try { await revokeAllSessions(userId) } catch { /* best-effort */ }
   try { await deleteCredentialsForUser(userId) } catch { /* best-effort */ }
 
