@@ -433,12 +433,14 @@ if (require.main === module) {
   const year = parseInt(args[args.indexOf('--year') + 1] ?? '2022')
   const dryRun = args.includes('--dry-run')
   const analyze = args.includes('--analyze')
+  const allCountries = args.includes('--all-countries') || args.includes('--all')
 
   if (analyze) {
     runGapAnalyzer().catch(console.error)
   } else {
     runFreeCollector({
       countries: country ? [country] : undefined,
+      allCountries,
       year,
       dryRun,
     }).then(() => {

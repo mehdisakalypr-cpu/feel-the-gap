@@ -173,6 +173,8 @@ export default function ReportPage() {
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set())
   const [showModelPanel, setShowModelPanel] = useState(false)
   const [showCheckboxHint, setShowCheckboxHint] = useState(false)
+  // Minimum opportunity score filter — 0 = no filter, 100 = only perfect.
+  const [minScore, setMinScore] = useState(0)
 
   const toggleOpp = (id: string) => setSelectedOpps(prev => {
     const next = new Set(prev)
@@ -259,7 +261,10 @@ export default function ReportPage() {
   const imports = parseImportText(country.top_import_text ?? '', country.total_imports_usd)
   const surplus = (country.trade_balance_usd ?? 0) > 0
   const topOpp = opps[0]
+  // Filter by minimum score; full totalGap kept for context.
+  const filteredOpps = minScore > 0 ? opps.filter(o => (o.opportunity_score ?? 0) >= minScore) : opps
   const totalGap = opps.reduce((s, o) => s + (o.gap_value_usd ?? 0), 0)
+  const filteredGap = filteredOpps.reduce((s, o) => s + (o.gap_value_usd ?? 0), 0)
 
   return (
     <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
@@ -276,34 +281,65 @@ export default function ReportPage() {
           <span className="text-gray-300">{country.flag} {country.name_fr}</span>
         </div>
 
-        {/* ── CTA "Voir les opportunités" + jump dropdown ── */}
+        {/* ── CTA "Voir les opportunités" + jump dropdown + score filter ── */}
         {opps.length > 0 && (
-          <div className="flex justify-center items-center gap-3 flex-wrap">
-            <button
-              onClick={scrollToOpps}
-              className="group px-6 py-3 bg-gradient-to-r from-[#34D399] to-[#10B981] text-[#07090F] font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
-            >
-              <span className="text-lg">💡</span>
-              <span>Voir les {opps.length} opportunités</span>
-              <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
-            </button>
-            <select
-              onChange={(e) => {
-                const id = e.target.value
-                if (!id) return
-                document.getElementById(`opp-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                e.target.value = ''
-              }}
-              aria-label="Aller à une opportunité"
-              className="px-3 py-3 rounded-xl bg-[#0D1117] border border-[#C9A84C]/30 text-sm text-gray-200 hover:border-[#C9A84C]/60 transition-colors max-w-[260px] truncate cursor-pointer"
-            >
-              <option value="">🎯 Aller à une opportunité…</option>
-              {opps.map((o, i) => (
-                <option key={o.id} value={o.id}>
-                  #{i + 1} · {o.products?.name ?? 'Produit'} — {o.opportunity_score}/100
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex justify-center items-center gap-3 flex-wrap">
+              <button
+                onClick={scrollToOpps}
+                className="group px-6 py-3 bg-gradient-to-r from-[#34D399] to-[#10B981] text-[#07090F] font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
+              >
+                <span className="text-lg">💡</span>
+                <span>Voir les {filteredOpps.length} opportunité{filteredOpps.length > 1 ? 's' : ''}{minScore > 0 ? ` (≥ ${minScore}%)` : ''}</span>
+                <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
+              </button>
+              <select
+                onChange={(e) => {
+                  const id = e.target.value
+                  if (!id) return
+                  document.getElementById(`opp-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  e.target.value = ''
+                }}
+                aria-label="Aller à une opportunité"
+                className="px-3 py-3 rounded-xl bg-[#0D1117] border border-[#C9A84C]/30 text-sm text-gray-200 hover:border-[#C9A84C]/60 transition-colors max-w-[260px] truncate cursor-pointer"
+              >
+                <option value="">🎯 Aller à une opportunité…</option>
+                {filteredOpps.map((o, i) => (
+                  <option key={o.id} value={o.id}>
+                    #{i + 1} · {o.products?.name ?? 'Produit'} — {o.opportunity_score}/100
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <label htmlFor="min-score-filter" className="text-gray-500">Score minimum :</label>
+              <select
+                id="min-score-filter"
+                value={minScore}
+                onChange={(e) => setMinScore(Number(e.target.value))}
+                aria-label="Filtrer par score minimum"
+                className="px-3 py-2 rounded-lg bg-[#0D1117] border border-[#C9A84C]/20 text-xs text-gray-200 hover:border-[#C9A84C]/50 transition-colors cursor-pointer"
+              >
+                <option value={0}>Toutes ({opps.length})</option>
+                {Array.from({ length: 20 }, (_, i) => 100 - i * 5).map((s) => {
+                  const count = opps.filter(o => (o.opportunity_score ?? 0) >= s).length
+                  return (
+                    <option key={s} value={s} disabled={count === 0}>
+                      ≥ {s}% · {count} opp.{count === 0 ? ' (aucune)' : ''}
+                    </option>
+                  )
+                })}
+              </select>
+              {minScore > 0 && (
+                <button
+                  onClick={() => setMinScore(0)}
+                  className="text-[#C9A84C] hover:underline text-xs ml-1"
+                  aria-label="Réinitialiser le filtre"
+                >
+                  ✕ réinit.
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -451,14 +487,28 @@ export default function ReportPage() {
         {/* ── Opportunities ── */}
         {opps.length > 0 && (
           <div id="opportunities-section" className="scroll-mt-20">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2 flex-wrap">
               <span className="w-7 h-7 rounded-lg bg-[#34D399]/15 flex items-center justify-center text-sm">💡</span>
               Opportunités identifiées
-              <span className="ml-auto text-sm font-normal text-gray-500">Potentiel total : <span className="text-[#C9A84C] font-bold">{fmt(totalGap)}</span>/an</span>
+              {minScore > 0 && (
+                <span className="text-xs text-[#C9A84C] font-normal px-2 py-0.5 bg-[#C9A84C]/10 rounded-full border border-[#C9A84C]/20">
+                  score ≥ {minScore}% · {filteredOpps.length}/{opps.length}
+                </span>
+              )}
+              <span className="ml-auto text-sm font-normal text-gray-500">
+                Potentiel{minScore > 0 ? ' filtré' : ' total'} : <span className="text-[#C9A84C] font-bold">{fmt(minScore > 0 ? filteredGap : totalGap)}</span>/an
+              </span>
             </h2>
 
+            {filteredOpps.length === 0 && (
+              <div className="text-center py-10 text-sm text-gray-500 bg-[#0D1117] rounded-2xl border border-white/5">
+                Aucune opportunité ≥ {minScore}%.{' '}
+                <button onClick={() => setMinScore(0)} className="text-[#C9A84C] hover:underline">Réinitialiser le filtre</button>
+              </div>
+            )}
+
             <div className="space-y-5">
-              {opps.map((opp, idx) => {
+              {filteredOpps.map((opp, idx) => {
                 const metrics = getBusinessMetrics(opp, country.energy_cost_index)
                 const riskColor = RISK_COLOR[metrics.risk] ?? '#6B7280'
                 const catColor = opp.products?.category === 'energy' ? '#F97316'
