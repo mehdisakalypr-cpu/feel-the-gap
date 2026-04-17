@@ -7,6 +7,7 @@ import { createSupabaseBrowser } from '@/lib/supabase'
 import { checkPassword } from '@/lib/hibp'
 import { useLang } from '@/components/LanguageProvider'
 import TurnstileWidget from '@/components/TurnstileWidget'
+import ContractGate, { type ContractGateResult } from '@/components/ContractGate'
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
@@ -24,6 +25,11 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [showPwd, setShowPwd] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  // ContractGate: when non-null, gate is shown and signup has completed but we
+  // block navigation until the user signs the free-account agreement.
+  const [pendingSignature, setPendingSignature] = useState<null | {
+    hasSession: boolean
+  }>(null)
 
   async function handleGoogle() {
     const sb = createSupabaseBrowser()
@@ -65,18 +71,33 @@ export default function RegisterPage() {
     }
 
     // Supabase renvoie une session SI mailer_autoconfirm=true (compte actif direct).
-    // Dans ce cas, on connecte l'utilisateur et on file sur /map. Pas d'écran "check email"
-    // trompeur qui laisse attendre un mail qui n'arrivera jamais.
+    // Dans ce cas, on gate la navigation par ContractGate (account_signup).
     if (signUpData.session) {
-      // Capture éventuel referral (cookie ftg_ref) avant redirection
+      // Capture éventuel referral (cookie ftg_ref) avant la signature
       try { await fetch('/api/referral/capture', { method: 'POST' }) } catch {}
-      router.push('/map')
+      setPendingSignature({ hasSession: true })
+      setLoading(false)
       return
     }
 
     // Sinon (confirmation email requise côté Supabase), on affiche l'écran check email.
+    // Note: la signature du contrat compte sera demandée lors du premier login confirmé.
     setDone('confirm_required')
     setLoading(false)
+  }
+
+  function handleContractAccepted(_r: ContractGateResult) {
+    setPendingSignature(null)
+    router.push('/map')
+  }
+
+  function handleContractCancelled() {
+    // If user backs out we don't delete the Supabase user (they'd be able to retry login
+    // and be gated again), but we surface an explicit notice.
+    setPendingSignature(null)
+    setError(lang === 'fr'
+      ? 'Signature du contrat requise pour accéder au compte. Recommencez l\'inscription pour valider.'
+      : 'Contract signature is required to access your account. Please sign in to complete signature.')
   }
 
   return (
@@ -174,6 +195,17 @@ export default function RegisterPage() {
           <Link href="/auth/login" className="text-[#C9A84C] hover:text-[#E8C97A]">{t('auth.signin_link')}</Link>
         </p>
       </div>
+
+      {pendingSignature && (
+        <ContractGate
+          agreement="account_signup"
+          email={email}
+          lang={lang === 'fr' ? 'fr' : 'en'}
+          purchaseIntent={{ flow: 'free_signup', username: username.trim() }}
+          onAccepted={handleContractAccepted}
+          onCancel={handleContractCancelled}
+        />
+      )}
     </div>
   )
 }
