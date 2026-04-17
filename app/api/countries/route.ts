@@ -18,19 +18,26 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Join opportunity aggregates via SQL view (évite la limite 1000 rows du client)
-  const { data: oppAggs, error: oppErr } = await supabase
-    .from('country_opportunity_stats')
-    .select('country_iso, opportunity_count, top_opportunity_score')
-    .limit(300)  // ~195 countries max
-
-  if (oppErr) {
-    // Don't silently serve 0-count data — surface it.
-    console.error('[api/countries] country_opportunity_stats query failed:', oppErr.message)
+  // Join opportunity aggregates via SQL view. supabase-js was silently returning
+  // [] here (unclear why — possibly a view schema cache staleness after recent
+  // migrations). Direct PostgREST fetch is rock-solid, so we use it here.
+  const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const sbAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  type OppAggRow = { country_iso: string; opportunity_count: number; top_opportunity_score: number | string | null }
+  let oppAggs: OppAggRow[] = []
+  try {
+    const res = await fetch(`${sbUrl}/rest/v1/country_opportunity_stats?select=country_iso,opportunity_count,top_opportunity_score&limit=300`, {
+      headers: { apikey: sbAnon, Authorization: `Bearer ${sbAnon}` },
+      cache: 'no-store',
+    })
+    if (res.ok) oppAggs = await res.json() as OppAggRow[]
+    else console.error('[api/countries] PostgREST view fetch failed:', res.status, await res.text().catch(() => ''))
+  } catch (e) {
+    console.error('[api/countries] view fetch threw:', (e as Error).message)
   }
 
   const oppByCountry: Record<string, { count: number; top: number }> = {}
-  for (const row of (oppAggs ?? [])) {
+  for (const row of oppAggs) {
     oppByCountry[row.country_iso] = {
       count: row.opportunity_count,
       top: Number(row.top_opportunity_score) || 0,
