@@ -6,10 +6,16 @@ import { EXIT_REASONS, submitExitFeedback } from '@/lib/funnel'
 
 /**
  * Non-intrusive exit feedback widget.
- * Shows a small slide-up when:
+ *
+ * Shows only to ENGAGED visitors (not cold traffic). Engagement is set in
+ * localStorage by pages/actions that indicate real product interest:
+ *   - /pricing page view → `ftg_engaged` = '1'
+ *   - Full report view (e.g. /reports/[iso]/business-plan) → `ftg_engaged` = '1'
+ *   - User saves/checks an opportunity (toggleFavorite, etc.) → `ftg_engaged` = '1'
+ *
+ * Triggers (only AFTER engagement):
  *   - Mouse leaves the viewport top (desktop)
  *   - User is idle for 90 seconds
- *   - User hits back button
  *
  * NOT a modal — sits at the bottom of the screen, easy to dismiss.
  * Only shows once per session.
@@ -25,6 +31,8 @@ export default function ExitFeedback() {
 
   const trigger = useCallback(() => {
     if (sessionStorage.getItem('ftg_exit_shown')) return
+    // Only show to ENGAGED visitors — cold traffic on /, /map, /demo never sees this.
+    if (localStorage.getItem('ftg_engaged') !== '1') return
     sessionStorage.setItem('ftg_exit_shown', '1')
     setShow(true)
   }, [])
@@ -32,6 +40,9 @@ export default function ExitFeedback() {
   useEffect(() => {
     // Don't show on auth pages or admin
     if (currentStep.includes('/auth') || currentStep.includes('/admin')) return
+
+    // Skip entirely if not engaged yet — no listeners, no timers.
+    if (typeof window !== 'undefined' && localStorage.getItem('ftg_engaged') !== '1') return
 
     // Mouse leave viewport (desktop)
     const handleMouseLeave = (e: MouseEvent) => {

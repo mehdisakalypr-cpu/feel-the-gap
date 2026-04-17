@@ -23,6 +23,11 @@ export default function PricingPage() {
   const [userEmail, setUserEmail] = useState<string>('')
   const [gate, setGate] = useState<null | { agreement: ContractGateAgreement; next: string; email: string }>(null)
 
+  // Engagement signal: viewing pricing → ExitFeedback becomes eligible.
+  useEffect(() => {
+    try { localStorage.setItem('ftg_engaged', '1') } catch { /* noop */ }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     fetch('/api/geo')

@@ -1191,6 +1191,14 @@ export default function BusinessPlanPage() {
   const selectedOppIds = (searchParams?.get('opps') ?? '').split(',').filter(Boolean)
   const urlModels = (searchParams?.get('models') ?? '').split(',').filter(Boolean)
 
+  // Engagement signal: on business-plan page with at least 1 opportunity selected
+  // → unlock the ExitFeedback widget for this user.
+  useEffect(() => {
+    if (selectedOppIds.length > 0) {
+      try { localStorage.setItem('ftg_engaged', '1') } catch { /* noop */ }
+    }
+  }, [selectedOppIds.length])
+
   const [opps, setOpps] = useState<OppRow[]>([])
   const [countryName, setCountryName] = useState('')
   const [loading, setLoading] = useState(false)       // LLM generation in progress
