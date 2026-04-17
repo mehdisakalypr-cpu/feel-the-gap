@@ -13,13 +13,9 @@ const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export function createSupabaseBrowser() {
   if (!URL || !ANON) throw new Error('[auth-v2] missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY')
-  return createBrowserClient(URL, ANON, {
-    cookieOptions: {
-      name: 'sb-auth',
-      path: '/',
-      sameSite: 'lax',
-      secure: typeof window !== 'undefined' && window.location.protocol === 'https:',
-      maxAge: 60 * 60 * 24 * 7, // 7d rolling; middleware refreshes
-    },
-  })
+  // IMPORTANT: do NOT override cookieOptions.name — @supabase/ssr derives the
+  // session cookie name from the project ref (sb-<ref>-auth-token) and both
+  // browser + server must agree. A custom name on the browser silently breaks
+  // proxy.getUser() → causes a login→reload loop.
+  return createBrowserClient(URL, ANON)
 }
