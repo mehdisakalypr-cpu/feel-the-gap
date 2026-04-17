@@ -99,105 +99,86 @@ export default function HomePage() {
         )}
       </header>
 
-      {/* Hero */}
-      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 pt-24 pb-16">
+      {/* Hero — slogan + 4-step schema + desc + BIG map CTA, all above the fold */}
+      <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 pt-6 pb-8 max-w-6xl mx-auto w-full">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[#C9A84C]/8 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C] text-xs font-semibold mb-6 backdrop-blur">
+        <div className="relative z-10 w-full max-w-5xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#C9A84C]/30 bg-[#C9A84C]/5 text-[#C9A84C] text-[11px] font-semibold mb-3 backdrop-blur">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] animate-pulse" />
             {t('home.badge')}
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight" style={{ textShadow: '0 4px 30px rgba(0,0,0,.5)' }}>
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-5 leading-tight" style={{ textShadow: '0 4px 30px rgba(0,0,0,.5)' }}>
             {t('home.hero_title')}{' '}
             <span className="text-[#C9A84C]">{t('home.hero_title_accent')}</span>
           </h1>
 
-          <p className="text-lg text-gray-300 mb-10 max-w-xl mx-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,.8)' }}>
+          {/* 4-step schema compact — directly under slogan */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5 max-w-5xl mx-auto">
+            {[
+              { n: 1, icon: '🌍', title: 'Analysez le monde', desc: '195 pays · 500+ produits', color: '#60A5FA' },
+              { n: 2, icon: '🎯', title: 'Trouvez vos opportunités', desc: 'Gaps de marché rentables', color: '#A78BFA' },
+              { n: 3, icon: '🔑', title: 'Toutes les clés en main', desc: 'Plans · formations · acheteurs', color: '#C9A84C' },
+              { n: 4, icon: '💰', title: 'Succès', desc: 'Revenus · filière · impact', color: '#34D399', final: true },
+            ].map((s) => (
+              <div
+                key={s.n}
+                className={`relative bg-[#0D1117]/80 backdrop-blur border rounded-xl p-3 overflow-hidden ${s.final ? 'border-[#34D399]/40' : 'border-white/10'}`}
+                style={{ boxShadow: s.final ? `0 0 24px ${s.color}22` : undefined }}
+              >
+                <div className="absolute top-0 left-0 w-full h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${s.color}, transparent)` }} />
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black" style={{ background: `${s.color}18`, color: s.color }}>{s.n}</span>
+                  <span className="text-xl">{s.icon}</span>
+                </div>
+                <h3 className="font-bold text-white text-xs md:text-sm mb-0.5 leading-tight">{s.title}</h3>
+                <p className="text-[10px] md:text-[11px] text-gray-400 leading-snug">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Slogan/description moved BELOW the schema */}
+          <p className="text-sm md:text-base text-gray-300 mb-6 max-w-xl mx-auto" style={{ textShadow: '0 2px 8px rgba(0,0,0,.8)' }}>
             {t('home.hero_desc')}
           </p>
 
-          {loggedIn === false && (
-            <>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link href="/auth/register"
-                  className="px-7 py-3.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm shadow-[0_10px_40px_rgba(201,168,76,.25)]">
+          {/* BIG animated "Lancez la carte pour tester" CTA */}
+          <div className="flex flex-col items-center gap-4">
+            <Link
+              href="/map"
+              className="group relative inline-flex items-center gap-3 px-9 py-4 md:px-12 md:py-5 bg-[#C9A84C] text-[#07090F] font-bold rounded-2xl text-base md:text-lg shadow-[0_10px_50px_rgba(201,168,76,.35)] hover:scale-[1.03] hover:bg-[#E8C97A] transition-all"
+            >
+              <span className="absolute inset-0 rounded-2xl ring-2 ring-[#C9A84C]/60 animate-ping" aria-hidden />
+              <span className="absolute inset-0 rounded-2xl ring-2 ring-[#C9A84C]/30" aria-hidden />
+              <span className="relative text-2xl">🌍</span>
+              <span className="relative">Lancez la carte pour tester</span>
+              <span className="relative text-xl group-hover:translate-x-1 transition-transform">→</span>
+            </Link>
+
+            {loggedIn === false && (
+              <>
+                <Link href="/auth/register" className="text-xs text-[#C9A84C] hover:text-[#E8C97A] underline underline-offset-2">
                   {t('home.cta_register_full')}
                 </Link>
-              </div>
-              <div className="mt-8 flex justify-center">
-                <PaymentBadges variant="inline" showCountryName />
-              </div>
-            </>
-          )}
-          {loggedIn === true && (
-            <Link href="/map" className="inline-block px-8 py-3.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm shadow-[0_10px_40px_rgba(201,168,76,.25)]">
-              {t('nav.map') || 'Accéder à la carte'} →
-            </Link>
-          )}
-        </div>
+                <div className="mt-2 flex justify-center">
+                  <PaymentBadges variant="inline" showCountryName />
+                </div>
+              </>
+            )}
+          </div>
 
-        {/* Stats */}
-        <div className="relative z-10 flex gap-12 mt-16">
-          {STAT_VALUES.map((value, i) => (
-            <div key={value} className="text-center">
-              <div className="text-2xl font-bold text-white">{value}</div>
-              <div className="text-xs text-gray-400 mt-0.5">{t(`home.${STAT_KEYS[i]}`)}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 3-step schema + 4th success */}
-      <section className="relative z-10 px-6 py-16 max-w-6xl mx-auto w-full">
-        <h2 className="text-3xl font-bold text-white text-center mb-2">Comment ça marche</h2>
-        <p className="text-center text-gray-400 text-sm mb-12 max-w-xl mx-auto">
-          De l&apos;analyse mondiale au succès commercial en 4 étapes simples.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[
-            {
-              n: 1, icon: '🌍', title: 'Analysez le monde',
-              desc: '195 pays · 500+ produits · données commerciales temps réel', color: '#60A5FA',
-            },
-            {
-              n: 2, icon: '🎯', title: 'Trouvez vos opportunités',
-              desc: 'Sélection ciblée des gaps de marché les plus rentables pour votre profil', color: '#A78BFA',
-            },
-            {
-              n: 3, icon: '🔑', title: 'Toutes les clés en main',
-              desc: 'Business plans · formations production · fichiers acheteurs · logistique', color: '#C9A84C',
-            },
-            {
-              n: 4, icon: '💰', title: 'Succès',
-              desc: 'Revenus récurrents, filière montée, impact local — et un peu d\'argent au passage.', color: '#34D399', final: true,
-            },
-          ].map((s) => (
-            <div
-              key={s.n}
-              className={`relative bg-[#0D1117]/80 backdrop-blur border rounded-2xl p-6 overflow-hidden ${s.final ? 'border-[#34D399]/40' : 'border-white/10'}`}
-              style={{ boxShadow: s.final ? `0 0 40px ${s.color}22` : undefined }}
-            >
-              <div className="absolute top-0 left-0 w-full h-1" style={{ background: `linear-gradient(90deg, transparent, ${s.color}, transparent)` }} />
-              <div className="flex items-center gap-3 mb-3">
-                <span
-                  className="flex items-center justify-center w-8 h-8 rounded-full text-xs font-black"
-                  style={{ background: `${s.color}18`, color: s.color }}
-                >
-                  {s.n}
-                </span>
-                <span className="text-3xl">{s.icon}</span>
+          {/* Stats — compact row */}
+          <div className="relative z-10 flex justify-center gap-10 md:gap-12 mt-6">
+            {STAT_VALUES.map((value, i) => (
+              <div key={value} className="text-center">
+                <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
+                <div className="text-[10px] md:text-xs text-gray-400 mt-0.5">{t(`home.${STAT_KEYS[i]}`)}</div>
               </div>
-              <h3 className="font-bold text-white mb-2 text-lg">{s.title}</h3>
-              <p className="text-sm text-gray-400">{s.desc}</p>
-              {s.final && (
-                <div className="absolute bottom-3 right-3 text-[#34D399] text-xl font-black opacity-30">$</div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
