@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import type { CountryMapData } from '@/types/database'
 
-export const revalidate = 300 // 5min cache (opportunity counts should refresh fast after backfills)
+export const dynamic = 'force-dynamic' // always run server-side at request time — avoids build-time static gen which was returning empty aggregates
+export const revalidate = 0
 
 export async function GET() {
   const { data, error } = await supabase
