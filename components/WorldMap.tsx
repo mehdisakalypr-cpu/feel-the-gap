@@ -122,18 +122,45 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
 
   const openPanel = useCallback((c: CountryMapData) => setSelectedCountry(c), [])
 
-  // Fetch live data from API
+  // Fetch live data from API — resilient to flaky/intermittent responses.
+  // We only overwrite state with a fresh payload if it actually carries
+  // opportunity data (> 0 in aggregate) so a bad cold-start answer can't
+  // clobber good data already loaded in state. Refetches on pageshow (Safari
+  // back-nav) + visibilitychange to survive BFCache restorations.
   useEffect(() => {
-    fetch('/api/countries')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (Array.isArray(data) && data.length > 0) setCountries(data) })
-      .catch(() => {/* keep seed data */})
+    let mounted = true
+    async function loadCountries() {
+      try {
+        const r = await fetch('/api/countries?_=' + Date.now(), { cache: 'no-store' })
+        if (!r.ok) return
+        const data = await r.json()
+        if (!Array.isArray(data) || data.length === 0) return
+        const totalOpps = data.reduce((s: number, c: { opportunity_count?: number }) => s + (c.opportunity_count ?? 0), 0)
+        // If API returned a degenerate 0-opps payload, keep whatever is currently
+        // in state (seed or a previous good fetch) rather than showing zeros.
+        if (totalOpps === 0) return
+        if (mounted) setCountries(data)
+      } catch { /* keep current state */ }
+    }
+
+    loadCountries()
 
     // Aggregate stats (markets analyzed count) — separate endpoint
-    fetch('/api/stats/map')
+    fetch('/api/stats/map', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.markets != null) setTotalMarkets(data.markets) })
+      .then(data => { if (mounted && data?.markets != null) setTotalMarkets(data.markets) })
       .catch(() => {/* fallback to null, counter will hide */})
+
+    // Safari/Chrome back-forward cache restoration → markers come back stale
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) loadCountries() }
+    const onVisible = () => { if (document.visibilityState === 'visible') loadCountries() }
+    window.addEventListener('pageshow', onPageShow)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      mounted = false
+      window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   // Init map once

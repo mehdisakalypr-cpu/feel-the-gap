@@ -18,22 +18,41 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Join opportunity aggregates via SQL view. supabase-js was silently returning
-  // [] here (unclear why — possibly a view schema cache staleness after recent
-  // migrations). Direct PostgREST fetch is rock-solid, so we use it here.
+  // Join opportunity aggregates via SQL view. Direct PostgREST fetch is rock-
+  // solid (supabase-js silently returned [] before). Retry on empty or fail —
+  // the call was found to be INTERMITTENT (1 in ~3 cold starts returns empty
+  // on the edge runtime), leaving users with opportunity_count=0 markers.
   const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const sbAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   type OppAggRow = { country_iso: string; opportunity_count: number; top_opportunity_score: number | string | null }
   let oppAggs: OppAggRow[] = []
-  try {
-    const res = await fetch(`${sbUrl}/rest/v1/country_opportunity_stats?select=country_iso,opportunity_count,top_opportunity_score&limit=300`, {
-      headers: { apikey: sbAnon, Authorization: `Bearer ${sbAnon}` },
-      cache: 'no-store',
-    })
-    if (res.ok) oppAggs = await res.json() as OppAggRow[]
-    else console.error('[api/countries] PostgREST view fetch failed:', res.status, await res.text().catch(() => ''))
-  } catch (e) {
-    console.error('[api/countries] view fetch threw:', (e as Error).message)
+
+  async function fetchAggs(key: string): Promise<OppAggRow[]> {
+    const res = await fetch(
+      `${sbUrl}/rest/v1/country_opportunity_stats?select=country_iso,opportunity_count,top_opportunity_score&limit=300`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: 'no-store' },
+    )
+    if (!res.ok) throw new Error(`PostgREST ${res.status}`)
+    return (await res.json()) as OppAggRow[]
+  }
+
+  // Attempt 1: anon key
+  try { oppAggs = await fetchAggs(sbAnon) } catch (e) {
+    console.warn('[api/countries] anon fetch failed:', (e as Error).message)
+  }
+  // Attempt 2 (retry if empty/fail) with same key after a brief pause
+  if (oppAggs.length === 0) {
+    await new Promise(r => setTimeout(r, 100))
+    try { oppAggs = await fetchAggs(sbAnon) } catch (e) {
+      console.warn('[api/countries] anon retry failed:', (e as Error).message)
+    }
+  }
+  // Attempt 3 (fallback to service_role — bypasses any RLS/rate nuance)
+  if (oppAggs.length === 0 && serviceKey) {
+    try { oppAggs = await fetchAggs(serviceKey) } catch (e) {
+      console.error('[api/countries] service_role fallback failed:', (e as Error).message)
+    }
   }
 
   const oppByCountry: Record<string, { count: number; top: number }> = {}
