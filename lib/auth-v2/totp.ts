@@ -69,17 +69,22 @@ export function createRecoveryCodes(n: number = 10): string[] {
   )
 }
 
+// bytea must ship as `\x<hex>` wire format or Supabase JS silently JSON-ifies.
+function toBytea(buf: Buffer): string {
+  return '\\x' + buf.toString('hex')
+}
+
 export async function enrollTotp(userId: string, label: string): Promise<{ secret: string; otpauth: string; recovery: string[] }> {
   const { siteSlug, appName } = getAuthConfig()
   const sb = supabaseAdmin()
   const secret = randomBase32(20) // 160-bit
   const recovery = createRecoveryCodes(10)
-  const recoveryHashes = recovery.map(c => crypto.createHash('sha256').update(c).digest())
+  const recoveryHashes = recovery.map(c => toBytea(crypto.createHash('sha256').update(c).digest()))
 
   await sb.from('auth_totp').upsert({
     user_id: userId,
     site_slug: siteSlug,
-    secret_enc: encrypt(secret),
+    secret_enc: toBytea(encrypt(secret)),
     recovery_hashes: recoveryHashes,
     verified_at: null,
   }, { onConflict: 'user_id,site_slug' })
@@ -96,7 +101,10 @@ export async function verifyTotp(userId: string, code: string, opts?: { confirmE
     .eq('user_id', userId).eq('site_slug', siteSlug).maybeSingle()
   if (!data) return { ok: false }
 
-  const secret = decrypt(Buffer.from(data.secret_enc))
+  const secretEncBuf = typeof data.secret_enc === 'string'
+    ? Buffer.from(data.secret_enc.replace(/^\\x/, ''), 'hex')
+    : Buffer.from(data.secret_enc)
+  const secret = decrypt(secretEncBuf)
   const now = Math.floor(Date.now() / 1000)
   const windows = [0, -1, 1]  // allow ±1 window (±30s) drift
   let ok = false
@@ -136,7 +144,7 @@ export async function verifyRecoveryCode(userId: string, code: string): Promise<
     }
   }
   if (match) {
-    await sb.from('auth_totp').update({ recovery_hashes: remaining })
+    await sb.from('auth_totp').update({ recovery_hashes: remaining.map(toBytea) })
       .eq('user_id', userId).eq('site_slug', siteSlug)
   }
   return { ok: match }

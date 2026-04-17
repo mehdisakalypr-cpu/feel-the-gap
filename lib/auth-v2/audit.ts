@@ -41,7 +41,11 @@ export async function logEvent(e: {
 }) {
   const { siteSlug } = getAuthConfig()
   const sb = supabaseAdmin()
-  const ua_hash = e.ua ? crypto.createHash('sha256').update(e.ua).digest() : null
+  // bytea must ship as `\x<hex>`; passing a raw Buffer triggers Supabase JS to
+  // serialize it as JSON `{"type":"Buffer","data":[...]}` and store garbage.
+  const ua_hash = e.ua
+    ? '\\x' + crypto.createHash('sha256').update(e.ua).digest('hex')
+    : null
   try {
     await sb.from('auth_events').insert({
       user_id: e.userId ?? null,

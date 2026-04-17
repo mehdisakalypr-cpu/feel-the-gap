@@ -109,12 +109,15 @@ export async function POST(req: NextRequest) {
 
     if (!linkErr && link?.properties?.action_link) {
       // Best-effort digest audit log (ignored if table missing in older schemas).
+      // bytea columns MUST ship as `\x<hex>` strings — raw Buffers get JSON-
+      // serialized by Supabase JS and stored as garbage (Senku fix 2026-04-17).
       try {
-        const digest = crypto.createHash('sha256').update(link.properties.action_link).digest()
+        const linkDigest = '\\x' + crypto.createHash('sha256').update(link.properties.action_link).digest('hex')
+        const emailHash = '\\x' + crypto.createHash('sha256').update(email).digest('hex')
         await admin.from('auth_magic_links').insert({
-          email_hash: crypto.createHash('sha256').update(email).digest(),
+          email_hash: emailHash,
           site_slug: cfg.siteSlug,
-          link_digest: digest,
+          link_digest: linkDigest,
           expires_at: new Date(Date.now() + TTL_MIN * 60 * 1000).toISOString(),
           ip: ip ?? null,
         })

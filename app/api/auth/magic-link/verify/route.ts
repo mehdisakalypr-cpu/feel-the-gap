@@ -54,16 +54,16 @@ export async function POST(req: NextRequest) {
   }
 
   // Best-effort mark magic-link as consumed if we tracked one.
+  // bytea lookup requires `\x<hex>` wire format (Senku fix 2026-04-17).
   try {
     const admin = supabaseAdmin()
+    const crypto = await import('node:crypto')
+    const emailHashHex = '\\x' + crypto.createHash('sha256').update((user.email ?? '').toLowerCase()).digest('hex')
     await admin.from('auth_magic_links')
       .update({ consumed_at: new Date().toISOString() })
       .eq('site_slug', cfg.siteSlug)
       .is('consumed_at', null)
-      .eq('email_hash', await (async () => {
-        const crypto = await import('node:crypto')
-        return crypto.createHash('sha256').update((user.email ?? '').toLowerCase()).digest()
-      })())
+      .eq('email_hash', emailHashHex)
   } catch { /* table optional */ }
 
   await logEvent({ userId: user.id, event: 'magic_link_verified', ip, ua })

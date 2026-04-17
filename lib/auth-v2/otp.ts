@@ -29,25 +29,37 @@ function hashCode(code: string): Buffer {
   return sha256(code + '|' + secrets.otpPepper)
 }
 
+/**
+ * Convert a Buffer to PostgreSQL bytea wire format (`\x<hex>`).
+ * REQUIRED — otherwise Supabase JS serializes Buffer as
+ * `{"type":"Buffer","data":[...]}` JSON and stores garbage. This caused the
+ * "Code invalide ou expiré" ghost on valid OTPs (2026-04-17 Senku audit).
+ */
+function toBytea(buf: Buffer): string {
+  return '\\x' + buf.toString('hex')
+}
+
 /** Generate & persist a 6-digit OTP. Returns plaintext for email delivery. */
 export async function createOtp(opts: { email: string; purpose: OtpPurpose; ip?: string | null }): Promise<string> {
   const { siteSlug } = getAuthConfig()
   const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
   const sb = supabaseAdmin()
 
+  const emailHashHex = toBytea(hashEmail(opts.email))
+
   // Invalidate any outstanding OTP for (email, purpose, site)
   await sb.from('auth_otp_codes')
     .update({ consumed_at: new Date().toISOString() })
-    .eq('email_hash', hashEmail(opts.email))
+    .eq('email_hash', emailHashHex)
     .eq('site_slug', siteSlug)
     .eq('purpose', opts.purpose)
     .is('consumed_at', null)
 
   await sb.from('auth_otp_codes').insert({
-    email_hash: hashEmail(opts.email),
+    email_hash: emailHashHex,
     site_slug: siteSlug,
     purpose: opts.purpose,
-    code_hash: hashCode(code),
+    code_hash: toBytea(hashCode(code)),
     expires_at: new Date(Date.now() + OTP_TTL_MS).toISOString(),
     max_attempts: MAX_ATTEMPTS,
     created_ip: opts.ip ?? null,
@@ -63,12 +75,12 @@ export async function createOtp(opts: { email: string; purpose: OtpPurpose; ip?:
 export async function verifyOtp(opts: { email: string; purpose: OtpPurpose; code: string }): Promise<{ ok: boolean; reason?: 'invalid' | 'expired' | 'too_many' | 'consumed' }> {
   const { siteSlug } = getAuthConfig()
   const sb = supabaseAdmin()
-  const emailHash = hashEmail(opts.email)
+  const emailHashHex = toBytea(hashEmail(opts.email))
   const codeHash = hashCode(opts.code.trim())
 
   const { data: row } = await sb.from('auth_otp_codes')
     .select('id, code_hash, expires_at, attempts, max_attempts, consumed_at')
-    .eq('email_hash', emailHash)
+    .eq('email_hash', emailHashHex)
     .eq('site_slug', siteSlug)
     .eq('purpose', opts.purpose)
     .is('consumed_at', null)
