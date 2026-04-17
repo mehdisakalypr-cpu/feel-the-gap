@@ -46,3 +46,6 @@ next-env.d.ts
 agents/_*
 .gitnexus
 graphify-out/
+
+# auth-v1 rollback snapshot (local only)
+.auth-v1-backup/
