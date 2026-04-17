@@ -42,7 +42,9 @@
     "tile_atlas": "Atlas",
     "tile_standard": "Harita",
     "tile_satellite": "Uydu",
-    "tile_night": "Gece"
+    "tile_night": "Gece",
+    "import_heavy": "Negatif ticaret dengesi — yoğun ithalat",
+    "see_details_opportunities": "Detaylar ve fırsatlar"
   },
   "country": {
     "imports": "Toplam İthalat",

@@ -42,7 +42,9 @@
     "tile_atlas": "Atlas",
     "tile_standard": "マップ",
     "tile_satellite": "衛星",
-    "tile_night": "夜景"
+    "tile_night": "夜景",
+    "import_heavy": "貿易赤字 — 大量輸入国",
+    "see_details_opportunities": "詳細と機会を見る"
   },
   "country": {
     "imports": "総輸入額",

@@ -475,11 +475,18 @@ function buildPopupHtml(c: CountryMapData, t: (key: string) => string): string {
   const balanceSign = balance >= 0 ? '+' : ''
   const oppCount = c.opportunity_count ?? 0
 
+  // Our t() returns the raw key when missing, so a plain `|| fallback` never
+  // kicks in. Wrap with a helper that detects "returned the key itself".
+  const tr = (key: string, fallback: string) => {
+    const v = t(key)
+    return !v || v === key ? fallback : v
+  }
+
   const alertHtml = balanceNegative
-    ? `<div class="ftg-popup-balance-alert">⚠️ ${t('map.import_heavy') || 'import important de ressources'}</div>`
+    ? `<div class="ftg-popup-balance-alert">⚠️ ${tr('map.import_heavy', 'Balance négative — le pays importe massivement')}</div>`
     : ''
 
-  const ctaLabel = t('map.see_details_opportunities') || 'Voir détail & opportunités'
+  const ctaLabel = tr('map.see_details_opportunities', 'Voir détail & opportunités')
 
   return `
     <div style="padding:14px 16px;min-width:260px;font-family:system-ui,sans-serif">

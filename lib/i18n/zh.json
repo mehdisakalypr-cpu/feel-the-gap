@@ -42,7 +42,9 @@
     "tile_atlas": "Atlas",
     "tile_standard": "地图",
     "tile_satellite": "卫星",
-    "tile_night": "夜景"
+    "tile_night": "夜景",
+    "import_heavy": "贸易逆差 — 该国进口需求大",
+    "see_details_opportunities": "查看详情和机会"
   },
   "country": {
     "imports": "进口总额",

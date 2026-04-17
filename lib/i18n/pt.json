@@ -42,7 +42,9 @@
     "tile_atlas": "Atlas",
     "tile_standard": "Mapa",
     "tile_satellite": "Satélite",
-    "tile_night": "Noturno"
+    "tile_night": "Noturno",
+    "import_heavy": "Saldo negativo — o país importa pesadamente",
+    "see_details_opportunities": "Ver detalhes e oportunidades"
   },
   "country": {
     "imports": "Importações totais",

@@ -42,7 +42,9 @@
     "tile_atlas": "Atlas",
     "tile_standard": "خريطة",
     "tile_satellite": "قمر صناعي",
-    "tile_night": "ليلي"
+    "tile_night": "ليلي",
+    "import_heavy": "رصيد تجاري سلبي — واردات مرتفعة",
+    "see_details_opportunities": "عرض التفاصيل والفرص"
   },
   "country": {
     "imports": "إجمالي الواردات",
