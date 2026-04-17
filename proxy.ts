@@ -30,8 +30,16 @@ const PUBLIC_PAGE_PREFIXES = [
 // ── Public API routes — no auth required ─────────────────────────────────────
 const PUBLIC_API = new Set([
   '/api/auth/login',                  // Rate-limited login proxy (server-side signInWithPassword)
+  '/api/auth/register',               // Server-side signup (rate-limited + Turnstile + HIBP)
+  '/api/auth/logout',                 // Clear session
+  '/api/auth/csrf',                   // CSRF token mint (no auth required)
+  '/api/auth/forgot',                 // Request reset OTP
+  '/api/auth/reset',                  // Consume reset OTP
   '/api/auth/reset-password/send',    // Custom reset flow — send OTP via Resend
   '/api/auth/reset-password/verify',  // Custom reset flow — verify OTP + update password
+  '/api/auth/magic-link/start',       // Request magic link email
+  '/api/auth/magic-link/verify',      // Verify magic link token
+  '/api/auth/mfa/verify',             // Consume mfa_token during login
   '/api/auth/webauthn/authenticate',  // WebAuthn login flow (creates session)
   '/api/auth/webauthn/check',         // Check biometric availability
   '/api/stripe/webhook',              // Stripe signature-verified
