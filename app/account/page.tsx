@@ -469,7 +469,6 @@ export default function AccountPage() {
           {[
             { href: '/map',        label: t('account.links.map'),        flag: null },
             { href: '/reports',    label: t('account.links.reports'),    flag: null },
-            { href: '/farming',    label: t('account.links.farming'),    flag: 'farming' },
             { href: '/influencer', label: t('account.links.influencer'), flag: 'influencer' },
             { href: '/seller',     label: t('account.links.seller'),     flag: 'seller' },
             { href: '/pricing',    label: t('account.links.pricing'),    flag: null },
