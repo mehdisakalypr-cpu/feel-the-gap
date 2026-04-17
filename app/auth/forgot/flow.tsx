@@ -68,10 +68,15 @@ export function ForgotFlow({ brand, loginPath, turnstileSiteKey }: ForgotFlowPro
         credentials: 'include',
         body: JSON.stringify({ email: email.trim().toLowerCase(), captchaToken }),
       })
+      // Turnstile tokens are single-use; reset the widget to get a fresh one for the next step.
+      try { window.turnstile?.reset() } catch { /* noop */ }
+      setTurnstileToken(null)
       // ALWAYS advance — anti-enumeration.
       setStep('otp')
       setInfo('Si cet email existe, un code à 6 chiffres vient d’être envoyé.')
     } catch {
+      try { window.turnstile?.reset() } catch { /* noop */ }
+      setTurnstileToken(null)
       // Even on network error, advance to step 2 so we don't leak existence.
       setStep('otp')
       setInfo('Si cet email existe, un code à 6 chiffres vient d’être envoyé.')
@@ -144,8 +149,12 @@ export function ForgotFlow({ brand, loginPath, turnstileSiteKey }: ForgotFlowPro
         credentials: 'include',
         body: JSON.stringify({ email: email.trim().toLowerCase(), captchaToken }),
       })
+      try { window.turnstile?.reset() } catch { /* noop */ }
+      setTurnstileToken(null)
       setInfo('Si cet email existe, un nouveau code vient d’être envoyé.')
     } catch {
+      try { window.turnstile?.reset() } catch { /* noop */ }
+      setTurnstileToken(null)
       setInfo('Si cet email existe, un nouveau code vient d’être envoyé.')
     } finally {
       setBusy(false)

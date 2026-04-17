@@ -16,7 +16,6 @@ import {
   supabaseAdmin,
   rateLimit,
   getClientIp,
-  verifyTurnstile,
   checkPasswordPolicy,
   verifyOtp,
   revokeAllSessions,
@@ -52,16 +51,20 @@ export async function POST(req: NextRequest) {
 
   const raw = await req.text()
   if (raw.length > MAX_BODY) return jsonError(413, 'payload_too_large')
-  let body: { email?: unknown; code?: unknown; password?: unknown; captchaToken?: unknown }
+  let body: { email?: unknown; code?: unknown; password?: unknown }
   try { body = JSON.parse(raw) } catch { return jsonError(400, 'invalid_json') }
 
   const email = sanitizeEmail(body?.email)
   const code = typeof body?.code === 'string' ? body!.code.trim() : null
   const password = typeof body?.password === 'string' ? body!.password : null
-  const captchaToken = typeof body?.captchaToken === 'string' ? body!.captchaToken : null
 
   if (!email || !code || !password) return jsonError(400, 'invalid_input')
 
+  // Note: no Turnstile check on reset — the OTP (6-digit code from the email) is
+  // already a strong single-use proof of email ownership. Rate-limit below
+  // handles brute-force protection. Adding Turnstile here would force the user
+  // to solve a new captcha on step 2, which isn't ergonomic (widget only renders
+  // on step 1 — email submission).
   const [ipRl, emailRl] = await Promise.all([
     rateLimit({ key: `reset:ip:${ip}`, limit: 5, windowSec: 900 }),
     rateLimit({ key: `reset:email:${email}`, limit: 10, windowSec: 900 }),
@@ -72,9 +75,6 @@ export async function POST(req: NextRequest) {
     res.headers.set('Retry-After', String(retryAfter))
     return res
   }
-
-  const turnstile = await verifyTurnstile(captchaToken, ip)
-  if (!turnstile.ok) return jsonError(400, 'Vérification anti-bot échouée')
 
   // Verify OTP BEFORE password policy to avoid leaking "email unknown" via fast policy-only responses.
   const otp = await verifyOtp({ email, purpose: 'reset', code })
