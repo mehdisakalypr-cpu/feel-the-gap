@@ -58,9 +58,13 @@ export function ForgotFlow({ brand, loginPath, turnstileSiteKey }: ForgotFlowPro
     setBusy(true)
     try {
       const captchaToken = turnstileToken || (typeof window !== 'undefined' ? window.__turnstileToken ?? null : null)
+      const csrf = readCsrfCookie()
       await fetch('/api/auth/forgot', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          ...(csrf ? { 'x-csrf-token': csrf } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({ email: email.trim().toLowerCase(), captchaToken }),
       })
@@ -130,9 +134,13 @@ export function ForgotFlow({ brand, loginPath, turnstileSiteKey }: ForgotFlowPro
     setBusy(true)
     try {
       const captchaToken = turnstileToken || (typeof window !== 'undefined' ? window.__turnstileToken ?? null : null)
+      const csrf = readCsrfCookie()
       await fetch('/api/auth/forgot', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          ...(csrf ? { 'x-csrf-token': csrf } : {}),
+        },
         credentials: 'include',
         body: JSON.stringify({ email: email.trim().toLowerCase(), captchaToken }),
       })
