@@ -16,19 +16,16 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getAuthConfig } from './config'
 
-const COOKIE_NAME = 'sb-auth'
+// IMPORTANT: do NOT override cookieOptions.name. @supabase/ssr derives the
+// session cookie name from the project ref (sb-<ref>-auth-token). Both browser
+// and server MUST agree. Overriding to "sb-auth" here silently broke session
+// reads on the server (see 2026-04-17 Senku: biometric register 401 ghost).
 
 /** SSR client usable in Server Components, Route Handlers, Server Actions. */
 export async function supabaseServer() {
   const cfg = getAuthConfig()
   const store = await cookies()
   return createServerClient(cfg.supabase.url, cfg.supabase.anonKey, {
-    cookieOptions: {
-      name: COOKIE_NAME,
-      path: '/',
-      sameSite: 'lax',
-      secure: cfg.env === 'production',
-    },
     cookies: {
       getAll() { return store.getAll() },
       setAll(cookiesToSet) {
@@ -49,12 +46,6 @@ export function supabaseMiddleware(request: NextRequest) {
   const cfg = getAuthConfig()
   let response = NextResponse.next({ request })
   const client = createServerClient(cfg.supabase.url, cfg.supabase.anonKey, {
-    cookieOptions: {
-      name: COOKIE_NAME,
-      path: '/',
-      sameSite: 'lax',
-      secure: cfg.env === 'production',
-    },
     cookies: {
       getAll() { return request.cookies.getAll() },
       setAll(cookiesToSet) {
