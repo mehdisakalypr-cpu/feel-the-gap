@@ -381,8 +381,7 @@ export default function EnrichedPlanPage() {
       <Topbar />
       <JourneySidebar iso={iso} currentStep="business_plan" userTier={userTier} />
 
-      <div className="lg:pl-80 w-full">
-      <main className="w-full px-4 lg:px-6 py-6 sm:py-10">
+      <main className="lg:ml-80 px-4 lg:px-8 py-6 sm:py-10">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
@@ -842,7 +841,6 @@ export default function EnrichedPlanPage() {
           </div>
         )}
       </main>
-      </div>
     </div>
   );
 }

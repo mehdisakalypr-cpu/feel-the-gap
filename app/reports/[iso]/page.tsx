@@ -271,8 +271,7 @@ export default function ReportPage() {
       <Topbar />
       <JourneySidebar iso={iso} currentStep="report" userTier={userTier} />
 
-      <div className="lg:pl-80 w-full">
-      <div className="w-full px-4 lg:px-6 py-8 space-y-8 overflow-hidden">
+      <main className="lg:ml-80 px-4 lg:px-8 py-8 space-y-8 overflow-x-hidden">
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -283,8 +282,8 @@ export default function ReportPage() {
 
         {/* ── CTA "Voir les opportunités" + jump dropdown + score filter ── */}
         {opps.length > 0 && (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex justify-center items-center gap-3 flex-wrap">
+          <div className="flex flex-col items-start gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={scrollToOpps}
                 className="group px-6 py-3 bg-gradient-to-r from-[#34D399] to-[#10B981] text-[#07090F] font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
@@ -678,7 +677,7 @@ export default function ReportPage() {
         <div className="text-center text-xs text-gray-600 pb-4">
           Rapport Feel The Gap · {country.data_year ?? 2023}
         </div>
-      </div>
+      </main>
 
       {/* ── Sticky bottom panel ── */}
       <div
@@ -779,7 +778,6 @@ export default function ReportPage() {
             </div>
           )}
         </div>
-      </div>
       </div>
 
       {/* Spacer when panel is visible */}
