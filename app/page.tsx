@@ -149,10 +149,8 @@ export default function HomePage() {
           <div className="flex flex-col items-center gap-4">
             <Link
               href="/map"
-              className="group relative inline-flex items-center gap-3 px-9 py-4 md:px-12 md:py-5 bg-[#C9A84C] text-[#07090F] font-bold rounded-2xl text-base md:text-lg shadow-[0_10px_50px_rgba(201,168,76,.35)] hover:scale-[1.03] hover:bg-[#E8C97A] transition-all"
+              className="group relative inline-flex items-center gap-3 px-9 py-4 md:px-12 md:py-5 bg-[#C9A84C] text-[#07090F] font-bold rounded-2xl text-base md:text-lg hover:scale-[1.04] hover:bg-[#E8C97A] transition-all animate-[oppPulse_1.8s_ease-in-out_infinite]"
             >
-              <span className="absolute inset-0 rounded-2xl ring-2 ring-[#C9A84C]/60 animate-ping" aria-hidden />
-              <span className="absolute inset-0 rounded-2xl ring-2 ring-[#C9A84C]/30" aria-hidden />
               <span className="relative text-2xl">🌍</span>
               <span className="relative">Lancez la carte pour tester</span>
               <span className="relative text-xl group-hover:translate-x-1 transition-transform">→</span>

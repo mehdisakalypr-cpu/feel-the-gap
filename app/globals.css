@@ -71,3 +71,166 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(201,168,76,.25); border-radius: 4px; }
+
+/* Shared opportunity pulse — used by CountryPanel tab badge, map popup CTA, home CTA */
+@keyframes oppPulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 10px rgba(52,211,153,.5); }
+  50%      { transform: scale(1.18); box-shadow: 0 0 18px rgba(52,211,153,.85); }
+}
+
+/* Map marker — opportunity count chip (always visible) */
+.ftg-opp-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #C9A84C 0%, #E8C97A 100%);
+  color: #07090F;
+  font: 700 12px/1 system-ui, sans-serif;
+  box-shadow: 0 2px 12px rgba(201,168,76,.5), 0 0 0 2px rgba(13,17,23,.85);
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.ftg-opp-chip:hover { transform: scale(1.15); }
+
+.ftg-opp-chip-high {
+  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  color: #07090F;
+  box-shadow: 0 2px 14px rgba(52,211,153,.55), 0 0 0 2px rgba(13,17,23,.85);
+  animation: oppPulse 1.8s ease-in-out infinite;
+}
+
+.ftg-marker-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.ftg-marker-stack > * { pointer-events: auto; }
+
+/* Popup CTA — "Voir détail & opportunités" */
+.ftg-popup-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+  color: #07090F;
+  font: 700 12px/1 system-ui, sans-serif;
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(52,211,153,.5);
+  animation: oppPulse 1.6s ease-in-out infinite;
+  transition: transform .12s ease;
+}
+.ftg-popup-cta:hover { transform: scale(1.03); filter: brightness(1.08); }
+.ftg-popup-cta:active { transform: scale(.98); }
+.ftg-popup-cta-arrow { font-size: 14px; line-height: 1; }
+
+.ftg-popup-balance-alert {
+  margin-top: 6px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(248,113,113,.08);
+  border: 1px solid rgba(248,113,113,.25);
+  color: #FCA5A5;
+  font: 600 11px/1.35 system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Onboarding tour */
+@keyframes ftgTourPop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.9); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes ftgTourFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+.ftg-tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(7,9,15,.55);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+.ftg-tour-bubble {
+  position: absolute;
+  max-width: 340px;
+  background: #0D1117;
+  border: 1px solid rgba(201,168,76,.4);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 20px 70px rgba(0,0,0,.7), 0 0 0 1px rgba(201,168,76,.15);
+  color: #F9FAFB;
+  animation: ftgTourFloat 3s ease-in-out infinite;
+}
+.ftg-tour-bubble-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: ftgTourPop .35s cubic-bezier(.34,1.56,.64,1) both, ftgTourFloat 3s ease-in-out 0.4s infinite;
+  max-width: 420px;
+  text-align: center;
+}
+.ftg-tour-bubble-title {
+  color: #C9A84C;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px 0;
+}
+.ftg-tour-bubble-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #E5E7EB;
+  margin: 0;
+}
+.ftg-tour-bubble-hint {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #6B7280;
+}
+.ftg-tour-bubble-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #0D1117;
+  border: 1px solid rgba(201,168,76,.4);
+  transform: rotate(45deg);
+}
+.ftg-tour-bubble-arrow-left  { left: -8px;  top: 50%; margin-top: -7px; border-right: 0; border-top: 0; }
+.ftg-tour-bubble-arrow-right { right: -8px; top: 50%; margin-top: -7px; border-left: 0; border-bottom: 0; }
+.ftg-tour-spotlight {
+  position: absolute;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(7,9,15,.55), 0 0 0 2px #C9A84C, 0 0 40px rgba(201,168,76,.6);
+  pointer-events: none;
+  transition: all .35s ease;
+}
+.ftg-tour-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  color: #6B7280;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.ftg-tour-close:hover { color: #F9FAFB; }

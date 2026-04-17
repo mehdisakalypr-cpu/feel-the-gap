@@ -1310,6 +1310,7 @@ export default function CategoryFilter({ onSelectionChange }: Props) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={lang === 'fr' ? 'Rechercher (ex: gold)' : 'Search (e.g. gold)'}
+              data-tour="category-search"
               className="w-full pl-7 pr-7 h-8 text-[11px] bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-md text-white placeholder-gray-600 focus:outline-none focus:border-[#C9A84C] transition-colors"
             />
             {search && (

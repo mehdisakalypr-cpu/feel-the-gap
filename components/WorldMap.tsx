@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import CountryPanel from './CountryPanel'
+import OnboardingTour from './OnboardingTour'
 import { getAnimatedIconHTML, CATEGORY_COLORS } from './AnimatedIcon'
 import { useLang } from '@/components/LanguageProvider'
 import type { CountryMapData } from '@/types/database'
@@ -215,8 +216,15 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
     const filtered = activeCategories.length === 0
       ? countries
       : countries.filter(c => c.top_import_category && activeCategories.includes(c.top_import_category))
-    renderMarkers(leafletRef.current, leafletMapRef.current, filtered, openPanel)
-  }, [mapReady, countries, activeCategories, activeSubs, openPanel])
+    renderMarkers(leafletRef.current, leafletMapRef.current, filtered, openPanel, t)
+
+    // Re-render on zoom end — overlap detection depends on current zoom
+    const onZoomEnd = () => renderMarkers(leafletRef.current, leafletMapRef.current, filtered, openPanel, t)
+    leafletMapRef.current.on('zoomend', onZoomEnd)
+    return () => {
+      try { leafletMapRef.current?.off('zoomend', onZoomEnd) } catch {}
+    }
+  }, [mapReady, countries, activeCategories, activeSubs, openPanel, t])
 
   function renderMarkers(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,24 +233,59 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
     map: any,
     data: CountryMapData[],
     onSelect: (c: CountryMapData) => void,
+    translate: (key: string) => string,
   ) {
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
 
-    data.forEach(c => {
-      const iconSize = c.top_opportunity_score && c.top_opportunity_score >= 80 ? 40 : 32
-      const iconHtml = getAnimatedIconHTML(
-        c.top_import_category ?? 'all',
-        undefined,
-        iconSize,
-        c.top_opportunity_score,
-      )
+    // Compute per-country whether to render category icon alongside the number.
+    // Rule: only on sufficient zoom (>= 5) AND no other marker within 56px.
+    const zoom = map.getZoom()
+    const showExtraIcon = zoom >= 5
+    const projected = data.map(c => {
+      try { return map.latLngToContainerPoint([c.lat, c.lng]) } catch { return null }
+    })
+    const OVERLAP_PX = 56
+    const hasOverlap = (i: number): boolean => {
+      if (!showExtraIcon) return true // suppress icon below zoom threshold
+      const p = projected[i]
+      if (!p) return true
+      for (let j = 0; j < data.length; j++) {
+        if (i === j) continue
+        const q = projected[j]
+        if (!q) continue
+        const dx = p.x - q.x
+        const dy = p.y - q.y
+        if (dx * dx + dy * dy < OVERLAP_PX * OVERLAP_PX) return true
+      }
+      return false
+    }
+
+    data.forEach((c, i) => {
+      const count = c.opportunity_count ?? 0
+      const score = c.top_opportunity_score ?? 0
+      const showIcon = showExtraIcon && !hasOverlap(i)
+      const iconSize = showIcon ? (score >= 80 ? 36 : 28) : 0
+      const iconHtml = showIcon
+        ? getAnimatedIconHTML(c.top_import_category ?? 'all', undefined, iconSize, c.top_opportunity_score)
+        : ''
+      const chipClass = score >= 80 ? 'ftg-opp-chip ftg-opp-chip-high' : 'ftg-opp-chip'
+      const aria = `${c.name_fr} — ${count} ${translate('map.opportunities') || 'opportunités'}`
+      const stackHtml = `
+        <div class="ftg-marker-stack" aria-label="${aria.replace(/"/g, '&quot;')}">
+          <span class="${chipClass}">${count}</span>
+          ${showIcon ? iconHtml : ''}
+        </div>
+      `
+      // Height: chip 22 + gap 2 + icon size (0 if hidden)
+      const stackHeight = 22 + (showIcon ? 2 + iconSize : 0)
+      const stackWidth = Math.max(iconSize || 0, 40)
       const icon = L.divIcon({
-        html: iconHtml,
+        html: stackHtml,
         className: 'ftg-div-marker',
-        iconSize: [iconSize, iconSize],
-        iconAnchor: [iconSize / 2, iconSize / 2],
-        popupAnchor: [0, -iconSize / 2 - 4],
+        iconSize: [stackWidth, stackHeight],
+        iconAnchor: [stackWidth / 2, stackHeight / 2],
+        popupAnchor: [0, -stackHeight / 2 - 4],
       })
 
       const m = L.marker([c.lat, c.lng], { icon }).addTo(map)
@@ -251,16 +294,17 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       let timer: ReturnType<typeof setTimeout> | null = null
       let popupEnter: (() => void) | null = null
       let popupLeave: (() => void) | null = null
+      let ctaClickHandler: (() => void) | null = null
 
-      const popupHtml = buildPopupHtml(c)
+      const popupHtml = buildPopupHtml(c, translate)
       const popup = L.popup({ className: 'ftg-popup', offset: [0, -4], closeButton: false })
         .setContent(popupHtml)
 
       m.bindPopup(popup)
 
       m.on('mouseover', () => { if (timer) clearTimeout(timer); m.openPopup() })
-      m.on('mouseout',  () => { timer = setTimeout(() => { try { m.closePopup() } catch {} }, 350) })
-      m.on('click',     () => { clearTimeout(timer!); m.closePopup(); onSelect(c) })
+      m.on('mouseout',  () => { timer = setTimeout(() => { try { m.closePopup() } catch {} }, 400) })
+      m.on('click',     () => { if (timer) clearTimeout(timer); m.closePopup(); onSelect(c) })
 
       m.on('popupopen', () => {
         const el = m.getPopup()?.getElement()
@@ -268,9 +312,20 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
         if (popupEnter) el.removeEventListener('mouseenter', popupEnter)
         if (popupLeave) el.removeEventListener('mouseleave', popupLeave)
         popupEnter = () => { if (timer) clearTimeout(timer) }
-        popupLeave = () => { timer = setTimeout(() => { try { m.closePopup() } catch {} }, 250) }
+        popupLeave = () => { timer = setTimeout(() => { try { m.closePopup() } catch {} }, 300) }
         el.addEventListener('mouseenter', popupEnter)
         el.addEventListener('mouseleave', popupLeave)
+
+        // Wire the CTA button click → open panel
+        const btn = el.querySelector('.ftg-popup-cta') as HTMLElement | null
+        if (btn) {
+          ctaClickHandler = () => {
+            if (timer) clearTimeout(timer)
+            try { m.closePopup() } catch {}
+            onSelect(c)
+          }
+          btn.addEventListener('click', ctaClickHandler)
+        }
       })
 
       m.on('popupclose', () => {
@@ -278,6 +333,8 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
         if (el) {
           if (popupEnter) el.removeEventListener('mouseenter', popupEnter)
           if (popupLeave) el.removeEventListener('mouseleave', popupLeave)
+          const btn = el.querySelector('.ftg-popup-cta') as HTMLElement | null
+          if (btn && ctaClickHandler) btn.removeEventListener('click', ctaClickHandler)
         }
       })
 
@@ -374,16 +431,29 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
           onClose={() => setSelectedCountry(null)}
         />
       )}
+
+      {/* Onboarding tour — shown once per visitor (localStorage) */}
+      <OnboardingTour />
     </div>
   )
 }
 
-function buildPopupHtml(c: CountryMapData): string {
+function buildPopupHtml(c: CountryMapData, t: (key: string) => string): string {
   const color = CATEGORY_COLORS[c.top_import_category ?? 'all'] ?? '#C9A84C'
   const score = c.top_opportunity_score
-  const balanceSign = (c.trade_balance_usd ?? 0) >= 0 ? '+' : ''
+  const balance = c.trade_balance_usd ?? 0
+  const balanceNegative = balance < 0
+  const balanceSign = balance >= 0 ? '+' : ''
+  const oppCount = c.opportunity_count ?? 0
+
+  const alertHtml = balanceNegative
+    ? `<div class="ftg-popup-balance-alert">⚠️ ${t('map.import_heavy') || 'import important de ressources'}</div>`
+    : ''
+
+  const ctaLabel = t('map.see_details_opportunities') || 'Voir détail & opportunités'
+
   return `
-    <div style="padding:14px 16px;min-width:240px;font-family:system-ui,sans-serif">
+    <div style="padding:14px 16px;min-width:260px;font-family:system-ui,sans-serif">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="font-size:22px;line-height:1">${c.flag}</span>
         <div>
@@ -392,7 +462,7 @@ function buildPopupHtml(c: CountryMapData): string {
         </div>
         ${score ? `<div style="margin-left:auto;background:${color}22;color:${color};font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px">⚡ ${score}</div>` : ''}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
         <div style="background:#1F2937;border-radius:8px;padding:7px 9px">
           <div style="font-size:10px;color:#6B7280;margin-bottom:2px">Imports</div>
           <div style="font-size:13px;font-weight:600;color:#F87171">${fmtUsd(c.total_imports_usd)}</div>
@@ -403,8 +473,13 @@ function buildPopupHtml(c: CountryMapData): string {
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#6B7280">
-        <span>Balance: <strong style="color:${(c.trade_balance_usd??0)>=0?'#4ADE80':'#F87171'}">${balanceSign}${fmtUsd(c.trade_balance_usd)}</strong></span>
-        <span style="color:#C9A84C;cursor:pointer;font-weight:600">View details →</span>
+        <span>Balance: <strong style="color:${balanceNegative ? '#F87171' : '#4ADE80'}">${balanceSign}${fmtUsd(balance)}</strong></span>
+        ${oppCount > 0 ? `<span style="color:#34D399;font-weight:700">${oppCount} opp.</span>` : ''}
       </div>
+      ${alertHtml}
+      <button type="button" class="ftg-popup-cta" aria-label="${ctaLabel}">
+        ${ctaLabel}
+        <span class="ftg-popup-cta-arrow">→</span>
+      </button>
     </div>`
 }
