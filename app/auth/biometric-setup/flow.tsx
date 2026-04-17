@@ -70,7 +70,9 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
         body: JSON.stringify({ action: 'start' }),
       })
       if (!startRes.ok) {
-        setError('Impossible de configurer la biométrie')
+        const body = await startRes.json().catch(() => null) as { error?: string } | null
+        const status = startRes.status
+        setError(`Impossible de configurer la biométrie (${status}${body?.error ? `: ${body.error}` : ''})`)
         setBusy(false)
         return
       }
@@ -145,7 +147,9 @@ export function BiometricSetupFlow({ brand, postLoginPath }: BiometricSetupFlowP
         }),
       })
       if (!finishRes.ok) {
-        setError('Échec de l’enrôlement')
+        const body = await finishRes.json().catch(() => null) as { error?: string } | null
+        const status = finishRes.status
+        setError(`Échec de l’enrôlement (${status}${body?.error ? `: ${body.error}` : ''})`)
         setBusy(false)
         return
       }
