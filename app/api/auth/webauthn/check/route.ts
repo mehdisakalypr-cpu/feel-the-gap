@@ -16,8 +16,6 @@ import {
   getClientIp,
   hasCredentials,
   deleteCredentialsForUser,
-  verifyTurnstile,
-  getAuthConfig,
   supabaseServer,
   supabaseAdmin,
   logEvent,
@@ -61,14 +59,10 @@ export async function POST(req: NextRequest) {
     return res
   }
 
-  // Turnstile if configured (skipped automatically in test env per verifyTurnstile).
-  const cfg = getAuthConfig()
-  if (cfg.env === 'production' && cfg.secrets.turnstileSecret) {
-    // Re-read body via clone to check captchaToken without losing email parse below.
-    const rawHead = req.headers.get('x-turnstile-token')
-    const t = await verifyTurnstile(rawHead, ip)
-    if (!t.ok) return jsonError(400, 'Vérification anti-bot échouée')
-  }
+  // Note: no Turnstile gate here — this endpoint is read-only and already
+  // clamped to {available, count} (count is binary-ish) so it can't be used
+  // for enumeration beyond what the email form already exposes. Rate-limit
+  // above (20/5min/IP) is the actual abuse protection.
 
   const email = await parseEmail(req)
   if (!email) {
