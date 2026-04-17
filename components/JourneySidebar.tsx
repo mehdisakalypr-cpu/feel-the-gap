@@ -90,7 +90,7 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
 
   return (
     <>
-      <aside className="hidden lg:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] overflow-y-auto bg-[#0B0F1A]/95 border-r border-white/10 backdrop-blur-md z-30">
+      <aside className="hidden lg:block fixed left-0 top-16 w-80 h-[calc(100vh-4rem)] overflow-y-auto bg-[#0B0F1A]/95 border-r border-white/10 backdrop-blur-md z-30">
         <div className="p-5">
           <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{L === 'fr' ? 'Parcours' : 'Journey'}</div>
           <div className="text-sm font-semibold text-white mb-5">{iso}</div>
@@ -148,31 +148,31 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
                       href={hasAccess ? step.href(iso) : '#'}
                       onClick={(e) => { if (!hasAccess) e.preventDefault() }}
                       aria-disabled={!hasAccess}
-                      className={`relative z-10 flex items-start gap-3 px-3 py-2.5 flex-1 min-w-0 ${
+                      className={`relative z-10 flex items-start gap-2 pl-1.5 pr-3 py-2.5 flex-1 min-w-0 ${
                         !hasAccess ? 'cursor-not-allowed' : ''
                       }`}
                     >
-                      {/* Bigger circle with progression on the current step. */}
+                      {/* Smaller circle, shifted left close to the rail. */}
                       <div
-                        className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold transition-colors ${
+                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold transition-colors ${
                           isCurrent
-                            ? 'bg-amber-500 text-gray-950 text-[13px]'
+                            ? 'bg-amber-500 text-gray-950 text-[10px]'
                             : hasAccess
-                            ? 'bg-white/10 text-gray-200 text-sm group-hover:bg-white/15'
-                            : 'bg-white/5 text-gray-500 text-sm'
+                            ? 'bg-white/10 text-gray-200 text-xs group-hover:bg-white/15'
+                            : 'bg-white/5 text-gray-500 text-xs'
                         }`}
                       >
                         {circleText}
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-base shrink-0">{step.icon}</span>
-                          <span className={`text-sm font-semibold truncate ${isCurrent ? 'text-amber-300' : hasAccess ? 'text-gray-200' : 'text-gray-400'}`}>
+                        <div className="flex items-start gap-1.5">
+                          <span className="text-base shrink-0 leading-tight">{step.icon}</span>
+                          <span className={`text-sm font-semibold leading-tight break-words ${isCurrent ? 'text-amber-300' : hasAccess ? 'text-gray-200' : 'text-gray-400'}`} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {label}
                           </span>
                         </div>
-                        <div className="text-[10px] text-gray-500 mt-0.5 truncate">{desc}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5 leading-snug" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{desc}</div>
                       </div>
                     </Link>
 

@@ -381,7 +381,7 @@ export default function EnrichedPlanPage() {
       <Topbar />
       <JourneySidebar iso={iso} currentStep="business_plan" userTier={userTier} />
 
-      <div className="lg:pl-64 w-full">
+      <div className="lg:pl-80 w-full">
       <main className="max-w-7xl mx-auto px-4 py-6 sm:py-10">
         {/* Header */}
         <div className="mb-6">

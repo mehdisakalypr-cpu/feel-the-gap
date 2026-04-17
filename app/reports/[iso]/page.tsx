@@ -271,7 +271,7 @@ export default function ReportPage() {
       <Topbar />
       <JourneySidebar iso={iso} currentStep="report" userTier={userTier} />
 
-      <div className="lg:pl-64 w-full">
+      <div className="lg:pl-80 w-full">
       <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-8 overflow-hidden">
 
         {/* ── Breadcrumb ── */}

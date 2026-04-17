@@ -146,7 +146,7 @@ export default function UpgradeOfferModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="upgrade-modal-title"
-      className="hidden lg:block fixed left-64 top-16 bottom-0 w-[420px] z-40 bg-[#0B0F1A]/98 border-r border-white/10 backdrop-blur-md overflow-y-auto shadow-2xl animate-in slide-in-from-left-4 duration-200"
+      className="hidden lg:block fixed left-80 top-16 bottom-0 w-[420px] z-40 bg-[#0B0F1A]/98 border-r border-white/10 backdrop-blur-md overflow-y-auto shadow-2xl animate-in slide-in-from-left-4 duration-200"
     >
       <div className="p-6">
         <button
