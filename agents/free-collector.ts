@@ -121,6 +121,7 @@ export async function runFreeCollector(opts: CollectorOptions = {}) {
       countries = wbCountries.filter(c =>
         !!c.iso2Code && c.iso2Code.length === 2 && c.region?.value && c.region.value !== 'Aggregates'
       )
+      console.log(`[FreeCollector] allCountries=true → ${countries.length} countries selected`)
     } else {
       const target = new Set(PRIORITY_COUNTRIES.map(c => c.toUpperCase()))
       countries = wbCountries.filter(c => target.has(c.id.toUpperCase()))
@@ -429,8 +430,10 @@ function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
 if (require.main === module) {
   const args = process.argv.slice(2)
-  const country = args[args.indexOf('--country') + 1]
-  const year = parseInt(args[args.indexOf('--year') + 1] ?? '2022')
+  const countryIdx = args.indexOf('--country')
+  const country = countryIdx >= 0 ? args[countryIdx + 1] : undefined
+  const yearIdx = args.indexOf('--year')
+  const year = parseInt(yearIdx >= 0 ? (args[yearIdx + 1] ?? '2022') : '2022')
   const dryRun = args.includes('--dry-run')
   const analyze = args.includes('--analyze')
   const allCountries = args.includes('--all-countries') || args.includes('--all')
