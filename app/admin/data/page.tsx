@@ -48,6 +48,41 @@ export default function AdminDataPage() {
   const [loading, setLoading] = useState(false)
   const [actionLog, setActionLog] = useState<string[]>([])
   const [running, setRunning] = useState<string | null>(null)
+  const [lastRun, setLastRun] = useState<null | { status: string; started_at: string; finished_at: string | null; countries_processed: number | null; records_inserted: number | null }>(null)
+
+  async function fetchLastRun() {
+    try {
+      const r = await fetch('/api/admin/refresh-all')
+      if (r.ok) {
+        const { last_run } = await r.json()
+        setLastRun(last_run)
+      }
+    } catch { /* ignore */ }
+  }
+
+  useEffect(() => {
+    fetchLastRun()
+    const t = setInterval(fetchLastRun, 15_000)
+    return () => clearInterval(t)
+  }, [])
+
+  async function runRefreshAll() {
+    const ts = new Date().toLocaleTimeString()
+    setRunning('refresh_all')
+    try {
+      const res = await fetch('/api/admin/refresh-all?year=2023', { method: 'POST' })
+      const json = await res.json()
+      if (json.error) {
+        setActionLog(l => [`[${ts}] ❌ refresh-all: ${json.error}`, ...l])
+      } else {
+        setActionLog(l => [`[${ts}] 🌍 refresh-all: started (${json.trigger}) — full world refresh in background. Poll DB in ~5 min.`, ...l])
+      }
+    } catch {
+      setActionLog(l => [`[${ts}] ❌ refresh-all: network error`, ...l])
+    }
+    setRunning(null)
+    fetchLastRun()
+  }
 
   const fetchStats = useCallback(async () => {
     const res = await fetch('/api/admin/seed')
@@ -122,6 +157,39 @@ export default function AdminDataPage() {
             <p className="text-3xl font-bold" style={{ color: s.color }}>{s.value ?? '…'}</p>
           </div>
         ))}
+      </div>
+
+      {/* Full world-wide refresh */}
+      <div className="bg-gradient-to-br from-[#0D1117] to-[#0D1117]/50 border border-[#C9A84C]/30 rounded-xl p-5">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex-1 min-w-[240px]">
+            <h2 className="text-sm font-bold text-[#C9A84C] uppercase tracking-wider">🌍 Full refresh — worldwide data</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Upserts every sovereign country returned by the World Bank API (~195), refreshes trade flows via IMF/WITS/FAO, and regenerates gap opportunities. Runs in the background — takes 3–5 min.
+            </p>
+            {lastRun && (
+              <p className="text-xs text-gray-500 mt-2">
+                Last run: <span className={lastRun.status === 'running' ? 'text-amber-400' : lastRun.status === 'success' ? 'text-emerald-400' : 'text-red-400'}>{lastRun.status}</span>
+                {' · '}started {new Date(lastRun.started_at).toLocaleString()}
+                {lastRun.countries_processed != null && ` · ${lastRun.countries_processed} countries`}
+                {lastRun.records_inserted != null && ` · ${lastRun.records_inserted} records`}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={runRefreshAll}
+            disabled={running !== null || lastRun?.status === 'running'}
+            className="shrink-0 px-5 py-3 rounded-xl bg-[#C9A84C] text-[#07090F] font-bold text-sm hover:bg-[#E8C97A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {(running === 'refresh_all' || lastRun?.status === 'running') && (
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+            )}
+            Refresh all →
+          </button>
+        </div>
       </div>
 
       {/* Actions */}

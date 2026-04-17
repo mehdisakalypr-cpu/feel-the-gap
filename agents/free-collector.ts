@@ -53,6 +53,9 @@ export const PRIORITY_COUNTRIES = [
 
 export interface CollectorOptions {
   countries?: string[]
+  /** When true, processes every country returned by the World Bank API
+   * (skip the PRIORITY_COUNTRIES filter). Used by the admin full-refresh. */
+  allCountries?: boolean
   year?: number
   sources?: ('world_bank' | 'imf' | 'fao' | 'factbook' | 'comtrade' | 'all')[]
   dryRun?: boolean
@@ -105,10 +108,23 @@ export async function runFreeCollector(opts: CollectorOptions = {}) {
     console.log('[FreeCollector] Phase 3: Upserting countries...')
     const wbCountries = await fetchWorldBankCountries()
 
-    const targetISOs = opts.countries ?? PRIORITY_COUNTRIES
-    const countries = wbCountries.filter(c =>
-      targetISOs.includes(c.id.toUpperCase())
-    )
+    // Country selection:
+    //  - explicit `opts.countries` → exactly those ISOs
+    //  - `opts.allCountries` → every real sovereign country returned by WB
+    //    (filters out aggregates/regions which have no iso2Code)
+    //  - default → PRIORITY_COUNTRIES curated list
+    let countries: typeof wbCountries
+    if (opts.countries?.length) {
+      const target = new Set(opts.countries.map(c => c.toUpperCase()))
+      countries = wbCountries.filter(c => target.has(c.id.toUpperCase()))
+    } else if (opts.allCountries) {
+      countries = wbCountries.filter(c =>
+        !!c.iso2Code && c.iso2Code.length === 2 && c.region?.value && c.region.value !== 'Aggregates'
+      )
+    } else {
+      const target = new Set(PRIORITY_COUNTRIES.map(c => c.toUpperCase()))
+      countries = wbCountries.filter(c => target.has(c.id.toUpperCase()))
+    }
 
     for (const wbc of countries) {
       const iso3 = wbc.id.toUpperCase()
