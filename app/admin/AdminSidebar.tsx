@@ -21,6 +21,7 @@ const NAV = [
   { href: '/admin/growth/scale',  label: 'Paliers 6-10',   icon: '⚡' },
   { href: '/admin/prospection',   label: 'Prospection',    icon: '📡' },
   { href: '/admin/videos',        label: 'Vidéos',         icon: '🎬' },
+  { href: '/admin/features',      label: 'Features',       icon: '🚦' },
 ]
 
 // Demo accounts for the quick-switch menu in the sidebar footer.

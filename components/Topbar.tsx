@@ -180,6 +180,7 @@ export default function Topbar() {
   const [userInitial, setUserInitial] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [tier, setTier] = useState<string | null>(null)
+  const [flags, setFlags] = useState<Record<string, boolean>>({})
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [roles, setRoles] = useState<UserRole[]>([])
@@ -206,6 +207,14 @@ export default function Topbar() {
         setActiveRole(active)
       }
     })
+  }, [])
+
+  // Load feature flags (public cache)
+  useEffect(() => {
+    fetch('/api/features', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.flags) setFlags(d.flags) })
+      .catch(() => {})
   }, [])
 
   // Close role menu on outside click
@@ -346,12 +355,14 @@ export default function Topbar() {
           <Link href="/reports" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors whitespace-nowrap shrink-0">
             {t('nav.reports')}
           </Link>
-          <Link href="/farming" className="px-2.5 py-1.5 text-[#C9A84C] hover:text-white rounded-md hover:bg-[#C9A84C]/10 transition-colors font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
-            </svg>
-            {t('nav.farming')}
-          </Link>
+          {flags.farming !== false && (
+            <Link href="/farming" className="px-2.5 py-1.5 text-[#C9A84C] hover:text-white rounded-md hover:bg-[#C9A84C]/10 transition-colors font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+              </svg>
+              {t('nav.farming')}
+            </Link>
+          )}
           {/* Onglet Gemini — accès restreint (owner uniquement, cache en dev tool). */}
           {userEmail === 'mehdi.sakalypr@gmail.com' && (
             <Link href="/gemini" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">

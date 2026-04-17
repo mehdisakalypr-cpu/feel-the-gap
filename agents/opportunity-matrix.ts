@@ -45,6 +45,18 @@ function buildProviders(): Provider[] {
     const groq = createGroq({ apiKey: process.env.GROQ_API_KEY })
     providers.push({ name: 'Groq', model: groq('llama-3.3-70b-versatile'), exhausted: false })
   }
+  if (process.env.CEREBRAS_API_KEY) {
+    const cerebras = createOpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: 'https://api.cerebras.ai/v1' })
+    providers.push({ name: 'Cerebras', model: cerebras('llama-3.3-70b'), exhausted: false })
+  }
+  if (process.env.MISTRAL_API_KEY) {
+    const mistral = createMistral({ apiKey: process.env.MISTRAL_API_KEY })
+    providers.push({ name: 'Mistral', model: mistral('mistral-small-latest'), exhausted: false })
+  }
+  if (process.env.OPENAI_API_KEY) {
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    providers.push({ name: 'OpenAI', model: openai('gpt-4o-mini'), exhausted: false })
+  }
   if (!providers.length) throw new Error('No AI API keys')
   return providers
 }
@@ -61,11 +73,13 @@ async function gen(prompt: string): Promise<string> {
       const { text } = await generateText({ model: p.model, prompt, maxTokens: 8192, temperature: 0.5 })
       return text
     } catch (err: any) {
-      const msg = err.message?.toLowerCase() ?? ''
+      const msg = (err.message ?? '').toLowerCase()
+      // Retry on ANY error (rate limit, not found, API disabled, network, etc.)
+      console.warn(`    [${p.name} fail: ${msg.slice(0, 60)}]`)
       if (msg.includes('429') || msg.includes('quota') || msg.includes('rate')) {
-        p.exhausted = true; idx = (idx + 1) % providers.length; continue
+        p.exhausted = true
       }
-      throw err
+      idx = (idx + 1) % providers.length
     }
   }
   throw new Error('All providers exhausted')
@@ -115,7 +129,9 @@ async function main() {
 
   const args = process.argv.slice(2)
   const batchNum = parseInt(args.find(a => a.startsWith('--batch='))?.split('=')[1] ?? '0')
-  const numProducts = parseInt(args.find(a => a.startsWith('--products='))?.split('=')[1] ?? '20')
+  const batchSize = parseInt(args.find(a => a.startsWith('--batch-size='))?.split('=')[1] ?? '30')
+  const numProducts = parseInt(args.find(a => a.startsWith('--products='))?.split('=')[1] ?? '150')
+  const delayMs = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1] ?? '500')
 
   // Get all countries
   const { data: countries } = await sb
@@ -136,43 +152,66 @@ async function main() {
 
   let targets = countries
   if (batchNum > 0) {
-    const start = (batchNum - 1) * 20
-    targets = countries.slice(start, start + 20)
+    const start = (batchNum - 1) * batchSize
+    targets = countries.slice(start, start + batchSize)
     console.log(`  Batch ${batchNum}: ${targets.length} countries (${start}-${start + targets.length - 1})`)
   }
 
-  console.log(`  Countries: ${targets.length} | Products: ${productIds.length}`)
-  console.log(`  Expected: ~${targets.length * productIds.length} opportunities\n`)
+  console.log(`  Countries: ${targets.length} | Products: ${productIds.length} | Delay: ${delayMs}ms`)
+
+  // Pre-load existing (country, product) pairs to skip in-flight
+  const existingPairs = new Set<string>()
+  const { data: existing } = await sb.from('opportunities').select('country_iso, product_id')
+  for (const row of existing ?? []) existingPairs.add(`${row.country_iso}|${row.product_id}`)
+  console.log(`  Existing pairs in DB: ${existingPairs.size}\n`)
 
   let totalInserted = 0
 
   for (let i = 0; i < targets.length; i++) {
     const c = targets[i]
-    console.log(`  [${i + 1}/${targets.length}] ${c.name} (${c.id})...`)
-
-    try {
-      const scores = await generateOpportunitiesForCountry(c.id, c.name, c.top_import_text ?? '', productIds)
-
-      for (let j = 0; j < Math.min(scores.length, productIds.length); j++) {
-        const s = scores[j]
-        const { error } = await sb.from('opportunities').insert({
-          country_iso: c.id,
-          product_id: productIds[j],
-          type: 'direct_trade',
-          opportunity_score: Math.min(100, Math.max(0, s.score ?? 50)),
-          gap_value_usd: s.market_size_usd ?? 0,
-          summary: s.summary ?? '',
-        })
-
-        if (!error) totalInserted++
-      }
-
-      console.log(`    +${scores.length} opps (total: ${totalInserted})`)
-    } catch (err: any) {
-      console.error(`    ✗ ${c.name}: ${err.message?.slice(0, 80)}`)
+    // Filter products not yet scored for this country
+    const missingProductIds = productIds.filter(pid => !existingPairs.has(`${c.id}|${pid}`))
+    if (missingProductIds.length === 0) {
+      console.log(`  [${i + 1}/${targets.length}] ${c.name} (${c.id}) — all ${productIds.length} products scored, skip`)
+      continue
     }
+    console.log(`  [${i + 1}/${targets.length}] ${c.name} (${c.id}) — ${missingProductIds.length} missing...`)
 
-    await new Promise(r => setTimeout(r, 2000))
+    // Process in chunks of 25 to keep prompt small
+    const CHUNK = 25
+    let cAdded = 0
+    for (let k = 0; k < missingProductIds.length; k += CHUNK) {
+      const chunk = missingProductIds.slice(k, k + CHUNK)
+      try {
+        const scores = await generateOpportunitiesForCountry(c.id, c.name, c.top_import_text ?? '', chunk)
+        const rows = []
+        for (let j = 0; j < Math.min(scores.length, chunk.length); j++) {
+          const s = scores[j]
+          rows.push({
+            country_iso: c.id,
+            product_id: chunk[j],
+            type: 'direct_trade',
+            opportunity_score: Math.min(100, Math.max(0, s.score ?? 50)),
+            gap_value_usd: s.market_size_usd ?? 0,
+            summary: s.summary ?? '',
+          })
+        }
+        if (rows.length) {
+          const { error } = await sb.from('opportunities').insert(rows)
+          if (!error) {
+            totalInserted += rows.length
+            cAdded += rows.length
+            for (const r of rows) existingPairs.add(`${r.country_iso}|${r.product_id}`)
+          } else if (!error.message.includes('duplicate')) {
+            console.error(`    ✗ insert: ${error.message.slice(0, 100)}`)
+          }
+        }
+      } catch (err: any) {
+        console.error(`    ✗ chunk: ${err.message?.slice(0, 100)}`)
+      }
+      await new Promise(r => setTimeout(r, delayMs))
+    }
+    console.log(`    +${cAdded} opps (total: ${totalInserted})`)
   }
 
   const { count } = await sb.from('opportunities').select('*', { count: 'exact', head: true })

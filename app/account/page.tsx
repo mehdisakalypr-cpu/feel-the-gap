@@ -308,6 +308,14 @@ export default function AccountPage() {
   const [isDemo, setIsDemo] = useState(false)
   const [demoExpired, setDemoExpired] = useState(false)
   const [username, setUsername] = useState<string | null>(null)
+  const [flags, setFlags] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    fetch('/api/features', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.flags) setFlags(d.flags) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const sb = createSupabaseBrowser()
@@ -459,13 +467,13 @@ export default function AccountPage() {
         {/* Links */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl divide-y divide-white/5">
           {[
-            { href: '/map',        label: t('account.links.map') },
-            { href: '/reports',    label: t('account.links.reports') },
-            { href: '/farming',    label: t('account.links.farming') },
-            { href: '/influencer', label: t('account.links.influencer') },
-            { href: '/seller',     label: t('account.links.seller') },
-            { href: '/pricing',    label: t('account.links.pricing') },
-          ].map(({ href, label }) => (
+            { href: '/map',        label: t('account.links.map'),        flag: null },
+            { href: '/reports',    label: t('account.links.reports'),    flag: null },
+            { href: '/farming',    label: t('account.links.farming'),    flag: 'farming' },
+            { href: '/influencer', label: t('account.links.influencer'), flag: 'influencer' },
+            { href: '/seller',     label: t('account.links.seller'),     flag: 'seller' },
+            { href: '/pricing',    label: t('account.links.pricing'),    flag: null },
+          ].filter(item => item.flag === null || flags[item.flag] === true).map(({ href, label }) => (
             <Link key={href} href={href} className="flex items-center justify-between px-5 py-3.5 hover:bg-white/5 transition-colors">
               <span className="text-sm text-gray-300">{label}</span>
               <span className="text-gray-500 text-xs">→</span>
