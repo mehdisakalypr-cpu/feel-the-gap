@@ -21,6 +21,7 @@ export type CreditAction = keyof typeof CREDIT_COSTS
 export const PLAN_MONTHLY_GRANT = {
   free: 0,
   starter: 60,
+  strategy: 90,
   premium: 120,
   custom: 10000, // enterprise/agency pré-set ajustable au deal
 } as const
@@ -30,6 +31,11 @@ export type PlanTier = keyof typeof PLAN_MONTHLY_GRANT
 export const PLAN_PRICE_EUR = {
   free: 0,
   starter: 29,
+  // Strategy = mid-tier between Data and Premium. Provisional 49 € until
+  // the user confirms (legacy BUSINESS_MODELS.md had 99 € but Premium was
+  // also 149 € then; current Premium is 79 € so 49 € keeps a coherent ladder
+  // and stays below the 50 € psychological barrier).
+  strategy: 49,
   premium: 79,
   custom: 0, // sur devis
 } as const
