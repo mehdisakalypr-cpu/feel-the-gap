@@ -1,7 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useLang } from '@/components/LanguageProvider'
+import { createSupabaseBrowser } from '@/lib/supabase'
+import UpgradeOfferModal, { type UpgradeTier } from '@/components/UpgradeOfferModal'
 
 export type JourneyStep = 'country' | 'report' | 'studies' | 'business_plan' | 'clients' | 'videos' | 'store' | 'recap' | 'success'
 
@@ -21,121 +24,28 @@ interface Step {
 }
 
 const ALL_STEPS: Step[] = [
-  {
-    id: 'country',
-
-    phase: 'feel',
-    tier: 'explorer',
-    labelFr: 'Fiche pays',
-    labelEn: 'Country sheet',
-    descFr: 'Vue d\'ensemble du marché',
-    descEn: 'Market overview',
-    icon: '🌍',
-    href: (iso) => `/country/${iso}`,
-  },
-  {
-    id: 'report',
-
-    phase: 'feel',
-    tier: 'data',
-    labelFr: 'Rapport d\'opportunités',
-    labelEn: 'Opportunities report',
-    descFr: 'Analyse détaillée',
-    descEn: 'Detailed analysis',
-    icon: '📊',
-    href: (iso) => `/reports/${iso}`,
-  },
-  {
-    id: 'studies',
-
-    phase: 'feel',
-    tier: 'strategy',
-    labelFr: 'Études approfondies',
-    labelEn: 'In-depth studies',
-    descFr: 'Recherche avancée',
-    descEn: 'Advanced research',
-    icon: '📑',
-    href: (iso) => `/country/${iso}?tab=studies`,
-    optional: true,
-  },
-  {
-    id: 'business_plan',
-
-    phase: 'feel',
-    tier: 'strategy',
-    labelFr: 'Business plan',
-    labelEn: 'Business plan',
-    descFr: '3 scénarios chiffrés',
-    descEn: '3 costed scenarios',
-    icon: '💼',
-    href: (iso) => `/country/${iso}/enriched-plan`,
-  },
-  {
-    id: 'clients',
-
-    phase: 'feel',
-    tier: 'strategy',
-    labelFr: 'Clients potentiels',
-    labelEn: 'Potential customers',
-    descFr: 'Acheteurs B2B matchés par IA',
-    descEn: 'AI-matched B2B buyers',
-    icon: '🎯',
-    href: (iso) => `/country/${iso}/clients`,
-  },
-  {
-    id: 'videos',
-
-    phase: 'fill',
-    tier: 'data',
-    labelFr: 'Vidéos de ce marché',
-    labelEn: 'Videos on this market',
-    descFr: 'Formation + insights terrain',
-    descEn: 'Training + field insights',
-    icon: '🎬',
-    href: (iso) => `/country/${iso}/videos`,
-  },
-  {
-    id: 'store',
-
-    phase: 'fill',
-    tier: 'premium',
-    labelFr: 'Site e-commerce en 5 min',
-    labelEn: 'E-commerce site in 5 min',
-    descFr: 'Mini-site marchand prêt à vendre',
-    descEn: 'Ready-to-sell seller mini-site',
-    icon: '🏪',
-    href: (iso) => `/country/${iso}/store`,
-  },
-  {
-    id: 'recap',
-
-    phase: 'fill',
-    tier: 'explorer',
-    labelFr: 'Synthèse de l\'opportunité',
-    labelEn: 'Opportunity recap',
-    descFr: 'Tout ce que vous avez débloqué',
-    descEn: 'Everything you\'ve unlocked',
-    icon: '🎖️',
-    href: (iso) => `/country/${iso}/recap`,
-  },
+  { id: 'country',       phase: 'feel', tier: 'explorer', labelFr: 'Fiche pays',                 labelEn: 'Country sheet',         descFr: 'Vue d\'ensemble du marché',       descEn: 'Market overview',           icon: '🌍', href: (iso) => `/country/${iso}` },
+  { id: 'report',        phase: 'feel', tier: 'data',     labelFr: 'Rapport d\'opportunités',    labelEn: 'Opportunities report',  descFr: 'Analyse détaillée',               descEn: 'Detailed analysis',         icon: '📊', href: (iso) => `/reports/${iso}` },
+  { id: 'studies',       phase: 'feel', tier: 'strategy', labelFr: 'Études approfondies',        labelEn: 'In-depth studies',      descFr: 'Recherche avancée',               descEn: 'Advanced research',         icon: '📑', href: (iso) => `/country/${iso}?tab=studies`, optional: true },
+  { id: 'business_plan', phase: 'feel', tier: 'strategy', labelFr: 'Business plan',              labelEn: 'Business plan',         descFr: '3 scénarios chiffrés',            descEn: '3 costed scenarios',        icon: '💼', href: (iso) => `/country/${iso}/enriched-plan` },
+  { id: 'clients',       phase: 'feel', tier: 'strategy', labelFr: 'Clients potentiels',         labelEn: 'Potential customers',   descFr: 'Acheteurs B2B matchés par IA',    descEn: 'AI-matched B2B buyers',     icon: '🎯', href: (iso) => `/country/${iso}/clients` },
+  { id: 'videos',        phase: 'fill', tier: 'data',     labelFr: 'Vidéos de ce marché',        labelEn: 'Videos on this market', descFr: 'Formation + insights terrain',    descEn: 'Training + field insights', icon: '🎬', href: (iso) => `/country/${iso}/videos` },
+  { id: 'store',         phase: 'fill', tier: 'premium',  labelFr: 'Site e-commerce en 5 min',   labelEn: 'E-commerce site in 5 min', descFr: 'Mini-site marchand prêt à vendre', descEn: 'Ready-to-sell seller mini-site', icon: '🏪', href: (iso) => `/country/${iso}/store` },
+  { id: 'recap',         phase: 'fill', tier: 'explorer', labelFr: 'Synthèse de l\'opportunité', labelEn: 'Opportunity recap',     descFr: 'Tout ce que vous avez débloqué',  descEn: 'Everything you\'ve unlocked', icon: '🎖️', href: (iso) => `/country/${iso}/recap` },
 ]
 
-// Ranks support both legacy and current DB tiers.
 const TIER_RANK: Record<string, number> = {
-  free: 0,
-  explorer: 0,
-  basic: 1,
-  data: 1,
-  standard: 2,
-  strategy: 2,
+  free: 0, explorer: 0,
+  basic: 1, data: 1,
+  standard: 2, strategy: 2,
   premium: 3,
   enterprise: 4,
 }
 
-const TIER_LABELS: Record<string, { fr: string; en: string }> = {
-  explorer: { fr: 'Explorer', en: 'Explorer' },
-  data: { fr: 'Data', en: 'Data' },
-  strategy: { fr: 'Strategy', en: 'Strategy' },
+const TIER_LABELS: Record<string, { fr: string; en: string; color: string }> = {
+  data:     { fr: 'Data',     en: 'Data',     color: '#60A5FA' },
+  strategy: { fr: 'Strategy', en: 'Strategy', color: '#C9A84C' },
+  premium:  { fr: 'Premium',  en: 'Premium',  color: '#A78BFA' },
 }
 
 interface JourneySidebarProps {
@@ -145,122 +55,207 @@ interface JourneySidebarProps {
   hasStudies?: boolean
 }
 
-export default function JourneySidebar({ iso, currentStep, userTier = 'free', hasStudies = false }: JourneySidebarProps) {
+export default function JourneySidebar({ iso, currentStep, userTier: initialTier = 'free', hasStudies = false }: JourneySidebarProps) {
   const { lang } = useLang()
   const L: 'fr' | 'en' = lang === 'en' ? 'en' : 'fr'
+
+  // Tier and subscription end date drive both the access column and the
+  // upgrade modal proration. We refetch when the modal reports success so
+  // the sidebar reflects the new tier without a page reload.
+  const [userTier, setUserTier] = useState(initialTier)
+  const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null)
   const userRank = TIER_RANK[userTier] ?? 0
 
-  // Filter out studies step if no studies available
+  const [upgradeTarget, setUpgradeTarget] = useState<UpgradeTier | null>(null)
+
+  const refreshProfile = async () => {
+    const sb = createSupabaseBrowser()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) return
+    const { data } = await sb
+      .from('profiles')
+      .select('tier, subscription_ends_at')
+      .eq('id', user.id)
+      .single()
+    if (data?.tier) setUserTier(data.tier)
+    setSubscriptionEndsAt((data as { subscription_ends_at?: string | null })?.subscription_ends_at ?? null)
+  }
+
+  useEffect(() => { refreshProfile() }, [])
+
   const steps = ALL_STEPS.filter(s => s.id !== 'studies' || hasStudies)
   const totalSteps = steps.length
-  const currentIdx = steps.findIndex(s => s.id === currentStep)
+  const currentIdx = Math.max(0, steps.findIndex(s => s.id === currentStep))
+  const accessibleCount = steps.filter(s => userRank >= TIER_RANK[s.tier]).length
 
   return (
-    <aside className="hidden lg:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] overflow-y-auto bg-[#0B0F1A]/95 border-r border-white/10 backdrop-blur-md z-30">
-      <div className="p-5">
-        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{L === 'fr' ? 'Parcours' : 'Journey'}</div>
-        <div className="text-sm font-semibold text-white mb-5">{iso}</div>
+    <>
+      <aside className="hidden lg:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] overflow-y-auto bg-[#0B0F1A]/95 border-r border-white/10 backdrop-blur-md z-30">
+        <div className="p-5">
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{L === 'fr' ? 'Parcours' : 'Journey'}</div>
+          <div className="text-sm font-semibold text-white mb-5">{iso}</div>
 
-        <nav className="space-y-1">
-          {steps.map((step, idx) => {
-            const isCurrent = step.id === currentStep
-            const hasAccess = userRank >= TIER_RANK[step.tier]
-            const label = L === 'fr' ? step.labelFr : step.labelEn
-            const desc = L === 'fr' ? step.descFr : step.descEn
-            const tierLabel = TIER_LABELS[step.tier]?.[L] ?? step.tier
-            const prevPhase = idx > 0 ? steps[idx - 1].phase : null
-            const showPhaseHeader = step.phase !== prevPhase
+          <nav className="space-y-1">
+            {steps.map((step, idx) => {
+              const isCurrent = step.id === currentStep
+              const hasAccess = userRank >= TIER_RANK[step.tier]
+              const label = L === 'fr' ? step.labelFr : step.labelEn
+              const desc = L === 'fr' ? step.descFr : step.descEn
+              const tierInfo = TIER_LABELS[step.tier]
+              const tierLabel = tierInfo ? tierInfo[L] : step.tier
+              const tierColor = tierInfo?.color ?? '#9CA3AF'
+              const prevPhase = idx > 0 ? steps[idx - 1].phase : null
+              const showPhaseHeader = step.phase !== prevPhase
 
-            return (
-              <div key={step.id}>
-              {showPhaseHeader && (
-                <div className={`mt-${idx === 0 ? '0' : '4'} mb-2 px-1 flex items-center gap-2`}>
-                  <div className={`h-px flex-1 ${step.phase === 'feel' ? 'bg-sky-400/30' : 'bg-emerald-400/30'}`} />
-                  <span className={`text-[10px] uppercase tracking-[0.2em] font-bold ${step.phase === 'feel' ? 'text-sky-300' : 'text-emerald-300'}`}>
-                    {step.phase === 'feel'
-                      ? (L === 'fr' ? '👁️ Feel the gap' : '👁️ Feel the gap')
-                      : (L === 'fr' ? '⚒️ Fill the gap' : '⚒️ Fill the gap')}
-                  </span>
-                  <div className={`h-px flex-1 ${step.phase === 'feel' ? 'bg-sky-400/30' : 'bg-emerald-400/30'}`} />
-                </div>
-              )}
-              <Link
-                href={step.href(iso)}
-                className={`group relative flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                  isCurrent
-                    ? 'bg-amber-500/15 border border-amber-500/40'
-                    : 'border border-transparent hover:bg-white/5 hover:border-white/10'
-                } ${!hasAccess ? 'opacity-50' : ''}`}
-              >
-                {/* Yellow vertical bar on right side for current step */}
-                {isCurrent && (
-                  <div className="absolute right-0 top-1 bottom-1 w-1 rounded-full bg-[#C9A84C]" />
-                )}
+              // Circle content: progression "N/total" on the current step, plain
+              // number elsewhere.
+              const circleText = isCurrent ? `${idx + 1}/${totalSteps}` : String(idx + 1)
 
-                <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                  isCurrent
-                    ? 'bg-amber-500 text-gray-950'
-                    : 'bg-white/5 text-gray-400 group-hover:bg-white/10'
-                }`}>
-                  {idx + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base">{step.icon}</span>
-                    <span className={`text-sm font-semibold truncate ${isCurrent ? 'text-amber-300' : 'text-gray-200'}`}>
-                      {label}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1">
-                    <span>{desc}</span>
-                    {!hasAccess && (
-                      <span className="px-1.5 py-0.5 bg-white/5 text-gray-400 rounded text-[9px] font-bold">
-                        🔒 {tierLabel}
+              return (
+                <div key={step.id}>
+                  {showPhaseHeader && (
+                    <div className={`${idx === 0 ? 'mt-0' : 'mt-4'} mb-2 px-1 flex items-center gap-2`}>
+                      <div className={`h-px flex-1 ${step.phase === 'feel' ? 'bg-sky-400/30' : 'bg-emerald-400/30'}`} />
+                      <span className={`text-[10px] uppercase tracking-[0.2em] font-bold ${step.phase === 'feel' ? 'text-sky-300' : 'text-emerald-300'}`}>
+                        {step.phase === 'feel' ? '👁️ Feel the gap' : '⚒️ Fill the gap'}
                       </span>
+                      <div className={`h-px flex-1 ${step.phase === 'feel' ? 'bg-sky-400/30' : 'bg-emerald-400/30'}`} />
+                    </div>
+                  )}
+
+                  <div
+                    className={`group relative flex items-stretch gap-2 rounded-lg transition-all overflow-hidden ${
+                      isCurrent ? 'ring-1 ring-amber-500/40' : ''
+                    }`}
+                  >
+                    {/* Background veil — explicitly behind everything else (z-0). */}
+                    <div
+                      className={`absolute inset-0 -z-0 pointer-events-none rounded-lg transition-colors ${
+                        isCurrent
+                          ? 'bg-amber-500/15'
+                          : hasAccess
+                          ? 'group-hover:bg-white/5'
+                          : 'bg-white/[0.015] group-hover:bg-white/5'
+                      }`}
+                    />
+                    {isCurrent && (
+                      <div className="absolute right-0 top-1 bottom-1 w-1 rounded-full bg-[#C9A84C] z-10" />
                     )}
+
+                    {/* Main clickable step cell — always readable, but disabled
+                        cursor when the tier is locked. */}
+                    <Link
+                      href={hasAccess ? step.href(iso) : '#'}
+                      onClick={(e) => { if (!hasAccess) e.preventDefault() }}
+                      aria-disabled={!hasAccess}
+                      className={`relative z-10 flex items-start gap-3 px-3 py-2.5 flex-1 min-w-0 ${
+                        !hasAccess ? 'cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {/* Bigger circle with progression on the current step. */}
+                      <div
+                        className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold transition-colors ${
+                          isCurrent
+                            ? 'bg-amber-500 text-gray-950 text-[13px]'
+                            : hasAccess
+                            ? 'bg-white/10 text-gray-200 text-sm group-hover:bg-white/15'
+                            : 'bg-white/5 text-gray-500 text-sm'
+                        }`}
+                      >
+                        {circleText}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base shrink-0">{step.icon}</span>
+                          <span className={`text-sm font-semibold truncate ${isCurrent ? 'text-amber-300' : hasAccess ? 'text-gray-200' : 'text-gray-400'}`}>
+                            {label}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-gray-500 mt-0.5 truncate">{desc}</div>
+                      </div>
+                    </Link>
+
+                    {/* Access column — sits outside the step card. Fixed
+                        width so every cell aligns vertically. "Inclus" when
+                        access, tier pill (clickable → upgrade modal) when
+                        locked. */}
+                    <div className="relative z-10 shrink-0 w-20 flex items-center justify-center pr-2">
+                      {hasAccess ? (
+                        <span className="px-2 py-1 rounded-md text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 whitespace-nowrap">
+                          ✓ {L === 'fr' ? 'Inclus' : 'Included'}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            // Only upgrade tiers (data/strategy/premium) have a modal.
+                            if (step.tier === 'explorer') return
+                            setUpgradeTarget(step.tier as UpgradeTier)
+                          }}
+                          className="px-2 py-1 rounded-md text-[10px] font-bold whitespace-nowrap transition-all hover:scale-105"
+                          style={{
+                            color: tierColor,
+                            background: tierColor + '15',
+                            border: `1px solid ${tierColor}44`,
+                          }}
+                          aria-label={L === 'fr' ? `Débloquer avec l'offre ${tierLabel}` : `Unlock with ${tierLabel} plan`}
+                        >
+                          🔒 {tierLabel}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
+              )
+            })}
+          </nav>
 
-                {/* Step counter on the right */}
-                {isCurrent && (
-                  <div className="shrink-0 self-center mr-2">
-                    <span className="text-[10px] font-bold text-[#C9A84C]">
-                      {idx + 1}/{totalSteps}
-                    </span>
-                  </div>
-                )}
-              </Link>
-              </div>
-            )
-          })}
-        </nav>
-
-        {/* Step progress bar */}
-        <div className="mt-4 px-1">
-          <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1.5">
-            <span>{L === 'fr' ? 'Progression' : 'Progress'}</span>
-            <span className="text-[#C9A84C] font-bold">
-              {L === 'fr' ? `Étape ${currentIdx + 1}/${totalSteps}` : `Step ${currentIdx + 1}/${totalSteps}`}
-            </span>
+          {/* Global progress bar (keeps a single step-counter at the bottom —
+              not duplicated on the current step). */}
+          <div className="mt-4 px-1">
+            <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1.5">
+              <span>{L === 'fr' ? 'Progression' : 'Progress'}</span>
+              <span className="text-[#C9A84C] font-bold">
+                {L === 'fr' ? `Étape ${currentIdx + 1}/${totalSteps}` : `Step ${currentIdx + 1}/${totalSteps}`}
+              </span>
+            </div>
+            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#C9A84C] rounded-full transition-all duration-500"
+                style={{ width: `${((currentIdx + 1) / totalSteps) * 100}%` }}
+              />
+            </div>
+            <div className="text-[10px] text-gray-500 mt-2">
+              {L === 'fr'
+                ? `Accès : ${accessibleCount}/${totalSteps} étapes débloquées`
+                : `Access: ${accessibleCount}/${totalSteps} steps unlocked`}
+            </div>
           </div>
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#C9A84C] rounded-full transition-all duration-500"
-              style={{ width: `${((currentIdx + 1) / totalSteps) * 100}%` }}
-            />
+
+          <div className="mt-6 pt-5 border-t border-white/5">
+            <Link
+              href="/map"
+              className="flex items-center gap-2 text-xs text-gray-400 hover:text-amber-400 transition-colors"
+            >
+              <span>←</span>
+              <span>{L === 'fr' ? 'Retour à la carte' : 'Back to map'}</span>
+            </Link>
           </div>
         </div>
+      </aside>
 
-        <div className="mt-6 pt-5 border-t border-white/5">
-          <Link
-            href="/map"
-            className="flex items-center gap-2 text-xs text-gray-400 hover:text-amber-400 transition-colors"
-          >
-            <span>←</span>
-            <span>{L === 'fr' ? 'Retour à la carte' : 'Back to map'}</span>
-          </Link>
-        </div>
-      </div>
-    </aside>
+      <UpgradeOfferModal
+        open={upgradeTarget !== null}
+        targetTier={upgradeTarget ?? 'data'}
+        currentTier={userTier}
+        subscriptionEndsAt={subscriptionEndsAt}
+        lang={L}
+        onClose={() => setUpgradeTarget(null)}
+        onSuccess={() => { refreshProfile() }}
+      />
+    </>
   )
 }
