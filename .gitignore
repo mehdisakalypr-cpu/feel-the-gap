@@ -45,3 +45,4 @@ next-env.d.ts
 # temp debug/check scripts
 agents/_*
 .gitnexus
+graphify-out/

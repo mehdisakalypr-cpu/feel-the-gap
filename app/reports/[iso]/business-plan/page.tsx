@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
-import BudgetShortfallNotice from '@/components/BudgetShortfallNotice'
 import { supabase } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -608,16 +607,33 @@ function heroImageUrl(query: string | undefined, category: string | undefined): 
 
 // ── Plan display ──────────────────────────────────────────────────────────────
 
-function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChangeBudget, scopePct }: {
+function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChangeBudget, scopePct, oppIds, onReduceScope }: {
   plan: Plan; opps: OppRow[]; country: string; iso: string; userTier: string
   userBudgetEur: number | null
   onChangeBudget: (v: number | null) => void
   scopePct: number
+  oppIds: string[]
+  onReduceScope: (pct: number) => void
 }) {
   const isPremium = ['premium', 'enterprise'].includes(userTier)
 
   // Deduplicate b2b_targets if empty
   const b2bTargets = plan.b2b_targets?.length ? plan.b2b_targets : []
+
+  // ── Budget shortfall (numeric compare, no AI) ───────────────────────────────
+  const requiredMinEur = (plan.strategies ?? []).reduce((s, x) => s + (x.investment_min_eur ?? 0), 0)
+  const shortfall = userBudgetEur != null && userBudgetEur > 0 && requiredMinEur > 0 && userBudgetEur < requiredMinEur
+    ? requiredMinEur - userBudgetEur
+    : 0
+  const coveragePct = shortfall > 0 ? Math.round((userBudgetEur! / requiredMinEur) * 100) : 100
+  const missingScopePct = shortfall > 0 ? 100 - coveragePct : 0
+  const oppsParam = [...oppIds].sort().join(',')
+  const fundingBase = `/funding/scenarios?iso=${iso}&opps=${encodeURIComponent(oppsParam)}&missing=${shortfall}&coverage=${coveragePct}`
+
+  const fmtMoney = (n: number) =>
+    n >= 1e6 ? `${(n / 1e6).toFixed(1)} M€`
+    : n >= 1e3 ? `${Math.round(n / 1e3)} k€`
+    : `${n.toLocaleString('fr-FR')} €`
 
   return (
     <div className="space-y-8 overflow-hidden break-words">
@@ -664,6 +680,71 @@ function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChan
           <span className="text-sm text-gray-400">€</span>
         </div>
       </div>
+
+      {/* ── Inline shortfall notice (numeric compare, no AI) ── */}
+      {shortfall > 0 && (
+        <div
+          className="rounded-2xl p-5 space-y-4"
+          style={{
+            background: 'linear-gradient(180deg, #1A1210 0%, #0D1117 100%)',
+            border: '1px solid rgba(249, 115, 22, 0.35)',
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
+              style={{ background: 'rgba(249,115,22,0.12)', border: '1px solid rgba(249,115,22,0.35)' }}
+            >
+              💸
+            </div>
+            <div className="flex-1 text-sm text-gray-200 leading-relaxed">
+              Nous avons détecté que <span className="text-[#F97316] font-semibold">votre budget est insuffisant</span>
+              {' '}(il manque <span className="text-[#F97316] font-bold">{fmtMoney(shortfall)}</span> pour couvrir 100 % de l'opportunité, couverture actuelle : {coveragePct} %).
+              Vous pouvez adresser une partie plus restreinte de l'opportunité, faire une demande de financement, et/ou remplir un dossier à destination d'investisseurs.
+            </div>
+          </div>
+
+          {/* Coverage bar */}
+          <div>
+            <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${coveragePct}%`, background: 'linear-gradient(90deg,#F97316,#FACC15)' }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-gray-500 mt-1.5">
+              <span>Votre budget : <span className="text-white font-semibold">{fmtMoney(userBudgetEur!)}</span></span>
+              <span>Requis min : <span className="text-[#F97316] font-semibold">{fmtMoney(requiredMinEur)}</span></span>
+            </div>
+          </div>
+
+          {/* 3 CTAs */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => onReduceScope(missingScopePct)}
+              className="flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{ background: '#60A5FA20', border: '1px solid #60A5FA55', color: '#60A5FA' }}
+            >
+              📉 Réduire l'ampleur (−{missingScopePct}%)
+            </button>
+            <Link
+              href={`${fundingBase}&preset=financement`}
+              className="flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{ background: '#34D39920', border: '1px solid #34D39955', color: '#34D399' }}
+            >
+              🏦 Demande de financement
+            </Link>
+            <Link
+              href={`${fundingBase}&preset=investissement`}
+              className="flex items-center gap-2 justify-center px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{ background: '#C9A84C20', border: '1px solid #C9A84C55', color: '#C9A84C' }}
+            >
+              📂 Dossier d'investissement
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero ── */}
       <div className="relative rounded-3xl overflow-hidden" style={{ height: 280 }}>
@@ -1362,16 +1443,8 @@ export default function BusinessPlanPage() {
               userBudgetEur={userBudgetEur}
               onChangeBudget={setUserBudgetEur}
               scopePct={scopePct}
-            />
-            {/* Budget shortfall notice — floats on the right when budget < required_min */}
-            <BudgetShortfallNotice
-              userBudgetEur={userBudgetEur}
-              requiredMinEur={(filterPlanByModes(plan, Array.from(selectedModes), scopePct).strategies ?? [])
-                .reduce((sum, s) => sum + (s.investment_min_eur ?? 0), 0)}
-              requiredMaxEur={(filterPlanByModes(plan, Array.from(selectedModes), scopePct).strategies ?? [])
-                .reduce((sum, s) => sum + (s.investment_max_eur ?? 0), 0)}
-              iso={iso}
               oppIds={selectedOppIds}
+              onReduceScope={setScopePct}
             />
           </>
         ) : null}

@@ -278,46 +278,78 @@ IMPORTANT:
 `;
 }
 
-// ─── LLM call with Groq fallback ────────────────────────────────────────────
+// ─── LLM call with Gemini → Groq → Mistral cascade ──────────────────────────
+async function callGroq(prompt: string): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not set');
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 8000,
+      temperature: 0.4,
+      response_format: { type: 'json_object' },
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+  return data.choices[0]?.message?.content ?? '';
+}
+
+async function callMistral(prompt: string): Promise<string> {
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) throw new Error('MISTRAL_API_KEY not set');
+  const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'mistral-small-latest',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 12000,
+      temperature: 0.4,
+      response_format: { type: 'json_object' },
+    }),
+  });
+  if (!res.ok) throw new Error(`Mistral ${res.status}: ${await res.text()}`);
+  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
+  return data.choices[0]?.message?.content ?? '';
+}
+
 async function callLLM(prompt: string): Promise<string> {
-  try {
-    const { text } = await generateText({
-      model: google('gemini-2.5-flash'),
-      prompt,
-      maxOutputTokens: 32000,
-      providerOptions: {
-        google: {
-          responseMimeType: 'application/json',
+  // Try Gemini first (best for business analysis), fall back on ANY error
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    try {
+      const { text } = await generateText({
+        model: google('gemini-2.5-flash'),
+        prompt,
+        maxOutputTokens: 32000,
+        providerOptions: {
+          google: { responseMimeType: 'application/json' },
         },
-      },
-    });
-    return text;
-  } catch (err) {
-    const msg = (err as Error).message;
-    if (msg.includes('quota') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-      console.warn('[enriched-plan] Gemini quota exhausted, fallback to Groq');
-      const apiKey = process.env.GROQ_API_KEY;
-      if (!apiKey) throw err;
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          max_tokens: 8000,
-          temperature: 0.4,
-          response_format: { type: 'json_object' },
-        }),
       });
-      if (!res.ok) throw new Error(`Groq ${res.status}`);
-      const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-      return data.choices[0]?.message?.content ?? '';
+      return text;
+    } catch (err) {
+      console.warn('[enriched-plan] Gemini failed, falling back to Groq:', (err as Error).message);
     }
-    throw err;
   }
+
+  // Try Groq next
+  if (process.env.GROQ_API_KEY) {
+    try {
+      return await callGroq(prompt);
+    } catch (err) {
+      console.warn('[enriched-plan] Groq failed, falling back to Mistral:', (err as Error).message);
+    }
+  }
+
+  // Mistral last resort
+  if (process.env.MISTRAL_API_KEY) {
+    return await callMistral(prompt);
+  }
+
+  throw new Error('No LLM provider available (need GOOGLE_GENERATIVE_AI_API_KEY, GROQ_API_KEY, or MISTRAL_API_KEY)');
 }
 
 // ─── Public API ─────────────────────────────────────────────────────────────
