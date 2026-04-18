@@ -23,6 +23,7 @@ const NAV = [
   { href: '/admin/videos',        label: 'Vidéos',         icon: '🎬' },
   { href: '/admin/features',      label: 'Features',       icon: '🚦' },
   { href: '/admin/marketplace',   label: 'Marketplace',    icon: '🌍' },
+  { href: '/admin/api-usage',     label: 'API Usage',       icon: '🔑' },
 ]
 
 // Demo accounts for the quick-switch menu in the sidebar footer.

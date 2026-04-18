@@ -526,6 +526,28 @@ export default function AccountPage() {
         {/* Stripe Connect (marketplace payouts) */}
         <StripeConnectBlock />
 
+        {/* API tokens */}
+        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+          <div className="font-semibold text-white mb-1">Tokens API</div>
+          <div className="text-sm text-gray-400 mb-4">
+            Accédez à notre API institutionnelle (938 000+ opportunités · 211 pays · 323 produits). 4 tiers dès €12K/an.
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Link
+              href="/account/api-tokens"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C9A84C] text-black font-medium rounded-xl hover:bg-[#B8972F] transition-colors text-sm"
+            >
+              🔑 Gérer mes tokens
+            </Link>
+            <Link
+              href="/api-platform"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm"
+            >
+              Voir les tiers →
+            </Link>
+          </div>
+        </div>
+
         {/* Parrainage */}
         <div id="referral" className="scroll-mt-20"><ReferralBlock /></div>
 

@@ -3,13 +3,13 @@
  * Gemini free → Groq free → Mistral → Cerebras → OpenAI (dernier recours, payant)
  */
 import { generateText } from 'ai'
-import type { LanguageModelV1 } from 'ai'
+import type { LanguageModel } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
 import { createOpenAI } from '@ai-sdk/openai'
 
-export interface Provider { name: string; model: LanguageModelV1; exhausted: boolean }
+export interface Provider { name: string; model: LanguageModel; exhausted: boolean }
 
 export function buildProviders(): Provider[] {
   const p: Provider[] = []
@@ -49,7 +49,7 @@ export async function gen(prompt: string, tokens = 8192): Promise<string> {
   while (tried.size < providers.length) {
     const p = providers[idx]; tried.add(p.name)
     try {
-      const { text } = await generateText({ model: p.model, prompt, maxTokens: tokens, temperature: 0.7 })
+      const { text } = await generateText({ model: p.model, prompt, maxOutputTokens: tokens, temperature: 0.7 })
       return text
     } catch (err: any) {
       if (err.message?.toLowerCase().match(/429|quota|rate|billing|disabled|exceeded/)) {
