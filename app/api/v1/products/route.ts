@@ -7,21 +7,21 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/v1/opportunities — endpoint public authentifié (tier starter+).
- * Query: ?country=FRA&sector=coffee&limit=50 (max 500)
- *
- * Scope requis : opportunities:read
+ * GET /api/v1/products — catalogue 323 produits avec codes HS.
+ * Requiert scope products:read (ou *).
+ * Query: ?category=agri&hs2=09&limit=100
  */
 export async function GET(req: NextRequest) {
   const t0 = Date.now()
-  const auth = await authenticateApiRequest(req, 'opportunities:read')
+  const auth = await authenticateApiRequest(req, 'products:read')
   if (!auth.ok) return v1Error(auth.error, auth.status, auth.retryAfter)
 
   const url = new URL(req.url)
-  const country = url.searchParams.get('country')?.toUpperCase()
-  const sector = url.searchParams.get('sector')
-  const product = url.searchParams.get('product')
-  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') ?? 50)), 500)
+  const category = url.searchParams.get('category')
+  const hs2 = url.searchParams.get('hs2')
+  const hs4 = url.searchParams.get('hs4')
+  const search = url.searchParams.get('search')
+  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') ?? 100)), 500)
   const offset = Math.max(0, Number(url.searchParams.get('offset') ?? 0))
 
   const sb = createClient(
@@ -30,29 +30,30 @@ export async function GET(req: NextRequest) {
     { auth: { persistSession: false } },
   )
 
-  let q = sb.from('opportunities')
-    .select('id, country_iso, sector, product_slug, score, margin_eur, created_at', { count: 'exact' })
-    .order('score', { ascending: false })
+  let q = sb.from('products')
+    .select('id, hs2, hs4, name, name_fr, category, subcategory, unit', { count: 'exact' })
+    .order('name', { ascending: true })
     .range(offset, offset + limit - 1)
 
-  if (country) q = q.eq('country_iso', country)
-  if (sector) q = q.eq('sector', sector)
-  if (product) q = q.eq('product_slug', product)
+  if (category) q = q.eq('category', category)
+  if (hs2) q = q.eq('hs2', hs2)
+  if (hs4) q = q.eq('hs4', hs4)
+  if (search) q = q.or(`name.ilike.%${search}%,name_fr.ilike.%${search}%`)
 
   const { data, count, error } = await q
   const status = error ? 500 : 200
+
   const res = error
     ? v1Error(error.message, 500)
     : v1Json({ ok: true, count, limit, offset, items: data ?? [] }, auth.auth)
 
   logApiCall({
     tokenId: auth.auth.token.id,
-    path: '/api/v1/opportunities',
+    path: '/api/v1/products',
     method: 'GET',
     status,
     latencyMs: Date.now() - t0,
     ip: auth.auth.ip,
   })
-
   return res
 }
