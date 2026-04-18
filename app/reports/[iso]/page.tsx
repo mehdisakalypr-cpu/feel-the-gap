@@ -898,30 +898,77 @@ export default function ReportPage() {
         <JourneyNavFooter currentStepId="report" iso={iso} />
       </main>
 
+      {/* ── Floating count bubble (top-right, always visible) ── */}
+      {selectedOpps.size > 0 && (
+        <button
+          type="button"
+          onClick={() => document.getElementById('opportunities-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          aria-label={`${selectedOpps.size} opportunités sélectionnées — scroll vers la liste`}
+          className="fixed z-[60] flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300"
+          style={{
+            top: '72px',
+            right: '16px',
+            padding: '10px 18px 10px 10px',
+            background: 'linear-gradient(135deg, #C9A84C, #E8C97A)',
+            color: '#07090F',
+            borderRadius: '9999px',
+            border: '2px solid rgba(255,255,255,.15)',
+            boxShadow: '0 8px 32px rgba(201,168,76,.45), 0 0 0 4px rgba(201,168,76,.12)',
+            cursor: 'pointer',
+          }}
+        >
+          <span
+            className="flex items-center justify-center font-black"
+            style={{
+              width: 44, height: 44,
+              background: '#07090F',
+              color: '#C9A84C',
+              borderRadius: '9999px',
+              fontSize: 22,
+              lineHeight: 1,
+              boxShadow: 'inset 0 0 0 2px rgba(255,255,255,.08)',
+            }}
+          >{selectedOpps.size}</span>
+          <span className="font-bold text-sm whitespace-nowrap pr-1 hidden sm:inline">
+            opp. sélectionnée{selectedOpps.size > 1 ? 's' : ''}
+          </span>
+        </button>
+      )}
+
       {/* ── Sticky bottom panel ── */}
       <div
         className="fixed bottom-0 left-0 right-0 z-50 transition-all duration-300"
         style={{
           transform: selectedOpps.size > 0 ? 'translateY(0)' : 'translateY(110%)',
-          background: 'rgba(7,9,15,0.92)',
-          backdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(201,168,76,0.25)',
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
+          background: 'rgba(7,9,15,0.96)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '2px solid #C9A84C',
+          boxShadow: '0 -12px 40px rgba(201,168,76,.25), 0 -4px 12px rgba(0,0,0,0.6)',
         }}
       >
         <div className="max-w-5xl mx-auto px-4 py-4">
           {!showModelPanel ? (
             /* Compact bar */
             <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
-                  style={{ background: '#C9A84C', color: '#07090F' }}>
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center justify-center font-black"
+                  style={{
+                    width: 48, height: 48,
+                    background: 'linear-gradient(135deg, #C9A84C, #E8C97A)',
+                    color: '#07090F',
+                    borderRadius: '9999px',
+                    fontSize: 22,
+                    lineHeight: 1,
+                    boxShadow: '0 0 0 4px rgba(201,168,76,.2), 0 4px 14px rgba(201,168,76,.5)',
+                  }}
+                >
                   {selectedOpps.size}
                 </div>
-                <span className="text-sm text-white font-semibold">
+                <span className="text-base text-white font-bold">
                   opportunité{selectedOpps.size > 1 ? 's' : ''} sélectionnée{selectedOpps.size > 1 ? 's' : ''}
                 </span>
-                <span className="text-xs text-gray-500 hidden md:inline">
+                <span className="text-xs text-gray-400 hidden md:inline max-w-md truncate">
                   · {Array.from(selectedOpps).map(id => opps.find(o => o.id === id)?.products?.name).filter(Boolean).join(', ')}
                 </span>
               </div>
