@@ -9,6 +9,7 @@ const PUBLIC_PAGES = new Set([
   '/map',
   '/reports',
   '/onboarding',
+  '/api-platform',  // Sales page API Platform (public, no auth needed to see tiers)
   '/influencer/welcome',  // Influencer landing "vendre du rêve" (public)
   '/influencer/catalog',  // Product catalog Apple-style (public browse, save needs auth)
   '/influencer/map',      // Public view of product countries
@@ -59,6 +60,8 @@ const PUBLIC_API_PREFIXES = [
   '/api/opportunities',   // Public data
   '/api/stats',           // Public aggregate stats (map counters)
   '/api/catalog',         // Public catalogue (opt-in products only, enforced by RLS)
+  '/api/v1/',             // API Platform (Bearer token auth done in route, not middleware)
+  '/api/transport/',      // Transport quotes (public, no auth — just a quote estimator)
 ]
 
 // ── Admin routes — require admin role ────────────────────────────────────────

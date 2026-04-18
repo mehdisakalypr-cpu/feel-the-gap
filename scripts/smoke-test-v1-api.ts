@@ -92,9 +92,9 @@ async function main() {
 
   // OpenAPI spec (non-auth)
   {
-    const r = await hit('/api/v1/openapi.json')
+    const r = await hit('/api/v1/openapi')
     results.push({
-      name: '/api/v1/openapi.json (public)',
+      name: '/api/v1/openapi (public)',
       ok: r.status === 200 && r.body?.openapi === '3.1.0',
       detail: `status=${r.status} title=${r.body?.info?.title ?? 'missing'}`,
     })
