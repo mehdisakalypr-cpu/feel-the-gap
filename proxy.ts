@@ -10,6 +10,7 @@ const PUBLIC_PAGES = new Set([
   '/reports',
   '/onboarding',
   '/api-platform',  // Sales page API Platform (public, no auth needed to see tiers)
+  '/docs/api',      // Swagger UI interactive docs (public)
   '/influencer/welcome',  // Influencer landing "vendre du rêve" (public)
   '/influencer/catalog',  // Product catalog Apple-style (public browse, save needs auth)
   '/influencer/map',      // Public view of product countries
