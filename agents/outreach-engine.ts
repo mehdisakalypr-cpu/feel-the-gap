@@ -9,48 +9,14 @@
  *
  * Met à jour status='contacted' + outreach_channel + outreach_sent_at.
  *
- * Usage :
- *   npx tsx agents/outreach-engine.ts                       # dry-run (n'envoie rien)
- *   npx tsx agents/outreach-engine.ts --apply               # envoie en vrai
- *   npx tsx agents/outreach-engine.ts --apply --limit=50    # batch 50
+ * Deux entry-points :
+ *  - CLI : `npx tsx agents/outreach-engine.ts [--apply] [--limit=25]`
+ *  - Route cron : `import { runOutreachEngine } from '@/agents/outreach-engine'`
  */
 
-import * as fs from 'fs'
-import * as path from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { sendWhatsAppCallMeBot } from '../lib/outreach/whatsapp'
-
-// ── env ─────────────────────────────────────────────────────────────────────
-function loadEnv() {
-  const p = path.join(process.cwd(), '.env.local')
-  if (!fs.existsSync(p)) return
-  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
-    const t = line.trim()
-    if (!t || t.startsWith('#')) continue
-    const i = t.indexOf('=')
-    if (i < 0) continue
-    const k = t.slice(0, i).trim()
-    if (!process.env[k]) process.env[k] = t.slice(i + 1).trim().replace(/^["']|["']$/g, '')
-  }
-}
-loadEnv()
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
-const FROM    = process.env.EMAIL_FROM || 'Feel The Gap <outreach@ofaops.xyz>'
-
-// ── args ────────────────────────────────────────────────────────────────────
-const argv = {
-  apply: process.argv.includes('--apply'),
-  limit: Number((process.argv.find(a => a.startsWith('--limit=')) ?? '--limit=25').split('=')[1]),
-}
-
-// ── db ──────────────────────────────────────────────────────────────────────
-const db = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } },
-)
 
 // ── templates ───────────────────────────────────────────────────────────────
 function pitchEmailHtml(args: {
@@ -60,8 +26,9 @@ function pitchEmailHtml(args: {
   demoUrl: string
   archetype: string | null
   roiMonthlyEur: number | null
+  appUrl: string
 }): string {
-  const { fullName, companyName, heroMessage, demoUrl, archetype, roiMonthlyEur } = args
+  const { fullName, companyName, heroMessage, demoUrl, archetype, roiMonthlyEur, appUrl } = args
   const roi = roiMonthlyEur ? `<strong style="color:#C9A84C">${roiMonthlyEur.toLocaleString('fr-FR')} €/mois</strong>` : '—'
   const company = companyName ? ` · ${companyName}` : ''
   return `<div style="font-family:system-ui,sans-serif;background:#07090F;color:#e2e8f0;padding:40px 32px;max-width:600px;margin:0 auto">
@@ -81,7 +48,7 @@ function pitchEmailHtml(args: {
     </p>
     <div style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.3)">
       Feel The Gap · data d'import/export mondiales + business plans IA<br>
-      <a href="${APP_URL}" style="color:#C9A84C;text-decoration:none">${APP_URL.replace(/^https?:\/\//, '')}</a>
+      <a href="${appUrl}" style="color:#C9A84C;text-decoration:none">${appUrl.replace(/^https?:\/\//, '')}</a>
     </div>
   </div>`
 }
@@ -95,9 +62,32 @@ function pitchWhatsAppText(args: {
   return `Bonjour ${args.fullName.split(' ')[0]},\n\n${short}\n\nVotre démo personnalisée Feel The Gap (gratuite, 30j) : ${args.demoUrl}`
 }
 
-// ── main ────────────────────────────────────────────────────────────────────
-async function main() {
-  console.log(`[outreach-engine] mode=${argv.apply ? 'APPLY' : 'DRY-RUN'} limit=${argv.limit}`)
+// ── runner ──────────────────────────────────────────────────────────────────
+export type OutreachEngineResult = {
+  processed: number
+  sentEmail: number
+  sentWhatsapp: number
+  skipped: number
+  errors: number
+  mode: 'APPLY' | 'DRY-RUN'
+}
+
+export async function runOutreachEngine(opts: {
+  apply: boolean
+  limit?: number
+} = { apply: false }): Promise<OutreachEngineResult> {
+  const apply = opts.apply
+  const limit = opts.limit ?? 25
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+  const fromEmail = process.env.EMAIL_FROM || 'Feel The Gap <outreach@ofaops.xyz>'
+
+  const db = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } },
+  )
+
+  console.log(`[outreach-engine] mode=${apply ? 'APPLY' : 'DRY-RUN'} limit=${limit}`)
 
   const nowIso = new Date().toISOString()
   const { data: demos, error } = await db
@@ -111,18 +101,20 @@ async function main() {
     .is('outreach_sent_at', null)
     .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
     .order('created_at', { ascending: true })
-    .limit(argv.limit)
+    .limit(limit)
 
   if (error) {
     console.error('[outreach-engine] DB error:', error.message)
-    process.exit(1)
-  }
-  if (!demos || demos.length === 0) {
-    console.log('[outreach-engine] rien à envoyer (0 demos prêts)')
-    return
+    throw new Error(error.message)
   }
 
-  console.log(`[outreach-engine] ${demos.length} demos à traiter`)
+  const list = demos ?? []
+  if (list.length === 0) {
+    console.log('[outreach-engine] rien à envoyer (0 demos prêts)')
+    return { processed: 0, sentEmail: 0, sentWhatsapp: 0, skipped: 0, errors: 0, mode: apply ? 'APPLY' : 'DRY-RUN' }
+  }
+
+  console.log(`[outreach-engine] ${list.length} demos à traiter`)
 
   const resendKey = process.env.RESEND_API_KEY
   const callmebotKey = process.env.CALLMEBOT_API_KEY
@@ -133,10 +125,9 @@ async function main() {
   let skipped = 0
   let errs = 0
 
-  for (const d of demos) {
-    const demoUrl = `${APP_URL}/demo/${d.token}`
+  for (const d of list) {
+    const demoUrl = `${appUrl}/demo/${d.token}`
 
-    // Backfill : email manquant → cherche dans entrepreneurs_directory par name+country
     let email: string | null = d.email
     let whatsapp: string | null = null
     let phone: string | null = null
@@ -162,13 +153,13 @@ async function main() {
     let sent = false
 
     if (email) {
-      if (!argv.apply || !resend) {
+      if (!apply || !resend) {
         console.log(`[outreach-engine] [dry] email ${email} — demo ${d.id.slice(0, 8)}`)
-        channel = 'email'; sent = !!argv.apply
+        channel = 'email'; sent = !!apply
       } else {
         try {
           await resend.emails.send({
-            from: FROM,
+            from: fromEmail,
             to: email,
             subject: `${d.full_name.split(' ')[0]}, votre démo Feel The Gap est prête`,
             html: pitchEmailHtml({
@@ -178,6 +169,7 @@ async function main() {
               demoUrl,
               archetype: d.archetype,
               roiMonthlyEur: d.roi_monthly_eur,
+              appUrl,
             }),
           })
           channel = 'email'
@@ -189,10 +181,10 @@ async function main() {
         }
       }
     } else if (whatsapp || phone) {
-      const wa = whatsapp ?? phone!
-      if (!argv.apply || !callmebotKey) {
+      const wa = (whatsapp ?? phone)!
+      if (!apply || !callmebotKey) {
         console.log(`[outreach-engine] [dry] whatsapp ${wa} — demo ${d.id.slice(0, 8)}`)
-        channel = 'whatsapp'; sent = !!argv.apply
+        channel = 'whatsapp'; sent = !!apply
       } else {
         const r = await sendWhatsAppCallMeBot({
           phone: wa,
@@ -209,7 +201,7 @@ async function main() {
       }
     }
 
-    if (sent && argv.apply && channel) {
+    if (sent && apply && channel) {
       await db.from('entrepreneur_demos').update({
         status: 'contacted',
         outreach_channel: channel,
@@ -219,9 +211,42 @@ async function main() {
   }
 
   console.log(`[outreach-engine] ✅ emails=${sentEmail} · whatsapp=${sentWhatsapp} · skipped=${skipped} · errors=${errs}`)
+
+  return {
+    processed: list.length,
+    sentEmail,
+    sentWhatsapp,
+    skipped,
+    errors: errs,
+    mode: apply ? 'APPLY' : 'DRY-RUN',
+  }
 }
 
-main().catch(err => {
-  console.error('[outreach-engine] fatal:', err)
-  process.exit(1)
-})
+// ── CLI wrapper (exécuté seulement quand le fichier est lancé directement) ──
+async function cliMain() {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const envPath = path.join(process.cwd(), '.env.local')
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+      const t = line.trim()
+      if (!t || t.startsWith('#')) continue
+      const i = t.indexOf('=')
+      if (i < 0) continue
+      const k = t.slice(0, i).trim()
+      if (!process.env[k]) process.env[k] = t.slice(i + 1).trim().replace(/^["']|["']$/g, '')
+    }
+  }
+  const apply = process.argv.includes('--apply')
+  const limitArg = process.argv.find(a => a.startsWith('--limit='))
+  const limit = limitArg ? Number(limitArg.split('=')[1]) : 25
+  await runOutreachEngine({ apply, limit })
+}
+
+const invokedDirect = typeof require !== 'undefined' && require.main === module
+if (invokedDirect) {
+  cliMain().catch(err => {
+    console.error('[outreach-engine] fatal:', err)
+    process.exit(1)
+  })
+}
