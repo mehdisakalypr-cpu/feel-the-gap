@@ -27,6 +27,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/country/',   // country detail pages (tier-gated in page)
   '/demo/',      // demo tour pages (public access)
   '/seller/',    // public seller mini-sites /seller/[slug] (catalogue B2B)
+  '/docs/',      // /docs/api (Swagger) + /docs/api/webhooks (verification snippets)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
