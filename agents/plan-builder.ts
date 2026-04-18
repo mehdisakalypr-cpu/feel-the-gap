@@ -13,6 +13,71 @@ import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { Opportunity } from '@/types/database'
+import { runCascadeJson, type AiTier } from '@/lib/ai/cascade'
+
+/**
+ * Tier-aware wrappers — Vague 4 #8 · 2026-04-18
+ * Pour tier premium/ultimate, on passe par runCascade (draft → refine → polish)
+ * pour une qualité business-plan niveau agence. Sinon, single-pass Gemini Flash.
+ */
+export async function buildTradePlanTiered(
+  opp: Opportunity,
+  productName: string,
+  countryName: string,
+  tier: AiTier = 'basic',
+): Promise<unknown> {
+  if (tier === 'premium' || tier === 'ultimate') {
+    return runCascadeJson({
+      tier,
+      task: 'trade-plan',
+      basePrompt: `You are a global trade consultant. Return ONLY valid JSON (no markdown).
+
+Country: ${countryName}
+Product: ${productName}
+Annual import gap: ${opp.gap_value_usd ? '$' + (opp.gap_value_usd / 1e6).toFixed(1) + 'M' : 'unknown'}
+Current avg import price: ${opp.avg_import_price_usd_tonne ? '$' + opp.avg_import_price_usd_tonne + '/tonne' : 'unknown'}
+
+Structure JSON:
+{
+  "title": "string",
+  "executive_summary": "string (2-3 paragraphs)",
+  "suppliers": [{ "country": "string", "companies": ["string"], "price_usd_tonne": number, "incoterm": "string", "notes": "string" }],
+  "logistics": { "shipping_routes": ["string"], "freight_cost_usd_tonne": number, "customs_duties_pct": number, "lead_time_days": number, "warehousing_notes": "string" },
+  "financial_model": { "purchase_price_usd_tonne": number, "total_landed_cost_usd_tonne": number, "suggested_selling_price_usd_tonne": number, "gross_margin_pct": number, "annual_volume_tonnes": number, "annual_revenue_usd": number, "annual_profit_usd": number },
+  "risks": ["string"],
+  "next_steps": ["string"]
+}`,
+    })
+  }
+  return buildTradePlan(opp, productName, countryName)
+}
+
+export async function buildProductionPlanTiered(
+  opp: Opportunity,
+  productName: string,
+  countryName: string,
+  tier: AiTier = 'basic',
+): Promise<unknown> {
+  if (tier === 'premium' || tier === 'ultimate') {
+    return runCascadeJson({
+      tier,
+      task: 'production-plan',
+      basePrompt: `You are an agricultural/industrial investment consultant specializing in emerging markets.
+Return ONLY valid JSON (no markdown).
+
+Country: ${countryName}
+Product to produce locally: ${productName}
+Annual import gap to replace: ${opp.gap_value_usd ? '$' + (opp.gap_value_usd / 1e6).toFixed(1) + 'M' : 'unknown'}
+Land availability: ${opp.land_availability ?? 'medium'}
+Labor cost index (1-100): ${opp.labor_cost_index ?? 40}
+
+3 investment tiers (Cost-Effective, Balanced, High-Tech) avec Chinese machinery + AI.
+
+Structure JSON complète avec : title, executive_summary, production_setup{land_required_ha, location_recommendation, climate_requirements}, machinery_options[], financial_models{cost_effective, balanced, high_tech} chacun avec capex_usd/opex_year_usd/revenue_year_usd/gross_margin_pct/payback_years/roi_5yr_pct, staffing{total_employees, roles[]}, competitive_advantages[], risks_and_mitigations[], implementation_roadmap[], next_steps[].`,
+    })
+  }
+  return buildProductionPlan(opp, productName, countryName)
+}
 
 // ── Direct Trade Plan ─────────────────────────────────────────────────────────
 

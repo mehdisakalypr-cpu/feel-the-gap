@@ -165,3 +165,26 @@ export async function runParallelCascade(req: CascadeRequest): Promise<CascadeRe
 export function getTierConfig(tier: AiTier) {
   return TIER_CONFIG[tier] ?? TIER_CONFIG.basic
 }
+
+/**
+ * Cascade retournant un JSON parsé. Contrainte : le prompt DOIT demander du JSON.
+ * Si le parse échoue à la dernière passe, on retry 1 fois avec un prompt de correction,
+ * sinon on retourne { raw: <text> } pour debug côté appelant.
+ */
+export async function runCascadeJson<T = unknown>(req: CascadeRequest): Promise<T | { raw: string }> {
+  const result = await runCascade(req)
+  const cleaned = result.text.replace(/```json\n?|\n?```/g, '').trim()
+  try {
+    return JSON.parse(cleaned) as T
+  } catch {
+    // Retry une passe de correction
+    const fixPrompt = `Le texte suivant devait être du JSON valide mais contient une erreur. Renvoie UNIQUEMENT le JSON corrigé, sans markdown ni préambule :\n\n${cleaned}`
+    try {
+      const { gen } = await import('../../agents/providers')
+      const fixed = await gen(fixPrompt, 4096)
+      return JSON.parse(fixed.replace(/```json\n?|\n?```/g, '').trim()) as T
+    } catch {
+      return { raw: cleaned }
+    }
+  }
+}

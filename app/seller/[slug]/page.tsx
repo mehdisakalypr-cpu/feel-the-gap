@@ -107,7 +107,15 @@ export default async function PublicSellerPage({ params }: { params: Promise<{ s
                     {p.available_qty != null && <>Stock {p.available_qty}{p.unit} · </>}
                     {p.origin_port && <>Port {p.origin_port}</>}
                   </div>
-                  <QuoteButton productId={p.id} sellerId={seller.id} productTitle={p.title} />
+                  <QuoteButton
+                    productId={p.id}
+                    sellerId={seller.id}
+                    productTitle={p.title}
+                    originCountry={p.origin_country}
+                    originPort={p.origin_port}
+                    unitPriceEur={p.unit_price_eur}
+                    unit={p.unit}
+                  />
                 </div>
               </div>
             </article>
