@@ -81,7 +81,7 @@ function MarketplaceInner() {
       const isLogged = !!userData?.user
       setLoggedIn(isLogged)
 
-      const promises: Promise<unknown>[] = [
+      const [volRes, demRes, matchRes] = await Promise.all([
         supabase
           .from('production_volumes')
           .select('id, country_iso, product_slug, product_label, quantity_kg, quality_grade, certifications, floor_price_eur_per_kg, incoterm, available_from, available_until')
@@ -94,21 +94,18 @@ function MarketplaceInner() {
           .eq('status', 'open')
           .order('created_at', { ascending: false })
           .limit(50),
-      ]
-      if (isLogged) {
-        promises.push(
-          supabase
-            .from('marketplace_matches')
-            .select('id, match_score, proposed_quantity_kg, proposed_price_eur_per_kg, proposed_total_eur, commission_amount_eur, status, volume_id, demand_id, created_at')
-            .order('match_score', { ascending: false })
-            .limit(20)
-        )
-      }
-      const results = await Promise.all(promises)
+        isLogged
+          ? supabase
+              .from('marketplace_matches')
+              .select('id, match_score, proposed_quantity_kg, proposed_price_eur_per_kg, proposed_total_eur, commission_amount_eur, status, volume_id, demand_id, created_at')
+              .order('match_score', { ascending: false })
+              .limit(20)
+          : Promise.resolve({ data: [] as MyMatch[] }),
+      ])
       if (cancelled) return
-      setVolumes(((results[0] as { data: Volume[] | null })?.data ?? []))
-      setDemands(((results[1] as { data: Demand[] | null })?.data ?? []))
-      if (isLogged) setMyMatches(((results[2] as { data: MyMatch[] | null })?.data ?? []))
+      setVolumes((volRes.data as Volume[] | null) ?? [])
+      setDemands((demRes.data as Demand[] | null) ?? [])
+      setMyMatches((matchRes.data as MyMatch[] | null) ?? [])
       setLoading(false)
     })()
     return () => { cancelled = true }
