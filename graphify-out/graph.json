@@ -97,7 +97,7 @@
       "label": "fmtInt()",
       "file_type": "code",
       "source_file": "app/page.tsx",
-      "source_location": "L77",
+      "source_location": "L74",
       "id": "page_fmtint",
       "community": 76,
       "norm_label": "fmtint()"
@@ -12330,7 +12330,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "app/page.tsx",
-      "source_location": "L77",
+      "source_location": "L74",
       "weight": 1.0,
       "_src": "app_page_tsx",
       "_tgt": "page_fmtint",

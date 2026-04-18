@@ -201,7 +201,12 @@ export default function ReportPage() {
   const [bpSubmitting, setBpSubmitting] = useState(false)
   const [flash, setFlash] = useState<{ kind: 'success' | 'error' | 'info'; msg: string } | null>(null)
 
-  // Tier gating — seuls Premium et Ultimate voient les checkboxes + le bouton bulk BP.
+  // Tier gating :
+  //  - canSelectOpps : tout user authentifié (sauf free/anonymous) peut cocher
+  //    → incite à la découverte + permet upsell ciblé au moment de générer.
+  //  - canBulkBp : seuls Premium et Ultimate ont le quota Fill-the-Gap requis
+  //    → le bouton "Générer" devient "Passer Premium" pour les autres.
+  const canSelectOpps = userTier !== 'free' && userTier !== ''
   const canBulkBp = userTier === 'premium' || userTier === 'ultimate'
 
   // Journey store — when user ticks opportunities, mirror the unique product
@@ -383,8 +388,8 @@ export default function ReportPage() {
 
   const scrollToOpps = () => {
     document.getElementById('opportunities-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    // Only show the checkbox hint for users who can actually tick them.
-    if (canBulkBp) {
+    // Montrer le hint à tous les users qui peuvent cocher (Data+).
+    if (canSelectOpps) {
       setShowCheckboxHint(true)
       setTimeout(() => setShowCheckboxHint(false), 8000)
     }
@@ -650,8 +655,8 @@ export default function ReportPage() {
               </span>
             </h2>
 
-            {/* Bulk select controls — Premium / Ultimate only */}
-            {canBulkBp && filteredOpps.length > 0 && (
+            {/* Bulk select controls — tout user authentifié (Data+) */}
+            {canSelectOpps && filteredOpps.length > 0 && (
               <div className="flex items-center gap-3 mb-3 flex-wrap text-xs">
                 <button
                   type="button"
@@ -696,14 +701,14 @@ export default function ReportPage() {
                 return (
                   <div key={opp.id}
                     id={`opp-${opp.id}`}
-                    className={`bg-[#0D1117] rounded-2xl overflow-hidden transition-all scroll-mt-24 ${canBulkBp ? 'cursor-pointer' : ''}`}
+                    className={`bg-[#0D1117] rounded-2xl overflow-hidden transition-all scroll-mt-24 ${canSelectOpps ? 'cursor-pointer' : ''}`}
                     style={{
-                      border: isSelected && canBulkBp
+                      border: isSelected && canSelectOpps
                         ? '2px solid rgba(201,168,76,0.6)'
                         : '1px solid rgba(201,168,76,0.15)',
-                      boxShadow: isSelected && canBulkBp ? '0 0 20px rgba(201,168,76,0.1)' : 'none',
+                      boxShadow: isSelected && canSelectOpps ? '0 0 20px rgba(201,168,76,0.1)' : 'none',
                     }}
-                    onClick={canBulkBp ? () => toggleOpp(opp.id) : undefined}
+                    onClick={canSelectOpps ? () => toggleOpp(opp.id) : undefined}
                   >
 
                     {/* Header */}
@@ -726,8 +731,8 @@ export default function ReportPage() {
                           <span className="text-xs text-gray-500">Score : <span className="font-bold text-white">{opp.opportunity_score}/100</span></span>
                         </div>
                       </div>
-                      {/* Checkbox + hint popup (first opportunity only) — Premium/Ultimate only */}
-                      <div className="relative shrink-0" hidden={!canBulkBp}>
+                      {/* Checkbox + hint popup (first opportunity only) — Data+ tiers */}
+                      <div className="relative shrink-0" hidden={!canSelectOpps}>
                         <input
                           type="checkbox"
                           aria-label={`Sélectionner l'opportunité ${opp.products?.name ?? ''}`}
@@ -735,11 +740,11 @@ export default function ReportPage() {
                           onClick={(e) => e.stopPropagation()}
                           onChange={() => toggleOpp(opp.id)}
                           className="sr-only peer"
-                          tabIndex={canBulkBp ? 0 : -1}
+                          tabIndex={canSelectOpps ? 0 : -1}
                         />
                         <div
-                          onClick={canBulkBp ? (e) => { e.stopPropagation(); toggleOpp(opp.id) } : undefined}
-                          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${canBulkBp ? 'cursor-pointer' : 'cursor-default'} ${showCheckboxHint && idx === 0 && canBulkBp ? 'ring-4 ring-amber-400/50 animate-pulse' : ''}`}
+                          onClick={canSelectOpps ? (e) => { e.stopPropagation(); toggleOpp(opp.id) } : undefined}
+                          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${canSelectOpps ? 'cursor-pointer' : 'cursor-default'} ${showCheckboxHint && idx === 0 && canSelectOpps ? 'ring-4 ring-amber-400/50 animate-pulse' : ''}`}
                           style={{
                             background: isSelected ? '#C9A84C' : 'rgba(255,255,255,0.05)',
                             border: isSelected ? '2px solid #C9A84C' : '2px solid rgba(255,255,255,0.15)',
@@ -747,7 +752,7 @@ export default function ReportPage() {
                         >
                           {isSelected && <span className="text-[#07090F] text-xs font-bold">✓</span>}
                         </div>
-                        {showCheckboxHint && idx === 0 && canBulkBp && (
+                        {showCheckboxHint && idx === 0 && canSelectOpps && (
                           <>
                             {/* Mobile: below checkbox, arrow up, wraps to 2 lines if needed */}
                             <div className="md:hidden absolute top-full right-0 mt-2 z-20 animate-in fade-in slide-in-from-top-1 pointer-events-none">
@@ -902,7 +907,7 @@ export default function ReportPage() {
                 >
                   Effacer
                 </button>
-                {canBulkBp && (
+                {canBulkBp ? (
                   <button
                     onClick={() => setShowBpModal(true)}
                     disabled={bpSubmitting || selectedOpps.size === 0}
@@ -912,7 +917,16 @@ export default function ReportPage() {
                   >
                     ⚡ Générer les business plans ({selectedOpps.size})
                   </button>
-                )}
+                ) : canSelectOpps && selectedOpps.size > 0 ? (
+                  <a
+                    href="/pricing"
+                    className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+                    style={{ background: 'linear-gradient(135deg,#C9A84C,#E8C97A)', color: '#07090F' }}
+                    title="Le bulk BP nécessite Premium (150 cr/mo) ou Ultimate (250 cr/mo)"
+                  >
+                    🔒 Passer Premium pour générer les {selectedOpps.size} BP
+                  </a>
+                ) : null}
                 <button
                   onClick={() => setShowModelPanel(true)}
                   className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
