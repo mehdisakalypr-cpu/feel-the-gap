@@ -57,7 +57,7 @@ export interface SegmentResult {
 }
 
 export interface ProviderConfig {
-  seedance?: { apiKey: string; baseUrl: string; provider: 'replicate' | 'fal' | 'byteplus' }
+  seedance?: { apiKey: string; baseUrl: string; provider: 'replicate' | 'fal' | 'byteplus' | 'enhancor' }
   elevenlabs?: { apiKey: string; voiceId?: string }
   heygen?: { apiKey: string }
   googleDrive?: { serviceAccountJson?: string }
@@ -68,8 +68,12 @@ export function loadProviderConfig(): ProviderConfig {
   return {
     seedance: process.env.SEEDANCE_API_KEY ? {
       apiKey: process.env.SEEDANCE_API_KEY,
-      baseUrl: process.env.SEEDANCE_BASE_URL || 'https://api.replicate.com/v1',
-      provider: (process.env.SEEDANCE_PROVIDER as any) || 'replicate',
+      baseUrl: process.env.SEEDANCE_BASE_URL || (
+        process.env.SEEDANCE_PROVIDER === 'enhancor' ? 'https://api.enhancor.ai/v1' :
+        process.env.SEEDANCE_PROVIDER === 'fal' ? 'https://fal.run' :
+        'https://api.replicate.com/v1'
+      ),
+      provider: (process.env.SEEDANCE_PROVIDER as any) || 'enhancor',  // default Enhancor — meilleur prix $0.4/s
     } : undefined,
     elevenlabs: process.env.ELEVENLABS_API_KEY ? {
       apiKey: process.env.ELEVENLABS_API_KEY,

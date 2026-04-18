@@ -96,6 +96,49 @@ export async function generateSeedance(req: SeedanceRequest): Promise<SeedanceRe
     }
   }
 
+  // Enhancor (Seedance 2 1080p à $0.4/s — 40% moins cher que standard $0.65)
+  // app : https://app.enhancor.ai/video-generator · dashboard : https://app.enhancor.ai/api-dashboard
+  if (provider === 'enhancor') {
+    try {
+      const create = await fetch(`${baseUrl || 'https://api.enhancor.ai/v1'}/videos/generate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'seedance-2-1080p',
+          prompt: req.prompt,
+          duration: req.durationSeconds,
+          aspect_ratio: req.aspectRatio,
+          ...(req.mode === 'i2v' && req.referenceUrls ? { image_url: req.referenceUrls[0] } : {}),
+        }),
+      })
+      if (!create.ok) return { ok: false, error: `enhancor ${create.status}: ${(await create.text()).slice(0, 200)}` }
+      const pred = await create.json()
+      const jobId = pred.id || pred.job_id
+      if (!jobId) return { ok: false, error: 'no job_id in enhancor response' }
+
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 4000))
+        const st = await fetch(`${baseUrl || 'https://api.enhancor.ai/v1'}/videos/${jobId}`, {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+        })
+        const data = await st.json()
+        if (data.status === 'completed' || data.status === 'succeeded') {
+          return {
+            ok: true,
+            mp4_url: data.video_url || data.output_url,
+            duration_s: req.durationSeconds,
+            provider_job_id: jobId,
+            cost_eur: req.durationSeconds * 0.36, // $0.4/s ≈ €0.36/s
+          }
+        }
+        if (data.status === 'failed') return { ok: false, error: data.error || 'enhancor failed' }
+      }
+      return { ok: false, error: 'enhancor timeout 6min', provider_job_id: jobId }
+    } catch (err) {
+      return { ok: false, error: (err as Error).message }
+    }
+  }
+
   // BytePlus (officiel ByteDance) — à adapter selon doc Seedance
   return { ok: false, error: `provider ${provider} not yet wired — fallback to Replicate or fal` }
 }
