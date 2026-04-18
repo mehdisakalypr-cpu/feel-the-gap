@@ -279,6 +279,12 @@ function MarketplaceInner() {
                       <span className="text-[11px] text-gray-500 whitespace-nowrap">
                         {new Date(m.created_at).toLocaleDateString('fr-FR')}
                       </span>
+                      <Link
+                        href={`/marketplace/${m.id}`}
+                        className="text-[11px] text-[#C9A84C] hover:text-[#E8C97A] underline underline-offset-2 whitespace-nowrap"
+                      >
+                        Détails →
+                      </Link>
                     </div>
                   </div>
                 )

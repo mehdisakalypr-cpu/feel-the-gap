@@ -568,5 +568,71 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // ── account.updated — Connect onboarding status (KYC, payouts) ──────────
+  if (event.type === 'account.updated') {
+    const acct = event.data.object as import('stripe').Stripe.Account
+    const { error: profErr } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        stripe_connect_charges_enabled: acct.charges_enabled,
+        stripe_connect_payouts_enabled: acct.payouts_enabled,
+        stripe_connect_details_submitted: acct.details_submitted,
+        stripe_connect_updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_connect_account_id', acct.id)
+    if (profErr) {
+      console.error('[webhook] account.updated profile sync failed', profErr.message, 'acct:', acct.id)
+    }
+  }
+
+  // ── payment_intent.succeeded — escrow capturé, release côté buyer OK ────
+  if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data.object as import('stripe').Stripe.PaymentIntent
+    const matchId = pi.metadata?.match_id
+    if (matchId) {
+      const { error: upErr } = await supabaseAdmin
+        .from('marketplace_matches')
+        .update({
+          escrow_status: 'released',
+          escrow_released_at: new Date().toISOString(),
+        })
+        .eq('id', matchId)
+        .neq('escrow_status', 'released') // idempotent : ne pas réécrire si déjà release
+      if (upErr) {
+        console.error('[webhook] pi.succeeded match update failed', upErr.message, 'match:', matchId)
+      }
+      await trackRevenue({
+        id: `escrow_released_${pi.id}`, event_type: 'marketplace_escrow_released',
+        stripe_event_id: event.id,
+        amount_eur: (pi.amount_received ?? 0) / 100,
+        metadata: {
+          match_id: matchId,
+          producer_id: pi.metadata?.producer_id ?? null,
+          buyer_id: pi.metadata?.buyer_id ?? null,
+          commission_eur: (pi.application_fee_amount ?? 0) / 100,
+          product_slug: pi.metadata?.product_slug ?? null,
+          country_iso: pi.metadata?.country_iso ?? null,
+        },
+      })
+    }
+  }
+
+  // ── payment_intent.canceled / payment_failed — escrow annulé ou KO ──────
+  if (event.type === 'payment_intent.canceled' || event.type === 'payment_intent.payment_failed') {
+    const pi = event.data.object as import('stripe').Stripe.PaymentIntent
+    const matchId = pi.metadata?.match_id
+    if (matchId) {
+      const newStatus = event.type === 'payment_intent.canceled' ? 'canceled' : 'failed'
+      const { error: upErr } = await supabaseAdmin
+        .from('marketplace_matches')
+        .update({ escrow_status: newStatus })
+        .eq('id', matchId)
+        .in('escrow_status', ['pending_capture', 'not_initiated'])
+      if (upErr) {
+        console.error(`[webhook] ${event.type} match update failed`, upErr.message, 'match:', matchId)
+      }
+    }
+  }
+
   return NextResponse.json({ received: true })
 }

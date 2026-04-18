@@ -274,6 +274,96 @@ function ReferralBlock() {
   )
 }
 
+function StripeConnectBlock() {
+  const [loading, setLoading] = useState(true)
+  const [starting, setStarting] = useState(false)
+  const [connect, setConnect] = useState<{
+    account_id: string | null
+    charges_enabled: boolean
+    payouts_enabled: boolean
+    details_submitted: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    const sb = createSupabaseBrowser()
+    sb.auth.getUser().then(async ({ data }) => {
+      if (!data.user) { setLoading(false); return }
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('stripe_connect_account_id, stripe_connect_charges_enabled, stripe_connect_payouts_enabled, stripe_connect_details_submitted')
+        .eq('id', data.user.id).single()
+      setConnect({
+        account_id: profile?.stripe_connect_account_id ?? null,
+        charges_enabled: !!profile?.stripe_connect_charges_enabled,
+        payouts_enabled: !!profile?.stripe_connect_payouts_enabled,
+        details_submitted: !!profile?.stripe_connect_details_submitted,
+      })
+      setLoading(false)
+    })
+  }, [])
+
+  async function startOnboarding() {
+    setStarting(true)
+    try {
+      const res = await fetch('/api/stripe/connect/onboard', { method: 'POST' })
+      const json = await res.json()
+      if (json.onboarding_url) {
+        window.location.href = json.onboarding_url as string
+      } else if (json.error) {
+        alert(json.message ?? json.error)
+      }
+    } finally { setStarting(false) }
+  }
+
+  if (loading) return null
+
+  const ready = connect?.charges_enabled && connect?.payouts_enabled
+  const pending = connect?.account_id && !ready
+
+  return (
+    <div id="stripe-connect" className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4 scroll-mt-20">
+      <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+        <div>
+          <div className="font-semibold text-white">Compte bancaire (Marketplace)</div>
+          <div className="text-sm text-gray-400 mt-1">
+            Requis pour recevoir les paiements escrow Stripe Connect quand un acheteur valide une commande matchée.
+          </div>
+        </div>
+        {ready && (
+          <span className="text-xs px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 rounded-full whitespace-nowrap">
+            ✅ Actif
+          </span>
+        )}
+        {pending && (
+          <span className="text-xs px-2 py-0.5 bg-amber-500/15 border border-amber-500/40 text-amber-300 rounded-full whitespace-nowrap">
+            ⏳ Vérification Stripe
+          </span>
+        )}
+      </div>
+
+      {ready && (
+        <div className="text-[11px] text-gray-500 mb-4 font-mono break-all">
+          Account : {connect?.account_id}
+        </div>
+      )}
+      {pending && (
+        <div className="text-[11px] text-gray-500 mb-4">
+          Onboarding commencé — Stripe vérifie vos pièces (KYC). Vous pouvez continuer l'onboarding pour accélérer.
+        </div>
+      )}
+
+      <button
+        onClick={startOnboarding}
+        disabled={starting}
+        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm disabled:opacity-50"
+      >
+        {starting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '🏦'}
+        {ready ? 'Mettre à jour mes infos bancaires' : pending ? 'Poursuivre la vérification Stripe' : 'Connecter mon compte bancaire'}
+      </button>
+    </div>
+  )
+}
+
 function ManageSubscriptionBtn() {
   const [loading, setLoading] = useState(false)
   const handlePortal = async () => {
@@ -432,6 +522,9 @@ export default function AccountPage() {
         {tierCfg.paid && (
           <div id="subscription" className="scroll-mt-20"><ManageSubscriptionBtn /></div>
         )}
+
+        {/* Stripe Connect (marketplace payouts) */}
+        <StripeConnectBlock />
 
         {/* Parrainage */}
         <div id="referral" className="scroll-mt-20"><ReferralBlock /></div>
