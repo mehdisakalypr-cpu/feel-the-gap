@@ -526,6 +526,20 @@ export default function AccountPage() {
         {/* Stripe Connect (marketplace payouts) */}
         <StripeConnectBlock />
 
+        {/* Usage Fill the Gap */}
+        <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
+          <div className="font-semibold text-white mb-1">Usage Fill the Gap</div>
+          <div className="text-sm text-gray-400 mb-4">
+            Consomme tes crédits mensuels (Premium 150/mo · Ultimate 250/mo) et historique détaillé.
+          </div>
+          <Link
+            href="/account/usage"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm"
+          >
+            📊 Voir mon usage
+          </Link>
+        </div>
+
         {/* API tokens */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
           <div className="font-semibold text-white mb-1">Tokens API</div>
