@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { SEED_TRADE_DATA } from '@/data/seed-trade-data'
 
-export const revalidate = 3600 // 1h cache
+export const revalidate = 60 // short cache — stats reflètent la croissance continue opps/marchés
 
 /**
  * GET /api/stats/map

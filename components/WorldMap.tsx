@@ -403,13 +403,13 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       {/* Stats bar — stacked vertical on mobile, horizontal on md+; anchored bottom-left inside map */}
       <div className={`absolute bottom-3 left-3 flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2 z-[400] pointer-events-none ${selectedCountry ? 'hidden md:flex' : ''}`}>
         <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
-          <span className="text-[#C9A84C] font-semibold">{countries.length}</span>{' '}
+          <span className="text-[#C9A84C] font-semibold">{countries.length.toLocaleString()}</span>{' '}
           <span className="hidden md:inline">{t('map.countries_tracked')}</span>
           <span className="md:hidden">{t('map.countries_tracked_short') || 'pays'}</span>
         </div>
         <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
           <span className="text-[#C9A84C] font-semibold">
-            {countries.reduce((s, c) => s + c.opportunity_count, 0)}
+            {countries.reduce((s, c) => s + (c.opportunity_count ?? 0), 0).toLocaleString()}
           </span>{' '}
           <span className="hidden md:inline">{t('map.opportunities_qualified') || t('map.opportunities')}</span>
           <span className="md:hidden">{t('map.opportunities_short') || 'opps'}</span>

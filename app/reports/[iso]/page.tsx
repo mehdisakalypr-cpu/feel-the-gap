@@ -236,7 +236,9 @@ export default function ReportPage() {
     if (!iso) return
     Promise.all([
       supabase.from('countries').select('*').eq('id', iso).single(),
-      supabase.from('opportunities').select('*, products(name, category)').eq('country_iso', iso).order('opportunity_score', { ascending: false }),
+      // PostgREST default cap = 1000 → on demande explicitement tout le pays (jusqu'à 10000) pour matcher le total_opps affiché.
+      // Avant (pas de limit) : pays à 5990 opps ne voyaient que les 1000 premières. Fixé Senku 2026-04-18.
+      supabase.from('opportunities').select('*, products(name, category)').eq('country_iso', iso).order('opportunity_score', { ascending: false }).range(0, 9999),
       supabase.from('reports').select('content_html').eq('country_iso', iso).limit(1).single(),
       supabase.auth.getUser(),
     ]).then(async ([{ data: c }, { data: o }, { data: r }, { data: authData }]) => {

@@ -266,7 +266,9 @@ function CountryPageInner() {
     const sb = supabase
     Promise.all([
       sb.from('countries').select('*').eq('id', iso.toUpperCase()).single(),
-      sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, products(name, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(10),
+      // 50 opps = densité visuelle acceptable en une page + CTA rapport complet pour la suite.
+      // Avant (10) : utilisateurs signalaient que "la carte n'affiche pas la totalité" — on voyait 5990 dans le count mais 10 dans la liste. Fixé Senku 2026-04-18.
+      sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, products(name, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(50),
       sb.from('opportunities').select('*', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase()),
       sb.auth.getUser(),
     ]).then(async ([{ data: c }, { data: o }, { count: total }, { data: authData }]) => {
@@ -419,6 +421,18 @@ function CountryPageInner() {
               <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-8 text-center"><p className="text-gray-500 text-sm">{t('country.no_opportunities')}</p></div>
             ) : (
               <div className="space-y-3">
+                {totalOpps > opps.length && (
+                  <div className="flex items-center justify-between px-3 py-2 bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-lg text-xs">
+                    <span className="text-gray-300">
+                      {lang === 'fr'
+                        ? `Affichage des ${opps.length} opportunités les mieux notées sur ${totalOpps.toLocaleString()} au total`
+                        : `Showing top ${opps.length} of ${totalOpps.toLocaleString()} opportunities`}
+                    </span>
+                    <Link href={`/reports/${iso}`} className="text-[#C9A84C] hover:underline font-semibold shrink-0 ml-2">
+                      {lang === 'fr' ? 'Voir toutes →' : 'See all →'}
+                    </Link>
+                  </div>
+                )}
                 {opps.map(opp => (
                   <div key={opp.id} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-4 hover:border-[#C9A84C]/30 transition-colors">
                     <div className="flex items-start justify-between mb-2">
