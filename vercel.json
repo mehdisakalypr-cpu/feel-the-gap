@@ -38,7 +38,7 @@
     },
     {
       "path": "/api/cron/marketplace-matcher",
-      "schedule": "0 * * * *"
+      "schedule": "30 2 * * *"
     }
   ]
 }
