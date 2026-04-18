@@ -239,16 +239,41 @@ export default function ReportPage() {
 
   useEffect(() => {
     if (!iso) return
+
+    // PostgREST hard cap = 1000 rows per request (ignoré .range). On récupère
+    // d'abord le count total exact, puis on charge en parallèle toutes les pages
+    // de 1000 nécessaires → le bouton vert affiche le vrai nombre d'opps du pays.
+    // Fixé Senku 2026-04-18 (commit après recalibrage).
+    async function loadAllOpps(): Promise<Opportunity[]> {
+      const { count: total } = await supabase.from('opportunities')
+        .select('id', { count: 'exact', head: true })
+        .eq('country_iso', iso)
+      const n = total ?? 0
+      if (n === 0) return []
+      const pageSize = 1000
+      const pages = Math.ceil(n / pageSize)
+      const ranges: Array<[number, number]> = []
+      for (let p = 0; p < pages; p++) ranges.push([p * pageSize, Math.min((p + 1) * pageSize - 1, n - 1)])
+      const results = await Promise.all(ranges.map(([from, to]) =>
+        supabase.from('opportunities')
+          .select('*, products(name, category)')
+          .eq('country_iso', iso)
+          .order('opportunity_score', { ascending: false })
+          .range(from, to)
+      ))
+      const out: Opportunity[] = []
+      for (const r of results) out.push(...((r.data ?? []) as Opportunity[]))
+      return out
+    }
+
     Promise.all([
       supabase.from('countries').select('*').eq('id', iso).single(),
-      // PostgREST default cap = 1000 → on demande explicitement tout le pays (jusqu'à 10000) pour matcher le total_opps affiché.
-      // Avant (pas de limit) : pays à 5990 opps ne voyaient que les 1000 premières. Fixé Senku 2026-04-18.
-      supabase.from('opportunities').select('*, products(name, category)').eq('country_iso', iso).order('opportunity_score', { ascending: false }).range(0, 9999),
+      loadAllOpps(),
       supabase.from('reports').select('content_html').eq('country_iso', iso).limit(1).single(),
       supabase.auth.getUser(),
-    ]).then(async ([{ data: c }, { data: o }, { data: r }, { data: authData }]) => {
+    ]).then(async ([{ data: c }, o, { data: r }, { data: authData }]) => {
       if (c) setCountry(c as Country)
-      setOpps((o ?? []) as Opportunity[])
+      setOpps(o ?? [])
       if (r?.content_html) setReportHtml(r.content_html)
       if (authData.user) {
         const { data: profile } = await supabase.from('profiles').select('tier').eq('id', authData.user.id).single()
