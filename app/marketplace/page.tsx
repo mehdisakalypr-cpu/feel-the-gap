@@ -52,6 +52,27 @@ type MyMatch = {
   volume_id: string
   demand_id: string
   created_at: string
+  // Joined fields (production_volumes.producer_id + buyer_demands.buyer_id)
+  // to auto-detect the user's role in this match.
+  producer_id?: string | null
+  buyer_id?: string | null
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  proposed: 'Proposé',
+  accepted_producer: 'Accepté producteur',
+  accepted_buyer: 'Accepté acheteur',
+  confirmed: 'Confirmé 🎉',
+  rejected: 'Rejeté',
+  expired: 'Expiré',
+}
+const STATUS_COLOR: Record<string, string> = {
+  proposed: 'bg-white/5 border-white/10 text-gray-300',
+  accepted_producer: 'bg-[#C9A84C]/15 border-[#C9A84C]/40 text-[#C9A84C]',
+  accepted_buyer: 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300',
+  confirmed: 'bg-violet-500/15 border-violet-500/40 text-violet-300',
+  rejected: 'bg-red-500/10 border-red-500/30 text-red-400',
+  expired: 'bg-white/5 border-white/10 text-gray-500',
 }
 
 function fmtEur(v: number | null | undefined): string {
@@ -72,14 +93,59 @@ function MarketplaceInner() {
   const [myMatches, setMyMatches] = useState<MyMatch[]>([])
   const [loading, setLoading] = useState(true)
   const [loggedIn, setLoggedIn] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [acceptingId, setAcceptingId] = useState<string | null>(null)
+  const [flash, setFlash] = useState<string | null>(null)
+
+  async function reloadMatches() {
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData?.user?.id ?? null
+    if (!uid) { setMyMatches([]); return }
+    const { data } = await supabase
+      .from('marketplace_matches')
+      .select('id, match_score, proposed_quantity_kg, proposed_price_eur_per_kg, proposed_total_eur, commission_amount_eur, status, volume_id, demand_id, created_at, production_volumes!inner(producer_id), buyer_demands!inner(buyer_id)')
+      .order('match_score', { ascending: false })
+      .limit(20)
+    // Flatten the nested producer_id / buyer_id from the joined rows.
+    // Supabase returns the relation as an object (single row due to FK single-to-one).
+    const flat = (data ?? []).map((r: Record<string, unknown>) => {
+      const pv = r['production_volumes'] as { producer_id?: string } | null | undefined
+      const bd = r['buyer_demands']      as { buyer_id?: string }    | null | undefined
+      const rr = { ...r, producer_id: pv?.producer_id ?? null, buyer_id: bd?.buyer_id ?? null } as unknown as MyMatch
+      delete (rr as Record<string, unknown>)['production_volumes']
+      delete (rr as Record<string, unknown>)['buyer_demands']
+      return rr
+    })
+    setMyMatches(flat)
+  }
+
+  async function handleAccept(matchId: string, role: 'producer' | 'buyer') {
+    if (acceptingId) return
+    setAcceptingId(matchId)
+    setFlash(null)
+    try {
+      const { error } = await supabase.rpc('accept_match', { p_match_id: matchId, p_role: role })
+      if (error) {
+        setFlash(`Erreur : ${error.message}`)
+      } else {
+        setFlash('✅ Acceptation enregistrée.')
+        await reloadMatches()
+      }
+    } finally {
+      setAcceptingId(null)
+      setTimeout(() => setFlash(null), 4000)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       const { data: userData } = await supabase.auth.getUser()
       if (cancelled) return
-      const isLogged = !!userData?.user
+      const uid = userData?.user?.id ?? null
+      const isLogged = !!uid
       setLoggedIn(isLogged)
+      setUserId(uid)
 
       const [volRes, demRes, matchRes] = await Promise.all([
         supabase
@@ -97,15 +163,25 @@ function MarketplaceInner() {
         isLogged
           ? supabase
               .from('marketplace_matches')
-              .select('id, match_score, proposed_quantity_kg, proposed_price_eur_per_kg, proposed_total_eur, commission_amount_eur, status, volume_id, demand_id, created_at')
+              .select('id, match_score, proposed_quantity_kg, proposed_price_eur_per_kg, proposed_total_eur, commission_amount_eur, status, volume_id, demand_id, created_at, production_volumes!inner(producer_id), buyer_demands!inner(buyer_id)')
               .order('match_score', { ascending: false })
               .limit(20)
-          : Promise.resolve({ data: [] as MyMatch[] }),
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
       ])
       if (cancelled) return
       setVolumes((volRes.data as Volume[] | null) ?? [])
       setDemands((demRes.data as Demand[] | null) ?? [])
-      setMyMatches((matchRes.data as MyMatch[] | null) ?? [])
+      // Flatten joined rows (same as reloadMatches).
+      const rawMatches = (matchRes.data ?? []) as Array<Record<string, unknown>>
+      const flat = rawMatches.map((r) => {
+        const pv = r['production_volumes'] as { producer_id?: string } | null | undefined
+        const bd = r['buyer_demands']      as { buyer_id?: string }    | null | undefined
+        const rr = { ...r, producer_id: pv?.producer_id ?? null, buyer_id: bd?.buyer_id ?? null } as unknown as MyMatch
+        delete (rr as Record<string, unknown>)['production_volumes']
+        delete (rr as Record<string, unknown>)['buyer_demands']
+        return rr
+      })
+      setMyMatches(flat)
       setLoading(false)
     })()
     return () => { cancelled = true }
@@ -148,32 +224,65 @@ function MarketplaceInner() {
           </div>
         )}
 
+        {flash && (
+          <div className={`p-3 rounded-lg text-sm border ${flash.startsWith('✅') ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-400'}`}>
+            {flash}
+          </div>
+        )}
+
         {!loading && loggedIn && myMatches.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <span>🎯</span> Mes matches ({myMatches.length})
             </h2>
             <div className="space-y-2">
-              {myMatches.map((m) => (
-                <div key={m.id} className="flex items-center justify-between gap-4 p-4 bg-[#0D1117] border border-[#C9A84C]/20 rounded-xl">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/30 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-[#C9A84C]">{m.match_score}</span>
+              {myMatches.map((m) => {
+                const isProducer = userId != null && m.producer_id === userId
+                const isBuyer    = userId != null && m.buyer_id === userId
+                const alreadyAcceptedAsMe =
+                  (isProducer && (m.status === 'accepted_producer' || m.status === 'confirmed')) ||
+                  (isBuyer    && (m.status === 'accepted_buyer'    || m.status === 'confirmed'))
+                const canAccept = !alreadyAcceptedAsMe && (m.status === 'proposed' || m.status === 'accepted_producer' || m.status === 'accepted_buyer')
+                const role: 'producer' | 'buyer' | null = isProducer ? 'producer' : isBuyer ? 'buyer' : null
+                return (
+                  <div key={m.id} className="flex items-center justify-between gap-4 p-4 bg-[#0D1117] border border-[#C9A84C]/20 rounded-xl flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/30 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-bold text-[#C9A84C]">{m.match_score}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">
+                          {fmtKg(m.proposed_quantity_kg)} @ {fmtEur(m.proposed_price_eur_per_kg)} / kg
+                        </div>
+                        <div className="text-[11px] text-gray-500">
+                          Total&nbsp;{fmtEur(m.proposed_total_eur)} · Commission&nbsp;{fmtEur(m.commission_amount_eur)}
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate">
-                        {fmtKg(m.proposed_quantity_kg)} @ {fmtEur(m.proposed_price_eur_per_kg)} / kg
-                      </div>
-                      <div className="text-[11px] text-gray-500">
-                        Total&nbsp;{fmtEur(m.proposed_total_eur)} · Commission&nbsp;{fmtEur(m.commission_amount_eur)} · Statut&nbsp;{m.status}
-                      </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wider ${STATUS_COLOR[m.status] ?? 'bg-white/5 border-white/10 text-gray-400'}`}>
+                        {STATUS_LABEL[m.status] ?? m.status}
+                      </span>
+                      {canAccept && role && (
+                        <button
+                          onClick={() => handleAccept(m.id, role)}
+                          disabled={acceptingId === m.id}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                            role === 'producer'
+                              ? 'bg-[#C9A84C] text-[#07090F] hover:bg-[#E8C97A]'
+                              : 'bg-emerald-500 text-[#07090F] hover:bg-emerald-400'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {acceptingId === m.id ? '...' : `Accepter (${role === 'producer' ? 'producteur' : 'acheteur'})`}
+                        </button>
+                      )}
+                      <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                        {new Date(m.created_at).toLocaleDateString('fr-FR')}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-[11px] text-gray-500 whitespace-nowrap">
-                    {new Date(m.created_at).toLocaleDateString('fr-FR')}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </section>
         )}
