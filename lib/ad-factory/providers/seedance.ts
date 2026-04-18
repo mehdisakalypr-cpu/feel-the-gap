@@ -10,7 +10,7 @@ export interface SeedanceRequest {
   mode: 't2v' | 'i2v'
   referenceUrls?: string[]   // @image1, @image2 pour I2V
   durationSeconds: number    // max 15
-  aspectRatio: '16:9' | '9:16' | '1:1'
+  aspectRatio: '16:9' | '9:16' | '1:1' | '4:5'
 }
 
 export interface SeedanceResult {

@@ -19,6 +19,7 @@ export default function AdFactoryHome() {
           <Card href="/admin/ad-factory/avatars" icon="🎭" title="Avatar Factory" desc="Génère des avatars IA à partir de texte (4 previews · 3 providers cascade). Bibliothèque réutilisable." enabled />
           <Card href="/admin/ad-factory/projects" icon="🎬" title="Projets" desc="Scénarios sources (brief + segments + Drive assets + aspect ratio). 1 projet = N variants." enabled={false} />
           <Card href="/admin/ad-factory/jobs" icon="⚙️" title="Jobs de rendu" desc="Queue de pipeline. Status par segment + progress + URLs finales + download mp4." enabled={false} />
+          <Card href="/admin/ad-factory/distribute" icon="🚀" title="Distribution" desc="Format Factory (4 aspects auto) + Platform Publishers (IG/TikTok/YT/LinkedIn/FB/X). Site embed responsive." enabled={false} />
         </div>
 
         <div style={{ marginTop: 48, background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20 }}>

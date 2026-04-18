@@ -21,8 +21,10 @@ export async function uploadToStorage(args: {
 
   try {
     const client = sb()
-    const buf = args.data instanceof Buffer ? args.data : Buffer.from(args.data)
-    const { error } = await client.storage.from(bucket).upload(args.path, buf, {
+    const bodyBuf: Uint8Array = args.data instanceof Buffer
+      ? new Uint8Array(args.data)
+      : new Uint8Array(args.data)
+    const { error } = await client.storage.from(bucket).upload(args.path, bodyBuf, {
       contentType: args.contentType ?? 'video/mp4',
       upsert: true,
     })
