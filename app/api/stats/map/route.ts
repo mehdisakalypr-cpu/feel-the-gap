@@ -2,39 +2,33 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { SEED_TRADE_DATA } from '@/data/seed-trade-data'
 
-export const revalidate = 60 // short cache — stats reflètent la croissance continue opps/marchés
+export const revalidate = 60 // short cache — stats reflètent la croissance continue opps/marchés/produits
 
 /**
  * GET /api/stats/map
- * Returns aggregate counts displayed on the world map stats bar.
+ * Returns live aggregate counts displayed on the world map stats bar + home hero.
+ * Fields: countries · products · opportunities · markets (import flows)
  */
 export async function GET() {
-  // Countries (rough count from DB, falls back to seed on error)
-  const { count: countriesCount } = await supabase
-    .from('countries')
-    .select('*', { count: 'exact', head: true })
+  const [countriesRes, productsRes, oppsRes, flowsRes] = await Promise.all([
+    supabase.from('countries').select('*', { count: 'exact', head: true }),
+    supabase.from('products').select('*', { count: 'exact', head: true }),
+    supabase.from('opportunities').select('*', { count: 'exact', head: true }),
+    supabase.from('trade_flows').select('*', { count: 'exact', head: true }).eq('flow', 'import'),
+  ])
 
-  // Opportunities total
-  const { count: oppsCount } = await supabase
-    .from('opportunities')
-    .select('*', { count: 'exact', head: true })
-
-  // Markets analyzed — prefer live trade_flows count, fall back to seed data
-  // product-country pairs.
-  const { count: flowsCount } = await supabase
-    .from('trade_flows')
-    .select('*', { count: 'exact', head: true })
-    .eq('flow', 'import')
-
-  let markets = flowsCount ?? 0
+  let markets = flowsRes.count ?? 0
   if (markets === 0) {
-    // Seed fallback: sum of top_imports across all seed countries
     markets = SEED_TRADE_DATA.reduce((s, c) => s + (c.top_imports?.length ?? 0), 0)
   }
 
-  return NextResponse.json({
-    countries: countriesCount ?? SEED_TRADE_DATA.length,
-    opportunities: oppsCount ?? 0,
-    markets,
-  })
+  return NextResponse.json(
+    {
+      countries: countriesRes.count ?? SEED_TRADE_DATA.length,
+      products: productsRes.count ?? 0,
+      opportunities: oppsRes.count ?? 0,
+      markets,
+    },
+    { headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=300' } },
+  )
 }

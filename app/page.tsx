@@ -37,18 +37,22 @@ const FEATURE_KEYS = ['f1', 'f2', 'f3', 'f4'] as const
 
 const STAT_KEYS = ['stat1_label', 'stat2_label', 'stat3_label'] as const
 
-function formatOpps(n: number): string {
-  if (n >= 1000) {
-    const rounded = Math.floor(n / 100) * 100
-    return `${rounded.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')}+`
+// Arrondi au millier inférieur + suffixe "+" (ex: 938435 → "938 000+", 323 → "300+", 211 → "200+").
+// User rule 2026-04-18 : la home doit afficher les stats live à chaque chargement
+// (pays · produits · opportunités) — formatage compact et vivant.
+function formatRounded(n: number, step: number): string {
+  if (n < step) {
+    const lower = Math.floor(n / 100) * 100
+    return `${lower}+`
   }
-  return `${n}`
+  const rounded = Math.floor(n / step) * step
+  return `${rounded.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')}+`
 }
 
 export default function HomePage() {
   const { t } = useLang()
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
-  const [oppsTotal, setOppsTotal] = useState<number | null>(null)
+  const [stats, setStats] = useState<{ countries: number; products: number; opportunities: number } | null>(null)
 
   useEffect(() => {
     const sb = createSupabaseBrowser()
@@ -56,14 +60,24 @@ export default function HomePage() {
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       setLoggedIn(!!session?.user)
     })
-    fetch('/api/stats/map')
+    // Refetch à chaque mount (pas de cache React Query — la home se recharge à chaque visite).
+    fetch('/api/stats/map', { cache: 'no-store' })
       .then(r => r.json())
-      .then(d => setOppsTotal(typeof d?.opportunities === 'number' ? d.opportunities : null))
+      .then(d => {
+        if (typeof d?.countries === 'number' && typeof d?.products === 'number' && typeof d?.opportunities === 'number') {
+          setStats({ countries: d.countries, products: d.products, opportunities: d.opportunities })
+        }
+      })
       .catch(() => {})
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const STAT_VALUES = ['195', '500+', oppsTotal != null ? formatOpps(oppsTotal) : '—']
+  // Règle user 2026-04-18 : pays = nombre exact, produits = arrondi au millier + "+" (hérite de l'ancien "500+"),
+  // opportunités = nombre exact formaté fr-FR (ex: "938 435").
+  const fmtInt = (n: number) => n.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')
+  const STAT_VALUES = stats
+    ? [fmtInt(stats.countries), formatRounded(stats.products, 1000), fmtInt(stats.opportunities)]
+    : ['—', '—', '—']
 
   const features = FEATURE_KEYS.map((k, i) => ({
     icon: FEATURE_ICONS[i],
