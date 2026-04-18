@@ -249,7 +249,7 @@ async function main() {
   const { data: upserted, error: uErr } = await db
     .from('marketplace_matches')
     .upsert(matches, { onConflict: 'volume_id,demand_id', ignoreDuplicates: false })
-    .select('id')
+    .select('id, volume_id, demand_id, match_score, proposed_quantity_kg, proposed_price_eur_per_kg, proposed_total_eur, new_match_email_sent_at')
 
   if (uErr) {
     console.error('[matcher] ❌ upsert error:', uErr)
@@ -260,6 +260,77 @@ async function main() {
   const totalCommission = totalGMV * argv.commission / 100
   console.log(`[matcher] ✅ ${upserted?.length ?? matches.length} matches upserted`)
   console.log(`[matcher] 💰 GMV total proposé : ${totalGMV.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}€ · commission théorique (${argv.commission}%) : ${totalCommission.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}€`)
+
+  // ─── Email new_match aux producer + buyer (idempotent) ─────────────────
+  const toNotify = (upserted ?? []).filter(m => !m.new_match_email_sent_at)
+  if (toNotify.length > 0) {
+    try {
+      const { emailNewMatch } = await import('../lib/email/marketplace')
+      // Fetch volumes, demands, auth users in bulk
+      const volIds = Array.from(new Set(toNotify.map(m => m.volume_id)))
+      const demIds = Array.from(new Set(toNotify.map(m => m.demand_id)))
+      const { data: vols } = await db
+        .from('production_volumes')
+        .select('id, producer_id, product_slug, product_label, country_iso')
+        .in('id', volIds)
+      const { data: dems } = await db
+        .from('buyer_demands')
+        .select('id, buyer_id')
+        .in('id', demIds)
+      const volMap = new Map((vols ?? []).map(v => [v.id, v]))
+      const demMap = new Map((dems ?? []).map(d => [d.id, d]))
+
+      const userIds = Array.from(new Set([
+        ...(vols ?? []).map(v => v.producer_id).filter(Boolean) as string[],
+        ...(dems ?? []).map(d => d.buyer_id).filter(Boolean)     as string[],
+      ]))
+      const emailMap = new Map<string, string>()
+      for (const uid of userIds) {
+        const { data: authRow } = await db.auth.admin.getUserById(uid)
+        if (authRow?.user?.email) emailMap.set(uid, authRow.user.email)
+      }
+
+      let sentCount = 0
+      for (const m of toNotify) {
+        const v = volMap.get(m.volume_id)
+        const d = demMap.get(m.demand_id)
+        if (!v || !d) continue
+        const productLabel = v.product_label ?? v.product_slug
+        const producerEmail = v.producer_id ? emailMap.get(v.producer_id) : null
+        const buyerEmail    = d.buyer_id    ? emailMap.get(d.buyer_id)    : null
+        let ok = false
+        if (producerEmail) {
+          ok = await emailNewMatch({
+            to: producerEmail, role: 'producer', matchId: m.id,
+            productLabel, countryIso: v.country_iso,
+            quantityKg: m.proposed_quantity_kg,
+            pricePerKg: m.proposed_price_eur_per_kg,
+            totalEur: m.proposed_total_eur,
+            score: m.match_score,
+          }) || ok
+        }
+        if (buyerEmail) {
+          ok = await emailNewMatch({
+            to: buyerEmail, role: 'buyer', matchId: m.id,
+            productLabel, countryIso: v.country_iso,
+            quantityKg: m.proposed_quantity_kg,
+            pricePerKg: m.proposed_price_eur_per_kg,
+            totalEur: m.proposed_total_eur,
+            score: m.match_score,
+          }) || ok
+        }
+        if (ok) {
+          await db.from('marketplace_matches')
+            .update({ new_match_email_sent_at: new Date().toISOString() })
+            .eq('id', m.id)
+          sentCount++
+        }
+      }
+      console.log(`[matcher] 📧 ${sentCount}/${toNotify.length} emails new_match envoyés (reste fail-silent si RESEND_API_KEY absent)`)
+    } catch (e) {
+      console.error('[matcher] emails new_match erreur', e)
+    }
+  }
 }
 
 main().catch(err => {

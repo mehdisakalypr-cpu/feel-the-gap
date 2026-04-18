@@ -614,6 +614,56 @@ export async function POST(req: NextRequest) {
           country_iso: pi.metadata?.country_iso ?? null,
         },
       })
+
+      // ── Email escrow_released (idempotent via released_email_sent_at) ──
+      try {
+        const { data: matchRow } = await supabaseAdmin
+          .from('marketplace_matches')
+          .select(`
+            id, released_email_sent_at,
+            volume:volume_id (producer_id, product_slug, product_label),
+            demand:demand_id (buyer_id)
+          `)
+          .eq('id', matchId)
+          .single()
+        if (matchRow && !matchRow.released_email_sent_at) {
+          const { emailEscrowReleased } = await import('@/lib/email/marketplace')
+          const vol = matchRow.volume as unknown as { producer_id: string; product_slug: string; product_label: string | null } | null
+          const dem = matchRow.demand as unknown as { buyer_id: string } | null
+          const productLabel = vol?.product_label ?? vol?.product_slug ?? '—'
+          const amountEur = (pi.amount_received ?? 0) / 100
+          const commissionEur = (pi.application_fee_amount ?? 0) / 100
+
+          let sent = 0
+          if (vol?.producer_id) {
+            const { data: p } = await supabaseAdmin.auth.admin.getUserById(vol.producer_id)
+            if (p?.user?.email) {
+              const ok = await emailEscrowReleased({
+                to: p.user.email, role: 'producer', matchId,
+                productLabel, amountEur, commissionEur, paymentIntentId: pi.id,
+              })
+              if (ok) sent++
+            }
+          }
+          if (dem?.buyer_id) {
+            const { data: b } = await supabaseAdmin.auth.admin.getUserById(dem.buyer_id)
+            if (b?.user?.email) {
+              const ok = await emailEscrowReleased({
+                to: b.user.email, role: 'buyer', matchId,
+                productLabel, amountEur, commissionEur, paymentIntentId: pi.id,
+              })
+              if (ok) sent++
+            }
+          }
+          if (sent > 0) {
+            await supabaseAdmin.from('marketplace_matches')
+              .update({ released_email_sent_at: new Date().toISOString() })
+              .eq('id', matchId)
+          }
+        }
+      } catch (e) {
+        console.error('[webhook] escrow_released email failed', e)
+      }
     }
   }
 

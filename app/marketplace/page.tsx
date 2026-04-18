@@ -130,6 +130,10 @@ function MarketplaceInner() {
       } else {
         setFlash('✅ Acceptation enregistrée.')
         await reloadMatches()
+        // Si le match vient de passer confirmed, déclenche les emails des 2 parties (idempotent côté serveur).
+        try {
+          await fetch(`/api/marketplace/${matchId}/notify-confirmed`, { method: 'POST' })
+        } catch { /* silent — email secondaire */ }
       }
     } finally {
       setAcceptingId(null)
