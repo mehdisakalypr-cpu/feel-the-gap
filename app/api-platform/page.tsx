@@ -162,15 +162,65 @@ export default function ApiPlatformPage() {
       {/* Quick start */}
       <div style={{ maxWidth: 900, margin: '40px auto', padding: '0 24px' }}>
         <h2 style={{ fontSize: 24, marginBottom: 16 }}>Démarrer en 30 secondes</h2>
-        <pre style={{
-          background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20,
-          fontSize: 13, overflow: 'auto', color: C.text, fontFamily: 'Menlo, monospace',
-        }}>{`curl -H "Authorization: Bearer ftg_live_XXXX" \\
+
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, color: C.muted, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: 6 }}>curl</div>
+            <pre style={{
+              background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20,
+              fontSize: 13, overflow: 'auto', color: C.text, fontFamily: 'Menlo, monospace', margin: 0,
+            }}>{`curl -H "Authorization: Bearer ftg_live_XXXX" \\
   "https://feel-the-gap.com/api/v1/opportunities?country=FRA&limit=50"
 
-# → { "ok": true, "count": 1843, "items": [ ... ] }`}</pre>
+# → { "ok": true, "count": 1843, "items": [ ... ] }
+
+# CSV export (jusqu'à 5000 lignes) :
+curl -H "Authorization: Bearer ftg_live_XXXX" \\
+  "https://feel-the-gap.com/api/v1/opportunities?format=csv" -o opps.csv`}</pre>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: C.muted, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: 6 }}>Python (requests)</div>
+            <pre style={{
+              background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20,
+              fontSize: 13, overflow: 'auto', color: C.text, fontFamily: 'Menlo, monospace', margin: 0,
+            }}>{`import requests
+
+TOKEN = "ftg_live_XXXX"
+BASE = "https://feel-the-gap.com/api/v1"
+
+r = requests.get(
+    f"{BASE}/opportunities",
+    headers={"Authorization": f"Bearer {TOKEN}"},
+    params={"country": "CIV", "min_score": 70, "limit": 100},
+    timeout=30,
+)
+r.raise_for_status()
+data = r.json()
+print(f"{data['count']} opportunities, tier={r.headers['x-ratelimit-tier']}")`}</pre>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: C.muted, letterSpacing: '.15em', textTransform: 'uppercase', marginBottom: 6 }}>JavaScript / TypeScript (fetch)</div>
+            <pre style={{
+              background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20,
+              fontSize: 13, overflow: 'auto', color: C.text, fontFamily: 'Menlo, monospace', margin: 0,
+            }}>{`const TOKEN = process.env.FTG_API_TOKEN!
+const BASE = "https://feel-the-gap.com/api/v1"
+
+const res = await fetch(\`\${BASE}/countries?region=Africa&limit=50\`, {
+  headers: { Authorization: \`Bearer \${TOKEN}\` },
+})
+if (!res.ok) throw new Error(\`API \${res.status}: \${await res.text()}\`)
+const { items, count } = await res.json()
+console.log(\`\${count} countries — remaining: \${res.headers.get('x-ratelimit-remaining-minute')}\`)`}</pre>
+          </div>
+        </div>
+
         <p style={{ color: C.muted, fontSize: 13, marginTop: 16 }}>
           Génère ton token dans <Link href="/account/api-tokens" style={{ color: C.accent }}>ton compte</Link>.
+          Documentation interactive : <Link href="/docs/api" style={{ color: C.accent }}>Swagger UI /docs/api</Link>.
+          Spec : <a href="/api/v1/openapi" style={{ color: C.accent }}>openapi.json</a>. CORS permissif sur <code>*</code>.
           Rate-limit par minute + par jour selon le tier. Réponse 429 avec header <code>Retry-After</code>.
         </p>
       </div>

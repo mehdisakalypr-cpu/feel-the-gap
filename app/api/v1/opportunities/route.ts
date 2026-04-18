@@ -1,16 +1,18 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { authenticateApiRequest, logApiCall } from '@/lib/api-platform/auth'
-import { v1Json, v1Error } from '@/lib/api-platform/response'
+import { v1Json, v1Error, v1Options } from '@/lib/api-platform/response'
+import { toCsv, csvResponse } from '@/lib/api-platform/csv'
+
+export { v1Options as OPTIONS }
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/v1/opportunities — endpoint public authentifié (tier starter+).
- * Query: ?country=FRA&sector=coffee&limit=50 (max 500)
- *
- * Scope requis : opportunities:read
+ * GET /api/v1/opportunities — liste paginée.
+ * Query : ?country=FRA&product=cacao&type=trade&limit=50&offset=0&format=json|csv
+ * Scope : opportunities:read
  */
 export async function GET(req: NextRequest) {
   const t0 = Date.now()
@@ -19,9 +21,11 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url)
   const country = url.searchParams.get('country')?.toUpperCase()
-  const sector = url.searchParams.get('sector')
   const product = url.searchParams.get('product')
-  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') ?? 50)), 500)
+  const type = url.searchParams.get('type')
+  const minScore = url.searchParams.get('min_score')
+  const format = url.searchParams.get('format')?.toLowerCase() ?? 'json'
+  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') ?? 50)), format === 'csv' ? 5000 : 500)
   const offset = Math.max(0, Number(url.searchParams.get('offset') ?? 0))
 
   const sb = createClient(
@@ -31,19 +35,30 @@ export async function GET(req: NextRequest) {
   )
 
   let q = sb.from('opportunities')
-    .select('id, country_iso, sector, product_slug, score, margin_eur, created_at', { count: 'exact' })
-    .order('score', { ascending: false })
+    .select('id, country_iso, product_id, type, gap_tonnes_year, gap_value_usd, opportunity_score, avg_import_price_usd_tonne, local_production_cost_usd_tonne, potential_margin_pct, land_availability, labor_cost_index, infrastructure_score, summary, created_at', { count: 'exact' })
+    .order('opportunity_score', { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1)
 
   if (country) q = q.eq('country_iso', country)
-  if (sector) q = q.eq('sector', sector)
-  if (product) q = q.eq('product_slug', product)
+  if (product) q = q.eq('product_id', product)
+  if (type) q = q.eq('type', type)
+  if (minScore) q = q.gte('opportunity_score', Number(minScore))
 
   const { data, count, error } = await q
   const status = error ? 500 : 200
-  const res = error
-    ? v1Error(error.message, 500)
-    : v1Json({ ok: true, count, limit, offset, items: data ?? [] }, auth.auth)
+  let res: Response
+
+  if (error) {
+    res = v1Error(error.message, 500)
+  } else if (format === 'csv') {
+    const csv = toCsv((data ?? []) as Array<Record<string, unknown>>)
+    res = csvResponse(csv, `opportunities-${Date.now()}.csv`, {
+      'X-RateLimit-Tier': auth.auth.token.tier,
+      'X-Total-Count': String(count ?? 0),
+    })
+  } else {
+    res = v1Json({ ok: true, count, limit, offset, items: data ?? [] }, auth.auth)
+  }
 
   logApiCall({
     tokenId: auth.auth.token.id,
@@ -53,6 +68,5 @@ export async function GET(req: NextRequest) {
     latencyMs: Date.now() - t0,
     ip: auth.auth.ip,
   })
-
   return res
 }

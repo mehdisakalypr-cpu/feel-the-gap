@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { authenticateApiRequest, logApiCall } from '@/lib/api-platform/auth'
-import { v1Json, v1Error } from '@/lib/api-platform/response'
+import { v1Json, v1Error, v1Options } from '@/lib/api-platform/response'
+import { toCsv, csvResponse } from '@/lib/api-platform/csv'
+
+export { v1Options as OPTIONS }
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,7 +22,8 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const iso = url.searchParams.get('iso')?.toUpperCase()
   const region = url.searchParams.get('region')
-  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') ?? 50)), 500)
+  const format = url.searchParams.get('format')?.toLowerCase() ?? 'json'
+  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit') ?? 50)), format === 'csv' ? 5000 : 500)
   const offset = Math.max(0, Number(url.searchParams.get('offset') ?? 0))
 
   const sb = createClient(
@@ -39,9 +43,18 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = await q
   const status = error ? 500 : 200
 
-  const res = error
-    ? v1Error(error.message, 500)
-    : v1Json({ ok: true, count, limit, offset, items: data ?? [] }, auth.auth)
+  let res: Response
+  if (error) {
+    res = v1Error(error.message, 500)
+  } else if (format === 'csv') {
+    const csv = toCsv((data ?? []) as Array<Record<string, unknown>>)
+    res = csvResponse(csv, `countries-${Date.now()}.csv`, {
+      'X-RateLimit-Tier': auth.auth.token.tier,
+      'X-Total-Count': String(count ?? 0),
+    })
+  } else {
+    res = v1Json({ ok: true, count, limit, offset, items: data ?? [] }, auth.auth)
+  }
 
   logApiCall({
     tokenId: auth.auth.token.id,
