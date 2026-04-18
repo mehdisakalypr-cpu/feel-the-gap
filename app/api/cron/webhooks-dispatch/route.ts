@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
   }
 
   const url = new URL(req.url)
-  const sinceMin = Math.min(Math.max(1, Number(url.searchParams.get('since_min') ?? 65)), 24 * 60)
+  // Hobby plan: daily cron max → window = 24h + 10min overlap (1450min)
+  const sinceMin = Math.min(Math.max(1, Number(url.searchParams.get('since_min') ?? 1450)), 7 * 24 * 60)
   const sinceIso = new Date(Date.now() - sinceMin * 60_000).toISOString()
 
   const sb = createClient(
