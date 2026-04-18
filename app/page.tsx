@@ -37,14 +37,10 @@ const FEATURE_KEYS = ['f1', 'f2', 'f3', 'f4'] as const
 
 const STAT_KEYS = ['stat1_label', 'stat2_label', 'stat3_label'] as const
 
-// Arrondi au millier inférieur + suffixe "+" (ex: 938435 → "938 000+", 323 → "300+", 211 → "200+").
-// User rule 2026-04-18 : la home doit afficher les stats live à chaque chargement
-// (pays · produits · opportunités) — formatage compact et vivant.
+// Arrondi décroissant + suffixe "+" — le step est interprété comme granularité.
+// Garde toujours un entier au moins aussi grand que n / step (ex: 323 avec step=10 → "320+").
+// User rule 2026-04-18 : la home affiche les stats live (pays · produits · opportunités).
 function formatRounded(n: number, step: number): string {
-  if (n < step) {
-    const lower = Math.floor(n / 100) * 100
-    return `${lower}+`
-  }
   const rounded = Math.floor(n / step) * step
   return `${rounded.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')}+`
 }
@@ -72,11 +68,12 @@ export default function HomePage() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // Règle user 2026-04-18 : pays = nombre exact, produits = arrondi au millier + "+" (hérite de l'ancien "500+"),
-  // opportunités = nombre exact formaté fr-FR (ex: "938 435").
+  // Règle user 2026-04-18 (MAJ 2026-04-18 soir) : pays = nombre exact (211),
+  // produits = arrondi à la dizaine + "+" (ex: 323 → "320+") pour une valeur proche de la vérité
+  // sans être trompeuse, opportunités = nombre exact formaté fr-FR (ex: "938 435").
   const fmtInt = (n: number) => n.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ')
   const STAT_VALUES = stats
-    ? [fmtInt(stats.countries), formatRounded(stats.products, 1000), fmtInt(stats.opportunities)]
+    ? [fmtInt(stats.countries), formatRounded(stats.products, 10), fmtInt(stats.opportunities)]
     : ['—', '—', '—']
 
   const features = FEATURE_KEYS.map((k, i) => ({
@@ -130,10 +127,11 @@ export default function HomePage() {
             <span className="text-[#C9A84C]">{t('home.hero_title_accent')}</span>
           </h1>
 
-          {/* 4-step schema compact — directly under slogan */}
+          {/* 4-step schema compact — directly under slogan
+              (les stats live pays/produits/opps sont affichées au-dessous, pas de duplication ici) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5 max-w-5xl mx-auto">
             {[
-              { n: 1, icon: '🌍', title: 'Analysez le monde', desc: '195 pays · 500+ produits', color: '#60A5FA' },
+              { n: 1, icon: '🌍', title: 'Analysez le monde', desc: 'Imports · exports · gaps', color: '#60A5FA' },
               { n: 2, icon: '🎯', title: 'Trouvez vos opportunités', desc: 'Gaps de marché rentables', color: '#A78BFA' },
               { n: 3, icon: '🔑', title: 'Toutes les clés en main', desc: 'Plans · formations · acheteurs', color: '#C9A84C' },
               { n: 4, icon: '💰', title: 'Succès', desc: 'Revenus · filière · impact', color: '#34D399', final: true },
