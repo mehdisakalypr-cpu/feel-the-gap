@@ -109,7 +109,9 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<any[]>([])
   const [selectedCountry, setSelectedCountry] = useState<CountryMapData | null>(null)
-  const [countries, setCountries] = useState<CountryMapData[]>(SEED_COUNTRIES)
+  // Carte vide au mount — évite le flash SEED (20 pays, ~244 opps) → 211 pays une fois /api/countries résolu (<2s grâce à la matview).
+  // Senku 2026-04-18 : user a constaté que "la carte affiche une seconde ~200 opportunités puis bascule sur le bon nombre".
+  const [countries, setCountries] = useState<CountryMapData[]>([])
   const [mapReady, setMapReady] = useState(false)
   // Atlas par défaut — look cartographique classique (relief tan/vert, océans clairs,
   // frontières nettes). Lisible, bright, pro. Satellite/Voyager/Nuit restent accessibles.
@@ -403,13 +405,13 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       {/* Stats bar — stacked vertical on mobile, horizontal on md+; anchored bottom-left inside map */}
       <div className={`absolute bottom-3 left-3 flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2 z-[400] pointer-events-none ${selectedCountry ? 'hidden md:flex' : ''}`}>
         <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
-          <span className="text-[#C9A84C] font-semibold">{countries.length.toLocaleString()}</span>{' '}
+          <span className="text-[#C9A84C] font-semibold">{countries.length > 0 ? countries.length.toLocaleString() : '—'}</span>{' '}
           <span className="hidden md:inline">{t('map.countries_tracked')}</span>
           <span className="md:hidden">{t('map.countries_tracked_short') || 'pays'}</span>
         </div>
         <div className="pointer-events-auto bg-[#0D1117]/90 backdrop-blur-sm border border-[rgba(201,168,76,.15)] rounded-md px-2 py-1 text-[10px] md:text-xs text-gray-400 leading-tight whitespace-nowrap">
           <span className="text-[#C9A84C] font-semibold">
-            {countries.reduce((s, c) => s + (c.opportunity_count ?? 0), 0).toLocaleString()}
+            {countries.length > 0 ? countries.reduce((s, c) => s + (c.opportunity_count ?? 0), 0).toLocaleString() : '—'}
           </span>{' '}
           <span className="hidden md:inline">{t('map.opportunities_qualified') || t('map.opportunities')}</span>
           <span className="md:hidden">{t('map.opportunities_short') || 'opps'}</span>
