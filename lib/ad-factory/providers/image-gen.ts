@@ -2,17 +2,15 @@
  * Image generation — cascade multi-provider 100% text-to-image.
  *
  * Cascade par défaut (priorité gratuit → qualité max) :
- *   1. Gemini 2.5 Flash Image ("nano-banana") — 4 clés rotation (GOOGLE_GENERATIVE_AI_API_KEY_{1..4})
+ *   1. Gemini 2.5 Flash Image ("nano-banana") — jusqu'à 4 clés en parallèle
  *   2. Cloudflare Flux (Workers AI, free 10k/day)
  *   3. Pollinations (totalement free, fallback)
- *   4. Replicate SDXL/Flux (payant, dernier recours)
- *
- * Retour : 4 variantes (1 par provider ou 4 seeds sur le primary), URL publique
- * après upload Supabase Storage.
  */
 
 import { uploadToStorage } from './storage'
 import { randomBytes } from 'node:crypto'
+
+const GEMINI_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image'
 
 export interface ImageGenRequest {
   prompt: string
@@ -37,7 +35,7 @@ export interface ImageGenResult {
 // ── Gemini 2.5 Flash Image (nano-banana) ─────────────────────────────────────
 async function generateGemini(prompt: string, apiKey: string): Promise<{ ok: boolean; buf?: Buffer; error?: string }> {
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -45,7 +43,10 @@ async function generateGemini(prompt: string, apiKey: string): Promise<{ ok: boo
         generationConfig: { responseModalities: ['IMAGE'] },
       }),
     })
-    if (!res.ok) return { ok: false, error: `gemini ${res.status}: ${(await res.text()).slice(0, 200)}` }
+    if (!res.ok) {
+      const bodyTxt = (await res.text()).slice(0, 300)
+      return { ok: false, error: `gemini ${GEMINI_MODEL} ${res.status}: ${bodyTxt}` }
+    }
     const data = await res.json()
     const parts = data.candidates?.[0]?.content?.parts ?? []
     for (const p of parts) {
@@ -126,31 +127,48 @@ export async function generateImage(req: ImageGenRequest): Promise<ImageGenResul
     return null
   }
 
-  // 1. Try Gemini (4 keys rotation, one variant each)
-  for (const key of geminiKeys) {
-    if (variants.length >= wantN) break
-    const r = await generateGemini(prompt, key)
-    if (r.ok && r.buf) {
-      const v = await uploadResult(r.buf, 'gemini-2.5-flash-image')
+  // 1. Gemini — jusqu'à N clés en parallèle (une variante par clé)
+  if (geminiKeys.length > 0) {
+    const n = Math.min(wantN, geminiKeys.length)
+    const genResults = await Promise.all(geminiKeys.slice(0, n).map(k => generateGemini(prompt, k)))
+    const uploads = await Promise.all(
+      genResults.map(r => (r.ok && r.buf) ? uploadResult(r.buf, `gemini:${GEMINI_MODEL}`) : null)
+    )
+    for (let i = 0; i < genResults.length; i++) {
+      const r = genResults[i]
+      const v = uploads[i]
       if (v) variants.push(v)
-    } else if (r.error) errors.push(`gemini: ${r.error}`)
+      else if (r.error) errors.push(r.error)
+    }
   }
 
-  // 2. Fallback CF Flux
-  while (variants.length < wantN) {
-    const r = await generateCfFlux(prompt)
-    if (!r.ok || !r.buf) { errors.push(`cf: ${r.error}`); break }
-    const v = await uploadResult(r.buf, 'cf-flux')
-    if (v) variants.push(v)
+  // 2. Fallback CF Flux (en parallèle pour combler)
+  if (variants.length < wantN && process.env.CF_ACCOUNT_ID && process.env.CF_API_KEY) {
+    const need = wantN - variants.length
+    const cfResults = await Promise.all(Array.from({ length: need }, () => generateCfFlux(prompt)))
+    const uploads = await Promise.all(
+      cfResults.map(r => (r.ok && r.buf) ? uploadResult(r.buf, 'cf-flux') : null)
+    )
+    for (let i = 0; i < cfResults.length; i++) {
+      const v = uploads[i]
+      if (v) variants.push(v)
+      else if (cfResults[i].error) errors.push(`cf: ${cfResults[i].error}`)
+    }
   }
 
-  // 3. Last-resort Pollinations (different seed each time)
-  while (variants.length < wantN) {
-    const seed = Math.floor(Math.random() * 1_000_000)
-    const r = await generatePollinations(prompt, seed)
-    if (!r.ok || !r.buf) { errors.push(`pollinations: ${r.error}`); break }
-    const v = await uploadResult(r.buf, 'pollinations')
-    if (v) { v.seed = seed; variants.push(v) }
+  // 3. Last-resort Pollinations (parallèle, seeds différents)
+  if (variants.length < wantN) {
+    const need = wantN - variants.length
+    const seeds = Array.from({ length: need }, () => Math.floor(Math.random() * 1_000_000))
+    const pResults = await Promise.all(seeds.map(s => generatePollinations(prompt, s)))
+    const uploads = await Promise.all(
+      pResults.map(r => (r.ok && r.buf) ? uploadResult(r.buf, 'pollinations') : null)
+    )
+    for (let i = 0; i < pResults.length; i++) {
+      const v = uploads[i]
+      if (v) { v.seed = seeds[i]; variants.push(v) }
+      else if (pResults[i].error) errors.push(`pollinations: ${pResults[i].error}`)
+    }
   }
 
   if (variants.length === 0) {
