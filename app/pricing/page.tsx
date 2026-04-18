@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Topbar from '@/components/Topbar'
-import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS } from '@/lib/credits/costs'
+import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS, SUBSCRIPTION_DURATIONS, applyDurationDiscount, type DurationMonths } from '@/lib/credits/costs'
 import ContractGate, { type ContractGateAgreement } from '@/components/ContractGate'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
@@ -22,6 +22,7 @@ type GeoInfo = {
 
 export default function PricingPage() {
   const [mode, setMode] = useState<'subscriptions' | 'packs'>('subscriptions')
+  const [duration, setDuration] = useState<DurationMonths>(1)
   const [geo, setGeo] = useState<GeoInfo | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
   const [gate, setGate] = useState<null | { agreement: ContractGateAgreement; next: string; email: string }>(null)
@@ -101,7 +102,23 @@ export default function PricingPage() {
           </div>
         )}
 
-        {mode === 'subscriptions' ? <Subscriptions geo={geo} onUpgradeClick={openGate} /> : <Packs />}
+        {mode === 'subscriptions' && (
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1 flex-wrap">
+              {SUBSCRIPTION_DURATIONS.map(d => (
+                <button
+                  key={d.months}
+                  onClick={() => setDuration(d.months as DurationMonths)}
+                  className={`px-4 py-2 rounded-full text-xs font-medium transition ${
+                    duration === d.months ? 'bg-[#C9A84C] text-black' : 'text-white/70 hover:text-white'
+                  }`}
+                >{d.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mode === 'subscriptions' ? <Subscriptions geo={geo} duration={duration} onUpgradeClick={openGate} /> : <Packs />}
 
         <section className="mt-16 grid md:grid-cols-2 gap-6">
           <InfoCard
@@ -149,27 +166,48 @@ export default function PricingPage() {
 
 function Subscriptions({
   geo,
+  duration,
   onUpgradeClick,
 }: {
   geo: GeoInfo | null
+  duration: DurationMonths
   onUpgradeClick: (e: React.MouseEvent<HTMLAnchorElement>, agreement: ContractGateAgreement, next: string) => void
 }) {
-  const soloPrice     = geo?.plans.solo_producer?.price ?? PLAN_PRICE_EUR.solo_producer
-  const starterPrice  = geo?.plans.starter.price  ?? PLAN_PRICE_EUR.starter
-  const strategyPrice = geo?.plans.strategy?.price ?? PLAN_PRICE_EUR.strategy
-  const premiumPrice  = geo?.plans.premium.price  ?? PLAN_PRICE_EUR.premium
-  const ultimatePrice = geo?.plans.ultimate?.price ?? PLAN_PRICE_EUR.ultimate
-  const soloBase      = PLAN_PRICE_EUR.solo_producer
-  const starterBase   = PLAN_PRICE_EUR.starter
-  const strategyBase  = PLAN_PRICE_EUR.strategy
-  const premiumBase   = PLAN_PRICE_EUR.premium
-  const ultimateBase  = PLAN_PRICE_EUR.ultimate
+  const soloMonthly     = geo?.plans.solo_producer?.price ?? PLAN_PRICE_EUR.solo_producer
+  const starterMonthly  = geo?.plans.starter.price  ?? PLAN_PRICE_EUR.starter
+  const strategyMonthly = geo?.plans.strategy?.price ?? PLAN_PRICE_EUR.strategy
+  const premiumMonthly  = geo?.plans.premium.price  ?? PLAN_PRICE_EUR.premium
+  const ultimateMonthly = geo?.plans.ultimate?.price ?? PLAN_PRICE_EUR.ultimate
+
+  const solo     = applyDurationDiscount(soloMonthly, duration)
+  const starter  = applyDurationDiscount(starterMonthly, duration)
+  const strategy = applyDurationDiscount(strategyMonthly, duration)
+  const premium  = applyDurationDiscount(premiumMonthly, duration)
+  const ultimate = applyDurationDiscount(ultimateMonthly, duration)
+
+  const soloPrice     = solo.monthlyEffective
+  const starterPrice  = starter.monthlyEffective
+  const strategyPrice = strategy.monthlyEffective
+  const premiumPrice  = premium.monthlyEffective
+  const ultimatePrice = ultimate.monthlyEffective
+
+  const soloBase      = soloMonthly
+  const starterBase   = starterMonthly
+  const strategyBase  = strategyMonthly
+  const premiumBase   = premiumMonthly
+  const ultimateBase  = ultimateMonthly
+
   const geoSuffix = geo && geo.multiplier !== 1 ? `&cc=${geo.country}` : ''
-  const soloHref     = `/api/stripe/checkout?plan=solo_producer${geoSuffix}`
-  const starterHref  = `/api/stripe/checkout?plan=starter${geoSuffix}`
-  const strategyHref = `/api/stripe/checkout?plan=strategy${geoSuffix}`
-  const premiumHref  = `/api/stripe/checkout?plan=premium${geoSuffix}`
-  const ultimateHref = `/api/stripe/checkout?plan=ultimate${geoSuffix}`
+  const durSuffix = duration === 1 ? '' : `&duration=${duration}`
+  const soloHref     = `/api/stripe/checkout?plan=solo_producer${geoSuffix}${durSuffix}`
+  const starterHref  = `/api/stripe/checkout?plan=starter${geoSuffix}${durSuffix}`
+  const strategyHref = `/api/stripe/checkout?plan=strategy${geoSuffix}${durSuffix}`
+  const premiumHref  = `/api/stripe/checkout?plan=premium${geoSuffix}${durSuffix}`
+  const ultimateHref = `/api/stripe/checkout?plan=ultimate${geoSuffix}${durSuffix}`
+
+  const savingsNote = (savings: number) => duration === 1
+    ? null
+    : `Économie ${savings.toFixed(0)}€ sur ${duration} mois`
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
       <PlanCard
@@ -186,8 +224,9 @@ function Subscriptions({
       />
       <PlanCard
         name="Solo Producer" price={`€${soloPrice}`}
-        basePrice={soloPrice !== soloBase ? `€${soloBase}` : undefined}
+        basePrice={duration > 1 ? `€${soloBase}` : (soloPrice !== soloBase ? `€${soloBase}` : undefined)}
         period="/mois"
+        savings={savingsNote(solo.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.solo_producer}
         tagline="Cultiver local, vendre local"
         features={[
@@ -204,8 +243,9 @@ function Subscriptions({
       />
       <PlanCard
         name="Data" price={`€${starterPrice}`}
-        basePrice={starterPrice !== starterBase ? `€${starterBase}` : undefined}
+        basePrice={duration > 1 ? `€${starterBase}` : (starterPrice !== starterBase ? `€${starterBase}` : undefined)}
         period="/mois"
+        savings={savingsNote(starter.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.starter}
         tagline="Tout du parcours"
         features={[
@@ -221,8 +261,9 @@ function Subscriptions({
       />
       <PlanCard
         name="Strategy" price={`€${strategyPrice}`}
-        basePrice={strategyPrice !== strategyBase ? `€${strategyBase}` : undefined}
+        basePrice={duration > 1 ? `€${strategyBase}` : (strategyPrice !== strategyBase ? `€${strategyBase}` : undefined)}
         period="/mois"
+        savings={savingsNote(strategy.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.strategy}
         tagline="Méthode + 1 supplier + 1 client"
         features={[
@@ -238,8 +279,9 @@ function Subscriptions({
       />
       <PlanCard
         name="Premium" price={`€${premiumPrice}`}
-        basePrice={premiumPrice !== premiumBase ? `€${premiumBase}` : undefined}
+        basePrice={duration > 1 ? `€${premiumBase}` : (premiumPrice !== premiumBase ? `€${premiumBase}` : undefined)}
         period="/mois"
+        savings={savingsNote(premium.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.premium} highlight
         tagline="Bench complet + 5/5"
         features={[
@@ -255,8 +297,9 @@ function Subscriptions({
       />
       <PlanCard
         name="Ultimate" price={`€${ultimatePrice}`}
-        basePrice={ultimatePrice !== ultimateBase ? `€${ultimateBase}` : undefined}
+        basePrice={duration > 1 ? `€${ultimateBase}` : (ultimatePrice !== ultimateBase ? `€${ultimateBase}` : undefined)}
         period="/mois"
+        savings={savingsNote(ultimate.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.ultimate}
         tagline="Tout illimité + AI engine"
         features={[
@@ -307,11 +350,12 @@ function Packs() {
 }
 
 function PlanCard({
-  name, price, basePrice, period, credits, tagline, features, ctaLabel, ctaHref, highlight, onCtaClick,
+  name, price, basePrice, period, credits, tagline, features, ctaLabel, ctaHref, highlight, onCtaClick, savings,
 }: {
   name: string; price: string; basePrice?: string; period: string; credits: number; tagline: string
   features: { label: string; yes: boolean }[]
   ctaLabel: string; ctaHref: string; highlight?: boolean
+  savings?: string | null
   onCtaClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
 }) {
   return (
@@ -331,7 +375,8 @@ function PlanCard({
         )}
         {period && <span className="text-sm text-white/50">{period}</span>}
       </div>
-      <div className="text-sm text-emerald-400 mb-4">{credits} crédits{period ? ' /mois' : ''}</div>
+      <div className="text-sm text-emerald-400 mb-1">{credits} crédits{period ? ' /mois' : ''}</div>
+      {savings && <div className="text-xs text-[#C9A84C] mb-3">{savings}</div>}
       <p className="text-sm text-white/70 mb-5">{tagline}</p>
       <ul className="space-y-2 mb-6 flex-1">
         {features.map((f, i) => (

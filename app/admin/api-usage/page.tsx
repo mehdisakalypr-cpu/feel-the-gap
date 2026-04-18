@@ -35,12 +35,13 @@ async function loadData() {
   const sinceDay = new Date(Date.now() - 86400_000).toISOString()
   const sinceWeek = new Date(Date.now() - 7 * 86400_000).toISOString()
 
-  const [tokensRes, callsDayRes, callsWeekRes, callsTotalRes, topPathsRes] = await Promise.all([
+  const [tokensRes, callsDayRes, callsWeekRes, callsTotalRes, topPathsRes, seriesRes] = await Promise.all([
     db.from('api_tokens').select('id, name, tier, usage_total, revoked_at, owner_id, created_at, last_used_at').order('usage_total', { ascending: false }).limit(200),
     db.from('api_calls_log').select('*', { count: 'exact', head: true }).gte('called_at', sinceDay),
     db.from('api_calls_log').select('*', { count: 'exact', head: true }).gte('called_at', sinceWeek),
     db.from('api_calls_log').select('*', { count: 'exact', head: true }),
     db.from('api_calls_log').select('path, status').gte('called_at', sinceWeek).limit(1000),
+    db.from('api_calls_log').select('called_at, status').gte('called_at', sinceWeek).order('called_at', { ascending: true }).limit(5000),
   ])
 
   const tokens = (tokensRes.data ?? []) as TokenRow[]
@@ -69,6 +70,25 @@ async function loadData() {
     .sort((a, b) => b[1].total - a[1].total)
     .slice(0, 10)
 
+  // Time series 7j groupée par jour
+  const series: Array<{ date: string; ok: number; err: number }> = []
+  const seriesRows = (seriesRes.data ?? []) as Array<{ called_at: string; status: number }>
+  const byDay: Record<string, { ok: number; err: number }> = {}
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400_000)
+    const key = d.toISOString().slice(0, 10)
+    byDay[key] = { ok: 0, err: 0 }
+  }
+  for (const r of seriesRows) {
+    const key = r.called_at.slice(0, 10)
+    if (!byDay[key]) continue
+    if (r.status >= 400) byDay[key].err++
+    else byDay[key].ok++
+  }
+  for (const [date, v] of Object.entries(byDay).sort()) {
+    series.push({ date, ok: v.ok, err: v.err })
+  }
+
   return {
     tokens: tokens.slice(0, 25),
     byTier,
@@ -77,6 +97,7 @@ async function loadData() {
     callsWeek: callsWeekRes.count ?? 0,
     callsTotal: callsTotalRes.count ?? 0,
     topPaths,
+    series,
   }
 }
 
@@ -119,6 +140,44 @@ export default async function AdminApiUsagePage() {
               <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.unit}</div>
             </div>
           ))}
+        </div>
+
+        {/* Time series 7j */}
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 24, marginBottom: 28 }}>
+          <div style={{ fontSize: 13, color: C.muted, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 14 }}>
+            Appels 7 derniers jours
+          </div>
+          {(() => {
+            const max = Math.max(1, ...data.series.map(s => s.ok + s.err))
+            const barH = 140
+            return (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: barH + 40 }}>
+                {data.series.map(s => {
+                  const totalH = Math.round((s.ok + s.err) / max * barH)
+                  const errH = Math.round(s.err / max * barH)
+                  const okH = Math.max(0, totalH - errH)
+                  return (
+                    <div key={s.date} style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                      <div style={{ height: barH, display: 'flex', flexDirection: 'column-reverse', gap: 1 }}>
+                        <div style={{ height: okH, background: C.green, borderRadius: '2px 2px 0 0' }} title={`${s.ok} ok`} />
+                        {errH > 0 && <div style={{ height: errH, background: C.red }} title={`${s.err} errors`} />}
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 6 }}>
+                        {new Date(s.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                      </div>
+                      <div style={{ fontSize: 10, color: C.text, fontWeight: 600 }}>
+                        {s.ok + s.err}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+          <div style={{ display: 'flex', gap: 12, fontSize: 11, color: C.muted, marginTop: 6, justifyContent: 'center' }}>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.green, marginRight: 4 }} />Succès 2xx</span>
+            <span><span style={{ display: 'inline-block', width: 8, height: 8, background: C.red, marginRight: 4 }} />Erreurs 4xx/5xx</span>
+          </div>
         </div>
 
         {/* Tier breakdown */}

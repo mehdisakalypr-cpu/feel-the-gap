@@ -66,6 +66,30 @@ export const TOPUP_PACKS = [
   { size: 50, price: 45, unit: 0.90 },
 ] as const
 
+/** Durées d'abonnement avec remises dégressives (règle feedback_subscription_durations).
+ *  Appliqué via applyDurationDiscount() sur n'importe quel prix mensuel. */
+export const SUBSCRIPTION_DURATIONS = [
+  { months: 1,  discountPct: 0,  label: 'Mensuel' },
+  { months: 12, discountPct: 10, label: '12 mois (−10%)' },
+  { months: 24, discountPct: 20, label: '24 mois (−20%)' },
+  { months: 36, discountPct: 30, label: '36 mois (−30%)' },
+] as const
+
+export type DurationMonths = 1 | 12 | 24 | 36
+
+export function applyDurationDiscount(monthlyEur: number, months: DurationMonths): {
+  monthlyEffective: number
+  totalUpfront: number
+  discountPct: number
+  savingsVsMonthly: number
+} {
+  const dur = SUBSCRIPTION_DURATIONS.find(d => d.months === months) ?? SUBSCRIPTION_DURATIONS[0]
+  const monthlyEffective = Math.round(monthlyEur * (1 - dur.discountPct / 100) * 100) / 100
+  const totalUpfront = Math.round(monthlyEffective * months * 100) / 100
+  const savingsVsMonthly = Math.round((monthlyEur * months - totalUpfront) * 100) / 100
+  return { monthlyEffective, totalUpfront, discountPct: dur.discountPct, savingsVsMonthly }
+}
+
 /** Anti-scraping caps */
 export const LIMITS = {
   actions_per_min: 60,          // rate limit global par user
