@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-04-18)
 
 ## Corpus Check
-- 438 files · ~392,280 words
+- 438 files · ~392,552 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -1113,11 +1113,11 @@ Nodes (0):
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `GET()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 66`, `Community 5`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 43`, `Community 13`, `Community 16`, `Community 21`?**
-  _High betweenness centrality (0.176) - this node is a cross-community bridge._
+  _High betweenness centrality (0.170) - this node is a cross-community bridge._
 - **Why does `POST()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 76`, `Community 13`, `Community 16`?**
-  _High betweenness centrality (0.173) - this node is a cross-community bridge._
-- **Why does `update()` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 13`, `Community 14`, `Community 16`, `Community 30`, `Community 32`, `Community 36`, `Community 47`, `Community 48`, `Community 49`, `Community 57`?**
   _High betweenness centrality (0.158) - this node is a cross-community bridge._
+- **Why does `update()` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 13`, `Community 14`, `Community 16`, `Community 30`, `Community 32`, `Community 36`, `Community 47`, `Community 48`, `Community 49`, `Community 57`?**
+  _High betweenness centrality (0.117) - this node is a cross-community bridge._
 - **Are the 64 inferred relationships involving `POST()` (e.g. with `assertCsrf()` and `getClientIp()`) actually correct?**
   _`POST()` has 64 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 54 inferred relationships involving `GET()` (e.g. with `proxy()` and `update()`) actually correct?**

@@ -3,7 +3,7 @@
 /**
  * /country/[iso]/methods — Production 3.0
  *
- * Page comparateur multi-critères des méthodes de fabrication pour un pays donné.
+ * Page comparateur multi-critères des méthodes de production pour un pays donné.
  * MVP café (product_slug='cafe' par défaut) ; architecture prête pour les autres
  * produits dès que le seed sera étendu (tâche #23).
  *
@@ -234,7 +234,7 @@ function MethodsPageInner() {
                 Méthodes de production — {countryLabel}
               </h1>
               <p className="text-gray-400 text-sm mt-1">
-                Comparez les méthodes de fabrication pour produire localement en {countryLabel}.
+                Comparez les méthodes de production pour produire localement en {countryLabel}.
               </p>
             </div>
           </div>

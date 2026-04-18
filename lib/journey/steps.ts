@@ -7,7 +7,7 @@
  * Ordre validé (project_production_3_0.md 2026-04-17) :
  *   1. Fiche pays
  *   2. Rapport d'opportunités
- *   3. Méthodes de fabrication (Production 3.0)
+ *   3. Méthodes de production (Production 3.0)
  *   4. Business plan
  *   5. Vidéos de ce marché
  *   6. Clients potentiels
@@ -51,7 +51,7 @@ export const JOURNEY_STEPS: JourneyStep[] = [
   { id: 'country',       phase: 'feel',       tier: 'explorer', labelFr: 'Fiche pays',                 labelEn: 'Country sheet',            descFr: "Vue d'ensemble du marché",          descEn: 'Market overview',            icon: '🌍', href: (iso) => `/country/${iso}` },
   { id: 'report',        phase: 'feel',       tier: 'data',     labelFr: "Rapport d'opportunités",     labelEn: 'Opportunities report',     descFr: 'Analyse détaillée',                 descEn: 'Detailed analysis',          icon: '📊', href: (iso) => `/reports/${iso}` },
   { id: 'studies',       phase: 'feel',       tier: 'strategy', labelFr: 'Études approfondies',        labelEn: 'In-depth studies',         descFr: 'Recherche avancée',                 descEn: 'Advanced research',          icon: '📑', href: (iso) => `/country/${iso}?tab=studies`, optional: true },
-  { id: 'methods',       phase: 'production', tier: 'strategy', labelFr: 'Méthodes de fabrication',    labelEn: 'Production methods',       descFr: 'Comparateur multi-critères',        descEn: 'Multi-criteria comparator',  icon: '🏭', href: (iso) => `/country/${iso}/methods` },
+  { id: 'methods',       phase: 'production', tier: 'strategy', labelFr: 'Méthodes de production',    labelEn: 'Production methods',       descFr: 'Comparateur multi-critères',        descEn: 'Multi-criteria comparator',  icon: '🏭', href: (iso) => `/country/${iso}/methods` },
   { id: 'business_plan', phase: 'feel',       tier: 'strategy', labelFr: 'Business plan',              labelEn: 'Business plan',            descFr: '3 scénarios chiffrés',              descEn: '3 costed scenarios',         icon: '💼', href: (iso) => `/country/${iso}/enriched-plan` },
   { id: 'videos',        phase: 'fill',       tier: 'data',     labelFr: 'Vidéos de ce marché',        labelEn: 'Videos on this market',    descFr: 'Formation + insights terrain',      descEn: 'Training + field insights',  icon: '🎬', href: (iso) => `/country/${iso}/videos` },
   { id: 'clients',       phase: 'feel',       tier: 'strategy', labelFr: 'Clients potentiels',         labelEn: 'Potential customers',      descFr: 'Acheteurs B2B matchés par IA',      descEn: 'AI-matched B2B buyers',      icon: '🎯', href: (iso) => `/country/${iso}/clients` },
