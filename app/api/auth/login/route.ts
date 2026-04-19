@@ -31,6 +31,7 @@ import {
   logEvent,
   verifySitePassword,
 } from '@/lib/auth-v2'
+import { TERMS_VERSION, PRODUCT_TAG } from '@/lib/terms-version'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -136,6 +137,25 @@ export async function POST(req: NextRequest) {
     return jsonError(403, 'Accès non autorisé')
   }
 
+  // Terms re-acceptance gate — if user has no signed_agreements row for the
+  // current TERMS_VERSION, the client must route them to /legal/accept before
+  // using the site. We still mint the session (they need it to post the
+  // acceptance), but flag the response.
+  let requireTermsReacceptance = false
+  try {
+    const { data: sig } = await admin
+      .from('signed_agreements')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('product', PRODUCT_TAG)
+      .eq('agreement_version', TERMS_VERSION)
+      .limit(1)
+      .maybeSingle()
+    requireTermsReacceptance = !sig
+  } catch {
+    // Fail-open on DB error — do not lock user out.
+  }
+
   // 2FA gate — if TOTP is active, do NOT mint a session yet.
   if (await hasActiveTotp(userId)) {
     const mfaToken = signMfaToken(userId)
@@ -163,9 +183,11 @@ export async function POST(req: NextRequest) {
     token_hash: hashedToken,
     type: 'magiclink',
     user: { id: userId, email },
+    require_terms_reacceptance: requireTermsReacceptance,
+    terms_version: TERMS_VERSION,
   })
   res.headers.set('Cache-Control', 'no-store')
   attachCsrfCookie(res, issueCsrfToken())
-  await logEvent({ userId, event: 'login_ok', ip, ua })
+  await logEvent({ userId, event: 'login_ok', ip, ua, meta: { reaccept_needed: requireTermsReacceptance } })
   return res
 }

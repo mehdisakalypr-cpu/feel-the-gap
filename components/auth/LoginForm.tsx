@@ -187,7 +187,7 @@ export function LoginForm({
         body: JSON.stringify({ email, password, captchaToken, remember }),
       })
       const json = (await res.json().catch(() => null)) as
-        | { ok?: boolean; require_mfa?: boolean; mfa_token?: string; access_token?: string; refresh_token?: string; token_hash?: string; type?: 'magiclink' | 'email'; error?: string }
+        | { ok?: boolean; require_mfa?: boolean; mfa_token?: string; access_token?: string; refresh_token?: string; token_hash?: string; type?: 'magiclink' | 'email'; error?: string; require_terms_reacceptance?: boolean }
         | null
       if (!res.ok || !json?.ok) {
         setError(json?.error === 'Accès non autorisé' ? 'Accès non autorisé' : 'Identifiants invalides')
@@ -199,7 +199,15 @@ export function LoginForm({
         return
       }
       const sb = createSupabaseBrowser()
+      const needsReaccept = json.require_terms_reacceptance === true
       const success = async () => {
+        // Terms re-acceptance gate — if the user's last signed_agreements row is
+        // older than the current pinned TERMS_VERSION, route them through the
+        // /legal/accept page before they land on the site.
+        if (needsReaccept) {
+          window.location.assign(`/legal/accept?next=${encodeURIComponent(postLoginPath)}`)
+          return
+        }
         // If device supports biometric AND user has NO passkey yet for this site,
         // propose enrolment on first login. /auth/biometric-setup has a "Plus tard"
         // opt-out so users can dismiss without friction.
