@@ -83,22 +83,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const ua = hdrs.get('user-agent') ?? null
   const bodyHash = sha256(contract.contract_html ?? '')
 
-  await db.from('signed_agreements').insert({
-    user_id: user.id,
-    email: user.email ?? '',
-    product: 'ftg',
-    plan: `incoterms_${contract.incoterm.toLowerCase()}`,
-    agreement_version: 'incoterms_2020',
-    agreement_hash_sha256: bodyHash,
-    body_hash_sha256: bodyHash,
-    ip,
-    user_agent: ua,
-    scroll_completed: !!body.scroll_completed,
-    signature_text: typedName,
-    acceptance_method: 'typed_signature',
-    purchase_intent: { role: 'buyer', contract_id: id, incoterm: contract.incoterm },
-    signed_at: signedAt,
-  }).then(() => null).catch(() => null)
+  try {
+    await db.from('signed_agreements').insert({
+      user_id: user.id,
+      email: user.email ?? '',
+      product: 'ftg',
+      plan: `incoterms_${contract.incoterm.toLowerCase()}`,
+      agreement_version: 'incoterms_2020',
+      agreement_hash_sha256: bodyHash,
+      body_hash_sha256: bodyHash,
+      ip,
+      user_agent: ua,
+      scroll_completed: !!body.scroll_completed,
+      signature_text: typedName,
+      acceptance_method: 'typed_signature',
+      purchase_intent: { role: 'buyer', contract_id: id, incoterm: contract.incoterm },
+      signed_at: signedAt,
+    })
+  } catch {
+    // Evidence log best-effort — don't fail the signature if the audit row can't persist.
+  }
 
   return NextResponse.json({
     ok: true,
