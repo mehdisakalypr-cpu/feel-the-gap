@@ -183,7 +183,7 @@ export default function HomePage() {
           {/* Stats — compact row */}
           <div className="relative z-10 flex justify-center gap-10 md:gap-12 mt-6">
             {STAT_VALUES.map((value, i) => (
-              <div key={value} className="text-center">
+              <div key={STAT_KEYS[i]} className="text-center">
                 <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
                 <div className="text-[10px] md:text-xs text-gray-400 mt-0.5">{t(`home.${STAT_KEYS[i]}`)}</div>
               </div>
