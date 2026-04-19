@@ -7,6 +7,7 @@ import JourneyChipsBar from '@/components/JourneyChipsBar';
 import JourneyNavFooter from '@/components/JourneyNavFooter';
 import { useLang } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
+import { useJourneyContext } from '@/lib/journey/context';
 
 // ─── i18n strings ───────────────────────────────────────────────────────────
 type L = 'fr' | 'en';
@@ -296,6 +297,11 @@ export default function EnrichedPlanPage() {
   const [selectedModes, setSelectedModes] = useState<Set<string>>(new Set());
   const [modesConfirmed, setModesConfirmed] = useState(false);
 
+  // Opportunités cochées par l'utilisateur dans le rapport — source de vérité pour les boutons BP.
+  // Ordre = ordre dans lequel l'utilisateur a coché les opps dans le rapport d'opportunités.
+  const selectedProducts = useJourneyContext((s) => s.selectedProducts);
+  const activeOppButtons = selectedProducts;
+
   // Fetch user tier
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -397,9 +403,11 @@ export default function EnrichedPlanPage() {
           <p className="text-gray-400">{t('subtitle')}</p>
         </div>
 
-        {/* Product selector */}
+        {/* Product selector — affiche UNIQUEMENT les opportunités cochées par l'utilisateur,
+            dans l'ORDRE du rapport d'opportunités (selectedProducts du JourneyContext).
+            Fallback : PRODUCT_SLUGS hardcodé si aucune sélection (parcours direct sans rapport). */}
         <div className="mb-8 flex flex-wrap gap-2">
-          {PRODUCT_SLUGS.map((slug) => (
+          {(activeOppButtons.length > 0 ? activeOppButtons : PRODUCT_SLUGS).map((slug) => (
             <button
               key={slug}
               onClick={() => setProductSlug(slug)}
@@ -409,7 +417,7 @@ export default function EnrichedPlanPage() {
                   : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
               }`}
             >
-              {PRODUCT_LABELS[L][slug] ?? slug}
+              {PRODUCT_LABELS[L][slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/[-_]+/g, ' ')}
             </button>
           ))}
         </div>

@@ -21,6 +21,7 @@ import Link from 'next/link'
 import JourneyNavFooter from '@/components/JourneyNavFooter'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase } from '@/lib/supabase'
+import { useJourneyContext } from '@/lib/journey/context'
 import MethodsComparator, {
   type Method,
   type Metric,
@@ -68,10 +69,19 @@ function MethodsPageInner() {
   const initialSlug = searchParams.get('product') || 'cafe'
 
   const [country, setCountry] = useState<Country | null>(null)
+  // Sync productSlug local avec activeProduct du JourneyContext (chips bar globale)
+  const ctxActiveProduct = useJourneyContext((s) => s.activeProduct)
   const [availableProducts, setAvailableProducts] = useState<AvailableProduct[]>([
     { slug: 'cafe', label: 'Café' },
   ])
   const [productSlug, setProductSlug] = useState<string>(initialSlug)
+
+  // Sync : quand l'utilisateur change le chip JourneyChipsBar, le productSlug suit.
+  useEffect(() => {
+    if (ctxActiveProduct && ctxActiveProduct !== productSlug) {
+      setProductSlug(ctxActiveProduct)
+    }
+  }, [ctxActiveProduct, productSlug])
 
   const [methods, setMethods] = useState<Method[]>([])
   const [metrics, setMetrics] = useState<Metric[]>([])
@@ -239,35 +249,11 @@ function MethodsPageInner() {
             </div>
           </div>
 
-          {/* Product selector (chips) */}
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap py-1">
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-              Produit :
-            </span>
-            {availableProducts.map((p) => {
-              const active = p.slug === productSlug
-              return (
-                <button
-                  key={p.slug}
-                  type="button"
-                  onClick={() => setProductSlug(p.slug)}
-                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    active
-                      ? 'bg-[#C9A84C] text-[#07090F]'
-                      : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
-                  }`}
-                  aria-pressed={active}
-                >
-                  {p.label}
-                </button>
-              )
-            })}
-            {availableProducts.length === 1 && (
-              <span className="shrink-0 text-[11px] italic text-gray-500">
-                (autres produits bientôt — MVP café)
-              </span>
-            )}
-          </div>
+          {/* Product selector retiré — la barre de chips JourneyChipsBar (en haut)
+              affiche déjà les opportunités cochées par l'utilisateur via le store
+              JourneyContext. Plus besoin de doublon ici. Le productSlug local de
+              cette page se synchronise avec activeProduct du store via useEffect
+              ci-dessus. */}
 
           {/* Error */}
           {error && (
