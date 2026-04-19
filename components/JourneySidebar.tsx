@@ -5,6 +5,30 @@ import { useEffect, useState } from 'react'
 import { useLang } from '@/components/LanguageProvider'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import UpgradeOfferModal, { type UpgradeTier } from '@/components/UpgradeOfferModal'
+import { compareTiers } from '@/lib/credits/tier-helpers'
+import type { PlanTier } from '@/lib/credits/costs'
+
+/**
+ * Map sidebar/legacy tier keys to canonical PlanTier (lib/credits/costs.ts)
+ * so we can use compareTiers without false negatives. Unknown → 'free'.
+ */
+function toPlanTier(t: string): PlanTier {
+  const map: Record<string, PlanTier> = {
+    free: 'free',
+    explorer: 'free',
+    solo_producer: 'solo_producer',
+    basic: 'starter',
+    data: 'starter',
+    starter: 'starter',
+    standard: 'strategy',
+    strategy: 'strategy',
+    premium: 'premium',
+    ultimate: 'ultimate',
+    enterprise: 'custom',
+    custom: 'custom',
+  }
+  return map[t] ?? 'free'
+}
 
 export type JourneyStep = 'country' | 'report' | 'studies' | 'methods' | 'business_plan' | 'clients' | 'videos' | 'store' | 'recap' | 'success'
 
@@ -247,6 +271,10 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
                             e.stopPropagation()
                             // Only upgrade tiers (data/strategy/premium) have a modal.
                             if (step.tier === 'explorer') return
+                            // RÈGLE D'OR: never open the upgrade modal for a tier
+                            // the user already has (or higher). Guard via the
+                            // canonical PlanTier comparator.
+                            if (compareTiers(toPlanTier(userTier), toPlanTier(step.tier)) >= 0) return
                             setUpgradeTarget(step.tier as UpgradeTier)
                           }}
                           className="px-2 py-1 rounded-md text-[10px] font-bold whitespace-nowrap transition-all hover:scale-105"
