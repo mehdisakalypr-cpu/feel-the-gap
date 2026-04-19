@@ -4,6 +4,9 @@ import { FarmingHero, FARMING_HERO_DURATION } from './compositions/FarmingHero'
 import { FarmingLoadingScan, FARMING_LOADING_DURATION } from './compositions/FarmingLoadingScan'
 import { MarketplaceMatchReveal, MARKETPLACE_MATCH_REVEAL_DURATION } from './compositions/MarketplaceMatchReveal'
 import { Parcours7Steps, PARCOURS_7_STEPS_DURATION } from './compositions/Parcours7Steps'
+import { OpportunitySpotlight, OPPORTUNITY_SPOTLIGHT_DURATION } from './compositions/OpportunitySpotlight'
+import { PlansReveal, PLANS_REVEAL_DURATION } from './compositions/PlansReveal'
+import { SovereignPitch, SOVEREIGN_PITCH_DURATION } from './compositions/SovereignPitch'
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -57,6 +60,50 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={1920}
         height={1080}
+      />
+      <Composition
+        id="OpportunitySpotlight"
+        component={OpportunitySpotlight}
+        durationInFrames={OPPORTUNITY_SPOTLIGHT_DURATION}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          flag: '🇲🇦',
+          country: 'Maroc',
+          product: "Huile d'olive bio",
+          gapValueEur: 12_800_000,
+          score: 87,
+          tagline: 'Importez ce que le pays ne produit plus.',
+        }}
+      />
+      <Composition
+        id="PlansReveal"
+        component={PlansReveal}
+        durationInFrames={PLANS_REVEAL_DURATION}
+        fps={30}
+        width={1080}
+        height={1080}
+      />
+      <Composition
+        id="SovereignPitch"
+        component={SovereignPitch}
+        durationInFrames={SOVEREIGN_PITCH_DURATION}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          countryIso: 'SEN',
+          countryNameFr: 'Sénégal',
+          flag: '🇸🇳',
+          gapImportEur: 2_400_000_000,
+          jobsLostAnnual: 85_000,
+          fxOutflowPctGdp: 7.2,
+          projectedJobs36m: 12_500,
+          projectedFxSavingsEur: 180_000_000,
+          partnerHints: ['Ministère du Commerce', 'ADEPME', 'Chambre de Commerce de Dakar'],
+          ctaUrl: 'feelthegap.world/gov/SEN',
+        }}
       />
     </>
   )
