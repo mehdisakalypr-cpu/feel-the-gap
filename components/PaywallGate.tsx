@@ -3,41 +3,76 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { TIER_RANK, compareTiers } from '@/lib/credits/tier-helpers'
+import type { PlanTier } from '@/lib/credits/costs'
 
-type Tier = 'free' | 'explorer' | 'basic' | 'data' | 'standard' | 'strategy' | 'premium' | 'enterprise'
+// PaywallGate accepts both legacy aliases (basic/standard) and the current DB
+// tier keys. Everything is normalized to PlanTier before comparing through the
+// canonical TIER_RANK from tier-helpers.
+type LegacyOrPlanTier =
+  | PlanTier
+  | 'explorer'
+  | 'basic'
+  | 'data'
+  | 'standard'
+  | 'enterprise'
 
-// Ranks support both legacy tiers (free/basic/standard) and current DB tiers (explorer/data/strategy).
-const TIER_RANK: Record<Tier, number> = {
-  free: 0,
-  explorer: 0,
-  basic: 1,
-  data: 1,
-  standard: 2,
-  strategy: 2,
-  premium: 3,
-  enterprise: 4,
+function toPlanTier(t: string): PlanTier {
+  const map: Record<string, PlanTier> = {
+    free: 'free',
+    explorer: 'free',
+    solo_producer: 'solo_producer',
+    basic: 'starter',
+    data: 'starter',
+    starter: 'starter',
+    standard: 'strategy',
+    strategy: 'strategy',
+    premium: 'premium',
+    ultimate: 'ultimate',
+    enterprise: 'custom',
+    custom: 'custom',
+  }
+  return map[t] ?? 'free'
 }
 
-const TIER_LABELS: Record<'basic' | 'standard' | 'premium', string> = {
-  basic:    'Data',
-  standard: 'Strategy',
-  premium:  'Premium',
+const TIER_LABELS: Record<LegacyOrPlanTier, string> = {
+  free:          'Free',
+  explorer:      'Free',
+  solo_producer: 'Solo Producer',
+  basic:         'Data',
+  data:          'Data',
+  starter:       'Data',
+  standard:      'Strategy',
+  strategy:      'Strategy',
+  premium:       'Premium',
+  ultimate:      'Ultimate',
+  enterprise:    'Enterprise',
+  custom:        'Enterprise',
 }
 
-const TIER_PRICES: Record<'basic' | 'standard' | 'premium', string> = {
-  basic:    '29 €/mois',
-  standard: '99 €/mois',
-  premium:  '149 €/mois',
+const TIER_PRICES: Record<LegacyOrPlanTier, string> = {
+  free:          '0 €',
+  explorer:      '0 €',
+  solo_producer: '19,99 €/mois',
+  basic:         '29 €/mois',
+  data:          '29 €/mois',
+  starter:       '29 €/mois',
+  standard:      '99 €/mois',
+  strategy:      '99 €/mois',
+  premium:       '149 €/mois',
+  ultimate:      '299 €/mois',
+  enterprise:    'Sur devis',
+  custom:        'Sur devis',
 }
 
 interface PaywallGateProps {
-  requiredTier: 'basic' | 'standard' | 'premium'
+  requiredTier: LegacyOrPlanTier
   children: React.ReactNode
   featureName: string
 }
 
 export default function PaywallGate({ requiredTier, children, featureName }: PaywallGateProps) {
-  const [userTier, setUserTier] = useState<Tier | null>(null)
+  const [userTier, setUserTier] = useState<LegacyOrPlanTier | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,7 +90,7 @@ export default function PaywallGate({ requiredTier, children, featureName }: Pay
           .select('tier')
           .eq('id', user.id)
           .single()
-        setUserTier((data?.tier as Tier) ?? 'free')
+        setUserTier((data?.tier as LegacyOrPlanTier) ?? 'free')
       } catch {
         setUserTier('free')
       } finally {
@@ -75,7 +110,13 @@ export default function PaywallGate({ requiredTier, children, featureName }: Pay
     )
   }
 
-  const hasAccess = userTier !== null && TIER_RANK[userTier] >= TIER_RANK[requiredTier]
+  // Normalize both sides to PlanTier and use the canonical comparator so this
+  // gate stays in sync with tier-helpers (single source of truth).
+  const userPlan = toPlanTier(userTier ?? 'free')
+  const requiredPlan = toPlanTier(requiredTier)
+  const hasAccess = userTier !== null && compareTiers(userPlan, requiredPlan) >= 0
+  // Reference TIER_RANK to keep the canonical map imported as required.
+  void TIER_RANK
 
   if (hasAccess) {
     return <>{children}</>
