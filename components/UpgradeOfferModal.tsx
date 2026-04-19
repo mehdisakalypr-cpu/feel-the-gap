@@ -2,8 +2,33 @@
 
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { shouldShowUpgradeTo } from '@/lib/credits/tier-helpers'
+import type { PlanTier } from '@/lib/credits/costs'
 
 export type UpgradeTier = 'data' | 'strategy' | 'premium' | 'ultimate'
+
+/**
+ * Map the modal's legacy/UI tier keys to the canonical PlanTier hierarchy
+ * (lib/credits/costs.ts) used by tier-helpers. Anything unknown defaults to
+ * 'free' so an unknown current tier never blocks a legitimate upgrade.
+ */
+function toPlanTier(t: string): PlanTier {
+  const map: Record<string, PlanTier> = {
+    free: 'free',
+    explorer: 'free',
+    solo_producer: 'solo_producer',
+    basic: 'starter',
+    data: 'starter',
+    starter: 'starter',
+    standard: 'strategy',
+    strategy: 'strategy',
+    premium: 'premium',
+    ultimate: 'ultimate',
+    enterprise: 'custom',
+    custom: 'custom',
+  }
+  return map[t] ?? 'free'
+}
 
 const TIER_META: Record<UpgradeTier, {
   name: string
@@ -112,6 +137,13 @@ export default function UpgradeOfferModal({
   }, [open, onSuccess])
 
   if (!open) return null
+
+  // RÈGLE D'OR (tier-helpers.ts) : never offer a tier the user already has
+  // or a downgrade. The guard sits right after the open check so the hooks
+  // above always run in a stable order.
+  if (!shouldShowUpgradeTo(toPlanTier(currentTier), toPlanTier(targetTier))) {
+    return null
+  }
 
   const meta = TIER_META[targetTier]
   const targetPrice = meta.monthlyEur
