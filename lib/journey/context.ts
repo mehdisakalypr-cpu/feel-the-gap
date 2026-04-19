@@ -92,7 +92,11 @@ export function useJourneyContextQuerySync(): void {
 
   const hydratedFromUrl = useRef(false)
 
-  // 1) URL → store (once on mount)
+  // 1) URL → store (once on mount) — URL is the SOURCE OF TRUTH on hydration.
+  //    BUG FIX 2026-04-19 : si URL n'a pas de product param, FORCER activeProduct=null
+  //    pour écraser la valeur persistée localStorage. Sinon le store re-pousse l'ancien
+  //    product dans l'URL via l'effet 2 → la page SSR re-fetch avec un autre filtre →
+  //    les buyers "apparaissent puis disparaissent". Idem pour iso.
   useEffect(() => {
     if (hydratedFromUrl.current) return
     hydratedFromUrl.current = true
@@ -100,11 +104,13 @@ export function useJourneyContextQuerySync(): void {
     const urlProduct = searchParams?.get('product')
     const urlIso = searchParams?.get('iso')
 
-    if (urlProduct && urlProduct !== activeProduct) {
-      setActiveProduct(urlProduct)
+    if (urlProduct) {
+      if (urlProduct !== activeProduct) setActiveProduct(urlProduct)
+    } else if (activeProduct !== null) {
+      setActiveProduct(null)
     }
-    if (urlIso && urlIso !== iso) {
-      setIso(urlIso)
+    if (urlIso) {
+      if (urlIso !== iso) setIso(urlIso)
     }
     // Intentionally only on mount — we don't want URL changes from the
     // store-sync effect below to re-enter this branch.
