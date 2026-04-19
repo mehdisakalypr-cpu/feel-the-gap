@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import JourneySidebar from '@/components/JourneySidebar'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 import FillTheGapCreditModal from '@/components/FillTheGapCreditModal'
 import { supabase } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
@@ -891,7 +890,6 @@ export default function ReportPage() {
           Rapport Feel The Gap · {country.data_year ?? 2023}
         </div>
 
-        <JourneyNavFooter currentStepId="report" iso={iso} />
       </main>
 
       {/* ── Floating count bubble (top-right, always visible) ── */}

@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import { useParams, usePathname } from 'next/navigation'
 import JourneyContextProvider from '@/components/JourneyContextProvider'
 import JourneySidebar, { type JourneyStep } from '@/components/JourneySidebar'
+import JourneyStickyDock from '@/components/JourneyStickyDock'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 function stepFromPathname(pathname: string): JourneyStep {
@@ -52,8 +53,10 @@ export default function CountryLayout({ children }: { children: React.ReactNode 
   return (
     <JourneyContextProvider>
       <JourneySidebar iso={iso} currentStep={currentStep} userTier={userTier} />
-      {/* lg:pl-80 pour éviter le recouvrement avec le sidebar fixed w-80 */}
-      <div className="lg:pl-80">{children}</div>
+      {/* lg:pl-80 pour éviter le recouvrement avec le sidebar fixed w-80
+          pb-24 pour éviter que le contenu soit masqué derrière le JourneyStickyDock fixed */}
+      <div className="lg:pl-80 pb-24">{children}</div>
+      <JourneyStickyDock />
     </JourneyContextProvider>
   )
 }

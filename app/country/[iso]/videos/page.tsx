@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,7 +113,6 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
           </section>
         ))}
 
-        <JourneyNavFooter currentStepId="videos" iso={iso} />
       </div>
     </div>
   )

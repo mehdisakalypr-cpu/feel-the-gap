@@ -2,7 +2,6 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -174,7 +173,6 @@ export default async function RecapPage({ params }: Props) {
           </p>
         </div>
 
-        <JourneyNavFooter currentStepId="recap" iso={iso} />
       </div>
     </div>
   )

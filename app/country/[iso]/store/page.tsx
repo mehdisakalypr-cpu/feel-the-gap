@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,7 +71,6 @@ export default async function StoreOnboardingPage({ params }: Props) {
           </p>
         </div>
 
-        <JourneyNavFooter currentStepId="store" iso={iso} />
       </div>
     </div>
   )

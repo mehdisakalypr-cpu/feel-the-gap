@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import JourneyChipsBar from '@/components/JourneyChipsBar';
-import JourneyNavFooter from '@/components/JourneyNavFooter';
 import { useLang } from '@/components/LanguageProvider';
 import { supabase } from '@/lib/supabase';
 import { useJourneyContext } from '@/lib/journey/context';
@@ -851,7 +850,6 @@ export default function EnrichedPlanPage() {
           </div>
         )}
 
-        <JourneyNavFooter currentStepId="business_plan" iso={iso} />
       </main>
     </div>
   );

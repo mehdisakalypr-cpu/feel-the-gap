@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import DOMPurify from 'dompurify'
 import PaywallGate from '@/components/PaywallGate'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
@@ -466,7 +465,6 @@ function CountryPageInner() {
 
       {/* Journey nav — canonical prev/next for the 7-step parcours */}
       <div className="max-w-5xl mx-auto w-full px-4 pb-10">
-        <JourneyNavFooter currentStepId="country" iso={iso!} />
       </div>
       </div>
     </div>

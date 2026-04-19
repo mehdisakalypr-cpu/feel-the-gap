@@ -18,7 +18,6 @@
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
@@ -279,7 +278,6 @@ function MethodsPageInner() {
             />
           )}
 
-          <JourneyNavFooter currentStepId="methods" iso={iso!} />
         </div>
       </div>
     </div>

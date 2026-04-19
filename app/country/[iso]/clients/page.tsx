@@ -2,7 +2,6 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import BuyersList from '../success/debouches/buyers-list'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
-import JourneyNavFooter from '@/components/JourneyNavFooter'
 
 export const dynamic = 'force-dynamic'
 
@@ -83,7 +82,6 @@ export default async function ClientsPotentielsPage({ params, searchParams }: Pr
           </div>
         )}
 
-        <JourneyNavFooter currentStepId="clients" iso={iso} />
       </div>
     </div>
   )
