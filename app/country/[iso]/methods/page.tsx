@@ -20,6 +20,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import JourneyNavFooter from '@/components/JourneyNavFooter'
+import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase } from '@/lib/supabase'
 import MethodsComparator, {
   type Method,
@@ -218,6 +219,7 @@ function MethodsPageInner() {
       <Topbar />
       <div className="w-full">
         <div className="max-w-6xl mx-auto w-full px-4 py-8 space-y-6">
+          <JourneyChipsBar className="mb-2" />
           {/* Header */}
           <div className="flex items-start gap-4 flex-wrap md:flex-nowrap">
             <span className="text-5xl shrink-0">{country?.flag ?? '🏭'}</span>

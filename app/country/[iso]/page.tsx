@@ -7,6 +7,7 @@ import DOMPurify from 'dompurify'
 import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
 import JourneyNavFooter from '@/components/JourneyNavFooter'
+import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -295,6 +296,7 @@ function CountryPageInner() {
       <Topbar />
       <div className="w-full">
       <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-6 overflow-hidden">
+        <JourneyChipsBar className="mb-2" />
 
         {/* Header */}
         <div className="flex items-start gap-4 flex-wrap md:flex-nowrap">
