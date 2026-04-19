@@ -139,7 +139,7 @@ export default function JourneySidebar({ iso, currentStep, userTier: initialTier
 
   return (
     <>
-      <aside className="hidden lg:block fixed left-0 top-16 w-80 h-[calc(100vh-4rem)] overflow-y-auto bg-[#0B0F1A]/95 border-r border-white/10 backdrop-blur-md z-30">
+      <aside className="hidden lg:block fixed left-0 top-14 w-80 h-[calc(100vh-3.5rem)] overflow-y-auto bg-[#0B0F1A]/95 border-r border-white/10 backdrop-blur-md z-30">
         <div className="p-5">
           <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">{L === 'fr' ? 'Parcours' : 'Journey'}</div>
           <div className="text-sm font-semibold text-white mb-5">{iso}</div>
