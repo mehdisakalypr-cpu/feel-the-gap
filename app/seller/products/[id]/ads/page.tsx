@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 
 // Page: /seller/products/[id]/ads — génère et liste les variantes multi-format
 // pour les publicités sur réseaux sociaux, via FFmpeg côté serveur.
@@ -119,7 +118,6 @@ export default function AdVariantsPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-5xl mx-auto px-4 py-10">
         <div className="text-xs text-gray-500 mb-2">
           <Link href="/seller" className="hover:text-gray-300">← Mes produits</Link>

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 // Catalogue produits style Apple pour les influenceurs.
@@ -155,7 +154,6 @@ export default function CatalogPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
 
       <div className="max-w-7xl mx-auto px-4 py-10">
         {/* Header */}

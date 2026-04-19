@@ -10,7 +10,6 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import { supabase } from '@/lib/supabase'
 
 type Volume = {
@@ -193,7 +192,6 @@ function MarketplaceInner() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-6xl mx-auto px-4 py-10 space-y-10">
         {/* Hero */}
         <div className="space-y-3">

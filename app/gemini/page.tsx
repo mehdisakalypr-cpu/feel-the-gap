@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 import Link from 'next/link'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
@@ -123,7 +122,6 @@ export default function GeminiPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#07090F]">
-      <Topbar />
 
       <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full px-4 py-6 overflow-hidden">
 

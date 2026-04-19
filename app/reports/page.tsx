@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import { useLang } from '@/components/LanguageProvider'
 
 // Accent-insensitive lowercase for search matching.
@@ -80,7 +79,6 @@ function ReportsContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F]">
-      <Topbar />
 
       <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
         {/* Header */}

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import JourneySidebar from '@/components/JourneySidebar'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import JourneyNavFooter from '@/components/JourneyNavFooter'
@@ -422,7 +421,6 @@ export default function ReportPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#07090F] flex flex-col">
-      <Topbar />
       <div className="flex-1 flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
       </div>
@@ -431,7 +429,6 @@ export default function ReportPage() {
 
   if (!country) return (
     <div className="min-h-screen bg-[#07090F] flex flex-col">
-      <Topbar />
       <div className="flex-1 flex items-center justify-center text-gray-400">Pays introuvable</div>
     </div>
   )
@@ -446,7 +443,6 @@ export default function ReportPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
-      <Topbar />
       <JourneySidebar iso={iso} currentStep="report" userTier={userTier} />
 
       <main className="lg:ml-80 px-4 lg:px-8 py-8 space-y-8 overflow-x-hidden">

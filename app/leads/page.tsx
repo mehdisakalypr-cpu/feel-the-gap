@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 import { createSupabaseServer } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
@@ -33,7 +32,6 @@ export default async function LeadsIndex({ searchParams }: { searchParams: Promi
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-xs uppercase tracking-[.3em] text-[#C9A84C] mb-3">Acheteurs potentiels</div>
         <h1 className="text-4xl font-bold mb-3">Choisis la denrée{country ? <> · marché <span className="text-[#C9A84C]">{country.toUpperCase()}</span></> : null}</h1>

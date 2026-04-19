@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Topbar from '@/components/Topbar';
 import JourneyChipsBar from '@/components/JourneyChipsBar';
 import JourneyNavFooter from '@/components/JourneyNavFooter';
 import { useLang } from '@/components/LanguageProvider';
@@ -379,7 +378,6 @@ export default function EnrichedPlanPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Topbar />
       {/* JourneySidebar mounted in layout.tsx (country/[iso]/layout) — persists on tab nav */}
 
       <main className="px-4 lg:px-8 py-6 sm:py-10">

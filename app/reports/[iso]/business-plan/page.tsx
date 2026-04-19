@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import { supabase } from '@/lib/supabase'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -1313,7 +1312,6 @@ export default function BusinessPlanPage() {
   if (!selectedOppIds.length) {
     return (
       <div className="min-h-screen bg-[#07090F] flex flex-col">
-        <Topbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="text-4xl mb-4">⚠️</div>
@@ -1327,7 +1325,6 @@ export default function BusinessPlanPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] flex flex-col overflow-x-hidden">
-      <Topbar />
       <div className="max-w-4xl mx-auto w-full px-4 py-8 overflow-hidden">
 
         {/* Breadcrumb */}

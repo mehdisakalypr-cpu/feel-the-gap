@@ -18,7 +18,6 @@
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import JourneyNavFooter from '@/components/JourneyNavFooter'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase } from '@/lib/supabase'
@@ -216,7 +215,6 @@ function MethodsPageInner() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F]">
-      <Topbar />
       <div className="w-full">
         <div className="max-w-6xl mx-auto w-full px-4 py-8 space-y-6">
           <JourneyChipsBar className="mb-2" />

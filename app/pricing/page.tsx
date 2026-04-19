@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import Topbar from '@/components/Topbar'
 import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS, SUBSCRIPTION_DURATIONS, applyDurationDiscount, type DurationMonths } from '@/lib/credits/costs'
 import ContractGate, { type ContractGateAgreement } from '@/components/ContractGate'
 import { createSupabaseBrowser } from '@/lib/supabase'
@@ -59,7 +58,6 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <main className="max-w-6xl mx-auto px-4 py-12">
         <header className="text-center mb-10">
           <div className="text-xs uppercase tracking-[0.3em] text-emerald-400 mb-2">Pricing</div>

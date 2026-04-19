@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -447,7 +446,6 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F]">
-      <Topbar />
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-10">
         <h1 className="text-2xl font-bold text-white mb-6">{t('account.title')}</h1>
 

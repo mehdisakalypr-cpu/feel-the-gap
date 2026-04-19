@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import DOMPurify from 'dompurify'
-import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
 import JourneyNavFooter from '@/components/JourneyNavFooter'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
@@ -293,7 +292,6 @@ function CountryPageInner() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F]">
-      <Topbar />
       <div className="w-full">
       <div className="max-w-5xl mx-auto w-full px-4 py-8 space-y-6 overflow-hidden">
         <JourneyChipsBar className="mb-2" />

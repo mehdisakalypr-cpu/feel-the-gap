@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Boutique e-commerce clé en main — Feel The Gap' }
@@ -8,7 +7,6 @@ export default async function ShopCreatePage({ searchParams }: { searchParams: P
   const { country } = await searchParams
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="text-xs uppercase tracking-[.3em] text-[#34D399] mb-3">🛒 Boutique e-commerce · Optionnel</div>
         <h1 className="text-4xl font-bold mb-4">Ta boutique en ligne clé en main</h1>

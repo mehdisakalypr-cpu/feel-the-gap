@@ -268,7 +268,7 @@ export default function Topbar() {
   }
 
   return (
-    <header className="h-14 flex items-center px-3 md:px-4 border-b border-[rgba(201,168,76,.15)] bg-[#0D1117] shrink-0 z-50 gap-2">
+    <header className="sticky top-0 h-14 flex items-center px-3 md:px-4 border-b border-[rgba(201,168,76,.15)] bg-[#0D1117]/95 backdrop-blur shrink-0 z-50 gap-2">
       {/* Brand */}
       <Link href="/map" className="flex items-center gap-2 select-none shrink-0">
         <div className="w-7 h-7 rounded-md bg-[#C9A84C] flex items-center justify-center">

@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import Topbar from '@/components/Topbar'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 // Homepage /finance — destinée aux financeurs (banques, institutions de crédit,
@@ -27,7 +26,6 @@ export default function FinanceHomePage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">

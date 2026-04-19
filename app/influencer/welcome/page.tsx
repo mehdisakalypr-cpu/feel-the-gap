@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import Topbar from '@/components/Topbar'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 // Landing "vendre du rêve" aux influenceurs.
@@ -46,7 +45,6 @@ export default function InfluencerWelcomePage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
 
       {/* ── Hero "vendre du rêve" ────────────────────────────────── */}
       <section className="relative overflow-hidden">

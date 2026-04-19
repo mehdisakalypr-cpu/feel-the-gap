@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 
 // Carte influenceur — MVP grid-based (pas Leaflet, plus rapide à livrer).
 // Affiche les pays d'origine des produits du catalogue, menu filtre à gauche
@@ -67,7 +66,6 @@ export default function InfluencerMapPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-7xl mx-auto px-4 py-10">
         <div className="text-xs text-gray-500 mb-2">
           <Link href="/influencer/welcome" className="hover:text-gray-300">← Retour</Link>

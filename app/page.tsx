@@ -87,28 +87,7 @@ export default function HomePage() {
       {/* Luminous world map backdrop — colored glow */}
       <HomeWorldBackdrop />
 
-      {/* Minimal header — logo + (conditionnel) connexion */}
-      <header className="relative z-20 h-14 flex items-center justify-between px-4 border-b border-[rgba(201,168,76,.15)] bg-[#0D1117]/80 backdrop-blur shrink-0">
-        <Link href="/" className="flex items-center gap-2 select-none">
-          <div className="w-7 h-7 rounded-md bg-[#C9A84C] flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 8a6 6 0 1 1 12 0A6 6 0 0 1 2 8Z" stroke="#07090F" strokeWidth="1.5"/>
-              <path d="M8 2c0 0-2 2-2 6s2 6 2 6M8 2c0 0 2 2 2 6s-2 6-2 6M2 8h12" stroke="#07090F" strokeWidth="1.5"/>
-            </svg>
-          </div>
-          <span className="font-semibold tracking-tight text-white text-sm">Feel <span className="text-[#C9A84C]">The Gap</span></span>
-        </Link>
-        {loggedIn === false && (
-          <Link href="/auth/login" className="px-4 py-1.5 bg-white/5 border border-white/10 text-white font-medium rounded-lg hover:bg-white/10 transition-colors text-xs">
-            {t('home.signin_link')}
-          </Link>
-        )}
-        {loggedIn === true && (
-          <Link href="/map" className="px-4 py-1.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-lg hover:bg-[#E8C97A] transition-colors text-xs">
-            {t('nav.map') || 'Carte'} →
-          </Link>
-        )}
-      </header>
+      {/* Header global = <Topbar /> rendu par layout.tsx (sticky, profil/login auto) */}
 
       {/* Hero — slogan + 4-step schema + desc + BIG map CTA, all above the fold */}
       <section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 pt-6 pb-8 max-w-6xl mx-auto w-full">

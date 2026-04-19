@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 
 interface FavoriteRow {
   id: string
@@ -62,7 +61,6 @@ export default function InfluencerFavoritesPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-5xl mx-auto px-4 py-10">
         <div className="text-xs text-gray-500 mb-2">
           <Link href="/influencer/welcome" className="hover:text-gray-300">← Bienvenue</Link>

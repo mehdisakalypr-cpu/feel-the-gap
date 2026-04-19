@@ -15,7 +15,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import { supabase } from '@/lib/supabase'
 import { loadStripe, type Stripe as StripeJs } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -209,7 +208,6 @@ export default function MatchDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090F] text-white">
-        <Topbar />
         <div className="max-w-3xl mx-auto px-4 py-16 flex items-center justify-center">
           <div className="w-6 h-6 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
         </div>
@@ -220,7 +218,6 @@ export default function MatchDetailPage() {
   if (error === 'forbidden') {
     return (
       <div className="min-h-screen bg-[#07090F] text-white">
-        <Topbar />
         <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
           <h1 className="text-xl font-bold">Accès refusé</h1>
           <p className="text-sm text-gray-400">Vous n'êtes ni le producteur ni l'acheteur de ce match.</p>
@@ -233,7 +230,6 @@ export default function MatchDetailPage() {
   if (error === 'not_found' || !match) {
     return (
       <div className="min-h-screen bg-[#07090F] text-white">
-        <Topbar />
         <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
           <h1 className="text-xl font-bold">Match introuvable</h1>
           <Link href="/marketplace" className="text-sm text-[#C9A84C] hover:underline">← Retour au marketplace</Link>
@@ -251,7 +247,6 @@ export default function MatchDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-6">
 
         <Link href="/marketplace" className="text-xs text-gray-500 hover:text-[#C9A84C] inline-block">

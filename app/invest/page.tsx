@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import Topbar from '@/components/Topbar'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 // Homepage /invest — destinée aux investisseurs en capital : business angels,
@@ -27,7 +26,6 @@ export default function InvestHomePage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">

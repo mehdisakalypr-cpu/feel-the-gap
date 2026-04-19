@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 
 // Page de saisie dynamique d'un dossier de financement ou d'investissement.
 // La structure (sections + questions) est générée côté serveur par
@@ -393,7 +392,6 @@ export default function DossierPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#07090F]">
-        <Topbar />
         <div className="max-w-3xl mx-auto py-16 text-center text-gray-500 text-sm">
           <div className="w-10 h-10 mx-auto mb-4 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
           Chargement du dossier…
@@ -405,7 +403,6 @@ export default function DossierPage() {
   if (error && !dossier) {
     return (
       <div className="min-h-screen bg-[#07090F]">
-        <Topbar />
         <div className="max-w-3xl mx-auto py-16 text-center">
           <div className="text-3xl mb-3">⚠️</div>
           <p className="text-red-300 text-sm mb-4">{error}</p>
@@ -419,7 +416,6 @@ export default function DossierPage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-3xl mx-auto px-4 py-8 pb-24">
 
         {/* Header */}

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import PaywallGate from '@/components/PaywallGate'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import { supabase, createSupabaseBrowser } from '@/lib/supabase'
@@ -1110,7 +1109,6 @@ export default function PlanPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F] overflow-x-hidden">
-      <Topbar />
       <div className="max-w-4xl mx-auto w-full px-4 py-8 overflow-hidden">
         {/* Chips bar — active product context, scroll-sticky. */}
         <JourneyChipsBar userTier={userTier} className="mb-4" />

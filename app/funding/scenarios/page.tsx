@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 
 // Page de résolution "budget insuffisant".
 // Query params attendus :
@@ -159,7 +158,6 @@ function ScenariosInner() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-3xl mx-auto px-4 py-10">
 
         {/* Header */}

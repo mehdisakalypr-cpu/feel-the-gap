@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 import Link from 'next/link'
 import { createBrowserClient } from '@supabase/ssr'
 
@@ -129,7 +128,6 @@ export default function SellerPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#07090F]">
-      <Topbar />
       <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-10">
 
         <div className="flex items-start justify-between mb-8">

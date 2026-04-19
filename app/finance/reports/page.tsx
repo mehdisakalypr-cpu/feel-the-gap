@@ -1,10 +1,8 @@
-import Topbar from '@/components/Topbar'
 import DossierFeed from '@/components/DossierFeed'
 
 export default function FinanceReportsPage() {
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <DossierFeed
         type="financement"
         baseHref="/finance/reports"

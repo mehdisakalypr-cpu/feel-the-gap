@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Topbar from '@/components/Topbar'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -79,7 +78,6 @@ export default function FundingHomePage() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-4 pt-12 pb-8">

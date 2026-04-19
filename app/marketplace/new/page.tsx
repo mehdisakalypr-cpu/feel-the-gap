@@ -12,7 +12,6 @@
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Topbar from '@/components/Topbar'
 import { supabase } from '@/lib/supabase'
 
 const PRODUCT_PRESETS: Array<{ slug: string; label: string }> = [
@@ -154,7 +153,6 @@ function NewInner() {
   if (!userId) {
     return (
       <div className="min-h-screen bg-[#07090F] text-white">
-        <Topbar />
         <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-4">
           <h1 className="text-2xl font-bold">Connexion requise</h1>
           <p className="text-sm text-gray-400">Pour publier sur le marketplace, connecte-toi à ton compte FTG.</p>
@@ -168,7 +166,6 @@ function NewInner() {
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
-      <Topbar />
       <div className="max-w-2xl mx-auto px-4 py-10">
         <Link href="/marketplace" className="text-xs text-gray-400 hover:text-white">← Marketplace</Link>
         <h1 className="text-2xl md:text-3xl font-bold mt-2 mb-6">{title}</h1>
