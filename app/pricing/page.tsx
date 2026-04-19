@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS, SUBSCRIPTION_DURATIONS, applyDurationDiscount, type DurationMonths } from '@/lib/credits/costs'
+import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS, SUBSCRIPTION_DURATIONS, applyDurationDiscount, type DurationMonths, type PlanTier } from '@/lib/credits/costs'
 import ContractGate, { type ContractGateAgreement } from '@/components/ContractGate'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { shouldShowUpgradeTo } from '@/lib/credits/tier-helpers'
 
 type GeoInfo = {
   country: string
@@ -24,6 +25,8 @@ export default function PricingPage() {
   const [duration, setDuration] = useState<DurationMonths>(1)
   const [geo, setGeo] = useState<GeoInfo | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
+  const [userTier, setUserTier] = useState<PlanTier | null>(null)
+  const [authResolved, setAuthResolved] = useState(false)
   const [gate, setGate] = useState<null | { agreement: ContractGateAgreement; next: string; email: string }>(null)
 
   // Engagement signal: viewing pricing → ExitFeedback becomes eligible.
@@ -44,10 +47,34 @@ export default function PricingPage() {
     // Capture authenticated email for ContractGate receipt. Anonymous users get
     // redirected to /auth/login by the checkout route, so the gate only opens
     // once we have an email.
+    // Also fetch the current tier so we can hide CTAs for plans the user
+    // already has (no "downgrade" CTAs — RÈGLE D'OR tier-helpers.ts).
+    let cancelled = false
     const sb = createSupabaseBrowser()
-    sb.auth.getUser().then(({ data }) => {
-      if (data.user?.email) setUserEmail(data.user.email)
+    sb.auth.getUser().then(async ({ data }) => {
+      if (cancelled) return
+      const user = data.user
+      if (!user) {
+        setAuthResolved(true)
+        return
+      }
+      if (user.email) setUserEmail(user.email)
+      try {
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('tier')
+          .eq('id', user.id)
+          .single()
+        if (cancelled) return
+        const tier = (profile?.tier as PlanTier | undefined) ?? 'free'
+        setUserTier(tier)
+      } catch {
+        if (!cancelled) setUserTier('free')
+      } finally {
+        if (!cancelled) setAuthResolved(true)
+      }
     })
+    return () => { cancelled = true }
   }, [])
 
   function openGate(e: React.MouseEvent<HTMLAnchorElement>, agreement: ContractGateAgreement, next: string) {
@@ -116,7 +143,7 @@ export default function PricingPage() {
           </div>
         )}
 
-        {mode === 'subscriptions' ? <Subscriptions geo={geo} duration={duration} onUpgradeClick={openGate} /> : <Packs />}
+        {mode === 'subscriptions' ? <Subscriptions geo={geo} duration={duration} onUpgradeClick={openGate} userTier={userTier} authResolved={authResolved} /> : <Packs />}
 
         <section className="mt-16 grid md:grid-cols-2 gap-6">
           <InfoCard
@@ -166,11 +193,21 @@ function Subscriptions({
   geo,
   duration,
   onUpgradeClick,
+  userTier,
+  authResolved,
 }: {
   geo: GeoInfo | null
   duration: DurationMonths
   onUpgradeClick: (e: React.MouseEvent<HTMLAnchorElement>, agreement: ContractGateAgreement, next: string) => void
+  userTier: PlanTier | null
+  authResolved: boolean
 }) {
+  // Anonymous (or auth still resolving): show every plan, including Free.
+  // Authenticated: hide Free + every tier <= current (no downgrade CTAs).
+  const isAnonymous = authResolved && userTier === null
+  const showFree = !authResolved || isAnonymous
+  const showPlan = (target: PlanTier) =>
+    !authResolved || isAnonymous || (userTier !== null && shouldShowUpgradeTo(userTier, target))
   const soloMonthly     = geo?.plans.solo_producer?.price ?? PLAN_PRICE_EUR.solo_producer
   const starterMonthly  = geo?.plans.starter.price  ?? PLAN_PRICE_EUR.starter
   const strategyMonthly = geo?.plans.strategy?.price ?? PLAN_PRICE_EUR.strategy
@@ -208,6 +245,7 @@ function Subscriptions({
     : `Économie ${savings.toFixed(0)}€ sur ${duration} mois`
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      {showFree && (
       <PlanCard
         name="Free" price="€0" period="" credits={PLAN_MONTHLY_GRANT.free}
         tagline="Explore avant d'acheter"
@@ -220,6 +258,8 @@ function Subscriptions({
         ]}
         ctaLabel="Commencer gratuitement" ctaHref="/auth/register"
       />
+      )}
+      {showPlan('solo_producer') && (
       <PlanCard
         name="Solo Producer" price={`€${soloPrice}`}
         basePrice={duration > 1 ? `€${soloBase}` : (soloPrice !== soloBase ? `€${soloBase}` : undefined)}
@@ -239,6 +279,8 @@ function Subscriptions({
         ctaLabel="Démarrer à €19.99/mo" ctaHref={soloHref}
         onCtaClick={e => onUpgradeClick(e, 'data', soloHref)}
       />
+      )}
+      {showPlan('starter') && (
       <PlanCard
         name="Data" price={`€${starterPrice}`}
         basePrice={duration > 1 ? `€${starterBase}` : (starterPrice !== starterBase ? `€${starterBase}` : undefined)}
@@ -257,6 +299,8 @@ function Subscriptions({
         ctaLabel="Passer Data" ctaHref={starterHref}
         onCtaClick={e => onUpgradeClick(e, 'data', starterHref)}
       />
+      )}
+      {showPlan('strategy') && (
       <PlanCard
         name="Strategy" price={`€${strategyPrice}`}
         basePrice={duration > 1 ? `€${strategyBase}` : (strategyPrice !== strategyBase ? `€${strategyBase}` : undefined)}
@@ -275,6 +319,8 @@ function Subscriptions({
         ctaLabel="Passer Strategy" ctaHref={strategyHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', strategyHref)}
       />
+      )}
+      {showPlan('premium') && (
       <PlanCard
         name="Premium" price={`€${premiumPrice}`}
         basePrice={duration > 1 ? `€${premiumBase}` : (premiumPrice !== premiumBase ? `€${premiumBase}` : undefined)}
@@ -293,6 +339,8 @@ function Subscriptions({
         ctaLabel="Passer Premium" ctaHref={premiumHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', premiumHref)}
       />
+      )}
+      {showPlan('ultimate') && (
       <PlanCard
         name="Ultimate" price={`€${ultimatePrice}`}
         basePrice={duration > 1 ? `€${ultimateBase}` : (ultimatePrice !== ultimateBase ? `€${ultimateBase}` : undefined)}
@@ -311,6 +359,7 @@ function Subscriptions({
         ctaLabel="Passer Ultimate" ctaHref={ultimateHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', ultimateHref)}
       />
+      )}
     </div>
   )
 }
