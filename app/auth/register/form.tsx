@@ -30,6 +30,7 @@ export function RegisterForm({ brand, turnstileSiteKey, loginPath }: RegisterFor
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [acceptTerms, setAcceptTerms] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
@@ -52,6 +53,10 @@ export function RegisterForm({ brand, turnstileSiteKey, loginPath }: RegisterFor
       setError('Mot de passe trop court (12 caractères minimum)')
       return
     }
+    if (!acceptTerms) {
+      setError('Vous devez accepter les CGU et mentions légales pour créer un compte')
+      return
+    }
     setBusy(true)
     try {
       const csrf = readCsrfCookie()
@@ -68,6 +73,8 @@ export function RegisterForm({ brand, turnstileSiteKey, loginPath }: RegisterFor
           password,
           display_name: displayName.trim(),
           captchaToken,
+          accepted_terms: acceptTerms,
+          accepted_at: new Date().toISOString(),
         }),
       })
       const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
@@ -162,12 +169,32 @@ export function RegisterForm({ brand, turnstileSiteKey, loginPath }: RegisterFor
           />
         )}
 
+        <label htmlFor="reg-accept" className="flex items-start gap-2 text-xs text-neutral-400 leading-snug">
+          <input
+            id="reg-accept"
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            className="mt-0.5 shrink-0"
+            required
+          />
+          <span>
+            J&apos;ai lu et j&apos;accepte les{' '}
+            <a href="/legal/cgu" target="_blank" rel="noopener noreferrer" className="text-neutral-200 underline underline-offset-2">CGU</a>,
+            la{' '}
+            <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-neutral-200 underline underline-offset-2">politique de confidentialité</a>
+            {' '}et les{' '}
+            <a href="/legal/mentions" target="_blank" rel="noopener noreferrer" className="text-neutral-200 underline underline-offset-2">mentions légales</a>
+            , incluant la reconnaissance de la propriété intellectuelle de l&apos;éditeur.
+          </span>
+        </label>
+
         {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
 
         <button
           type="submit"
-          disabled={busy}
-          className="mt-1 w-full rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-white disabled:opacity-60"
+          disabled={busy || !acceptTerms}
+          className="mt-1 w-full rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-white disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {busy ? 'Création…' : 'Créer le compte'}
         </button>

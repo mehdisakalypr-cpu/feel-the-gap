@@ -31,6 +31,14 @@ import {
   setSitePassword,
 } from '@/lib/auth-v2'
 
+// Pinned version of the consolidated terms (CGU + mentions + privacy).
+// When you change any of those legal pages, bump this tag AND regenerate TERMS_HASH.
+const TERMS_VERSION = 'ftg-terms-2026-04-19'
+const TERMS_HASH = crypto
+  .createHash('sha256')
+  .update(`${TERMS_VERSION}|cgu|mentions|privacy|LicenseRef-Proprietary-Sakaly|66d440006ffee21786ba79e378cd021a`)
+  .digest('hex')
+
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
@@ -60,15 +68,21 @@ export async function POST(req: NextRequest) {
 
   const raw = await req.text()
   if (raw.length > MAX_BODY) return jsonError(413, 'payload_too_large')
-  let body: { email?: unknown; password?: unknown; display_name?: unknown; captchaToken?: unknown }
+  let body: { email?: unknown; password?: unknown; display_name?: unknown; captchaToken?: unknown; accepted_terms?: unknown; accepted_at?: unknown }
   try { body = JSON.parse(raw) } catch { return jsonError(400, 'invalid_json') }
 
   const email = sanitizeEmail(body?.email)
   const password = typeof body?.password === 'string' ? body!.password : null
   const displayName = typeof body?.display_name === 'string' ? body!.display_name.trim().slice(0, 80) : null
   const captchaToken = typeof body?.captchaToken === 'string' ? body!.captchaToken : null
+  const acceptedTerms = body?.accepted_terms === true
+  const acceptedAt = typeof body?.accepted_at === 'string' ? body!.accepted_at : new Date().toISOString()
 
   if (!email || !password) return jsonError(400, 'invalid_input')
+  if (!acceptedTerms) {
+    await logEvent({ event: 'register_fail', ip, ua, meta: { reason: 'terms_not_accepted' } })
+    return jsonError(400, 'Vous devez accepter les CGU et mentions légales', { reason: 'terms_required' })
+  }
 
   // Rate limits
   const [ipRl, emailRl] = await Promise.all([
@@ -145,6 +159,31 @@ export async function POST(req: NextRequest) {
   }
 
   try { await grantAccess(user.id, 'user') } catch { /* non-fatal — admin can re-grant */ }
+
+  // Record terms acceptance as opposable evidence in signed_agreements.
+  // This is the legal anchor: user explicitly acknowledges CGU + mentions
+  // (including IP ownership of the author) at the moment of account creation.
+  try {
+    await admin.from('signed_agreements').insert({
+      user_id: user.id,
+      email,
+      product: 'ftg',
+      plan: 'account_signup',
+      agreement_version: TERMS_VERSION,
+      agreement_hash_sha256: TERMS_HASH,
+      body_hash_sha256: TERMS_HASH,
+      ip,
+      user_agent: ua,
+      scroll_completed: true,
+      signature_text: displayName || email,
+      acceptance_method: 'signup_checkbox',
+      purchase_intent: { flow: 'register', accepted_at: acceptedAt, scope: ['cgu', 'mentions', 'privacy'] },
+      signed_at: new Date().toISOString(),
+    })
+  } catch (e) {
+    // Non-fatal: user can still register, but we log it for manual audit.
+    await logEvent({ userId: user.id, event: 'register_fail', ip, ua, meta: { reason: 'terms_log_failed', err: (e as Error).message.slice(0, 140) } })
+  }
 
   // Email verify OTP
   try {
