@@ -1,12 +1,22 @@
 'use client'
 
-import { useState } from 'react'
 import type { Feature } from '@/lib/credits/tiers'
-import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS } from '@/lib/credits/costs'
+import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS, type PlanTier } from '@/lib/credits/costs'
 
 type Variant =
-  | { kind: 'tier_locked'; requiredTier: 'starter' | 'premium'; feature: Feature }
+  | { kind: 'tier_locked'; requiredTier: PlanTier; feature: Feature }
   | { kind: 'insufficient_credits'; needed: number; balance: number }
+
+// Display labels for every PlanTier, used by the tier-locked content.
+const TIER_DISPLAY_NAME: Record<PlanTier, string> = {
+  free:          'Free',
+  solo_producer: 'Solo Producer',
+  starter:       'Data',
+  strategy:      'Strategy',
+  premium:       'Premium',
+  ultimate:      'Ultimate',
+  custom:        'Enterprise',
+}
 
 export function PaywallModal({
   open,
@@ -49,6 +59,7 @@ function TierLockedContent({
   const tier = variant.requiredTier
   const price = PLAN_PRICE_EUR[tier]
   const credits = PLAN_MONTHLY_GRANT[tier]
+  const tierName = TIER_DISPLAY_NAME[tier] ?? tier
   const featureLabel: Record<Feature, string> = {
     map_view: 'Map monde',
     country_list: 'Liste pays',
@@ -61,28 +72,47 @@ function TierLockedContent({
     client_contact_reveal: 'Révéler un contact client',
     site_creation: 'Création du site (clé en main)',
   }
+
+  // Per-tier pitch + bullet list. Falls back to a generic blurb so any
+  // PlanTier (solo_producer/strategy/ultimate/custom) renders cleanly.
+  const PITCH: Partial<Record<PlanTier, { intro: string; perks: string[] }>> = {
+    solo_producer: {
+      intro: 'Passe Solo Producer et démarre un projet local-to-local : 1 pays × 1 opportunité, business plan IA complet, training et boutique intégrée.',
+      perks: ['Business plan IA complet', '1 pays × 1 opportunité', 'Training YouTube illimité', 'Boutique intégrée (bientôt)'],
+    },
+    starter: {
+      intro: 'Passe Data et débloque tous les détails d\'opportunités, les business plans IA (15-30 pages), l\'accès illimité au hub Training YouTube, et la proposition de site e-commerce.',
+      perks: ['Tous les détails d\'opportunités (1 cr)', 'Business plans IA (10 cr, soit 6 BPs/mois inclus)', 'Training hub YouTube (inclus)', 'Proposer site e-commerce (inclus)'],
+    },
+    strategy: {
+      intro: 'Passe Strategy et débloque la méthode dominante, 1 supplier clé et le n°1 du pays — avec business plan multi-scénarios.',
+      perks: ['Tout de Data +', 'Méthode de fabrication dominante', '1 supplier clé', '1 client n°1 du pays'],
+    },
+    premium: {
+      intro: 'Passe Premium et débloque la liste complète des clients potentiels avec coordonnées, plus la création de ton site e-commerce clé en main.',
+      perks: ['Tout de Strategy +', 'Liste clients potentiels (5 cr/contact)', '5 suppliers + 5 clients matchés IA', 'Création site e-commerce clé en main', 'Support prioritaire'],
+    },
+    ultimate: {
+      intro: 'Passe Ultimate et débloque tout en illimité, 250 opportunités Fill-the-Gap/mo et l\'AI engine cascade.',
+      perks: ['Tout de Premium +', 'Méthodes / suppliers / clients illimités', '250 opps Fill-the-Gap/mo', 'AI engine cascade ×3', 'Support VIP dédié'],
+    },
+    custom: {
+      intro: 'Plan Enterprise sur mesure — quotas, accès et support adaptés à ton organisation.',
+      perks: ['Quotas crédits sur mesure', 'Onboarding dédié', 'SLA et support prioritaire'],
+    },
+  }
+  const pitch = PITCH[tier] ?? { intro: `Passe ${tierName} pour débloquer cette fonctionnalité.`, perks: [] }
+
   return (
     <div className="p-6">
       <div className="text-xs uppercase tracking-widest text-emerald-400 mb-2">
-        🔒 Paywall · {tier === 'starter' ? 'Starter' : 'Premium'}
+        🔒 Paywall · {tierName}
       </div>
       <h2 className="text-xl font-semibold mb-3">
         {featureLabel[variant.feature]} — réservé aux abonnés
       </h2>
 
-      {tier === 'starter' && (
-        <p className="text-sm text-white/70 mb-5">
-          Passe <b>Starter</b> et débloque tous les détails d'opportunités, les business plans
-          IA (15-30 pages), l'accès illimité au hub Training YouTube, et la proposition de
-          site e-commerce.
-        </p>
-      )}
-      {tier === 'premium' && (
-        <p className="text-sm text-white/70 mb-5">
-          Passe <b>Premium</b> et débloque la liste complète des clients potentiels avec
-          coordonnées, plus la création de ton site e-commerce clé en main.
-        </p>
-      )}
+      <p className="text-sm text-white/70 mb-5">{pitch.intro}</p>
 
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 mb-3">
         <div className="flex items-baseline justify-between mb-2">
@@ -90,28 +120,15 @@ function TierLockedContent({
             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500 text-black font-semibold">
               Meilleur choix
             </span>
-            <span className="font-medium">{tier === 'starter' ? 'Starter' : 'Premium'}</span>
+            <span className="font-medium">{tierName}</span>
           </div>
           <div className="text-2xl font-bold">€{price}<span className="text-sm text-white/50">/mo</span></div>
         </div>
         <ul className="text-sm text-white/80 space-y-1 mb-4">
           <li>• <b>{credits} crédits</b> inclus / mois</li>
-          {tier === 'starter' && (
-            <>
-              <li>• Tous les détails d'opportunités (1 cr)</li>
-              <li>• Business plans IA (10 cr, soit 6 BPs/mois inclus)</li>
-              <li>• Training hub YouTube (inclus)</li>
-              <li>• Proposer site e-commerce (inclus)</li>
-            </>
-          )}
-          {tier === 'premium' && (
-            <>
-              <li>• Tout du Starter +</li>
-              <li>• Liste clients potentiels (5 cr/contact)</li>
-              <li>• Création site e-commerce clé en main</li>
-              <li>• Support prioritaire</li>
-            </>
-          )}
+          {pitch.perks.map((p) => (
+            <li key={p}>• {p}</li>
+          ))}
         </ul>
         <a
           href={`/pricing?plan=${tier}`}
