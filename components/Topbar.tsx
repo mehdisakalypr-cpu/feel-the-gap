@@ -320,8 +320,19 @@ export default function Topbar() {
         </Link>
       )}
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="relative w-40 md:w-56 shrink-0">
+      {/* Search — toujours visible (fix #27)
+          Root cause : avec `w-40 md:w-56 shrink-0`, sur certaines largeurs
+          intermédiaires (notamment quand on quitte /map vers /country où le
+          JourneySidebar lg:pl-80 modifie la perception de l'espace dispo)
+          l'utilisateur perçoit la search comme "disparue". Fix : search en
+          flex 1 (peut grandir pour remplir), avec un min-w garanti pour
+          rester utilisable et un max-w propre. Pas de `shrink-0` → si jamais
+          l'espace manque vraiment, la search se contracte avant les chevrons
+          de la nav, mais ne disparaît jamais. */}
+      <form
+        onSubmit={handleSearch}
+        className="relative flex-1 min-w-[140px] max-w-[260px] order-none"
+      >
         <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"/>
         </svg>
@@ -330,18 +341,22 @@ export default function Topbar() {
           placeholder={fr ? 'Rechercher un pays…' : 'Search country…'}
           value={search}
           onChange={e => setSearch(e.target.value)}
+          aria-label={fr ? 'Rechercher un pays' : 'Search country'}
           className="w-full pl-8 pr-9 h-8 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#C9A84C] transition-colors"
         />
         <button
           type="submit"
           className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md bg-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/40 transition-colors"
           title="OK"
+          aria-label={fr ? 'Lancer la recherche' : 'Submit search'}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </button>
       </form>
 
-      {/* Nav with scroll indicator */}
+      {/* Nav with scroll indicator — `min-w-0` pour permettre le shrink, mais
+          pas `flex-1` (la search prend désormais l'espace flexible), juste
+          `flex-shrink` natif (item shrinks below content size when needed). */}
       <div className="flex-1 min-w-0 relative">
         <nav ref={navRef} className="flex items-center gap-1 text-sm overflow-x-auto scrollbar-hide">
           <Link href="/" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0">
