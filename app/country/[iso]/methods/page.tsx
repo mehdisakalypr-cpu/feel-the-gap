@@ -20,7 +20,8 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import SectionFillLoader from '@/components/SectionFillLoader'
-import { supabase } from '@/lib/supabase'
+// Auth-v2 cookies → SSR-aware client obligatoire sinon le tier reste 'free'.
+import { createSupabaseBrowser } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
 import MethodsComparator, {
   type Method,
@@ -67,6 +68,8 @@ function MethodsPageInner() {
   const { iso } = useParams<{ iso: string }>()
   const searchParams = useSearchParams()
   const initialSlug = searchParams.get('product') || 'cafe'
+  // SSR-aware browser client — lit les cookies auth-v2.
+  const supabase = useMemo(() => createSupabaseBrowser(), [])
 
   const [country, setCountry] = useState<Country | null>(null)
   // Sync productSlug local avec activeProduct du JourneyContext (chips bar globale)

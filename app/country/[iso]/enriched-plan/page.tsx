@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import JourneyChipsBar from '@/components/JourneyChipsBar';
 import { useLang } from '@/components/LanguageProvider';
-import { supabase } from '@/lib/supabase';
+// Auth-v2 cookies → SSR-aware client obligatoire sinon le tier reste 'free'.
+import { createSupabaseBrowser } from '@/lib/supabase';
 import { useJourneyContext } from '@/lib/journey/context';
 
 // ─── i18n strings ───────────────────────────────────────────────────────────
@@ -285,6 +286,8 @@ export default function EnrichedPlanPage() {
   const t = tx(L);
   const iso = (params.iso as string)?.toUpperCase() ?? 'CIV';
   const initialProduct = searchParams.get('product') ?? 'cacao';
+  // SSR-aware browser client — lit les cookies auth-v2.
+  const supabase = useMemo(() => createSupabaseBrowser(), []);
 
   const [productSlug, setProductSlug] = useState(initialProduct);
   const [plan, setPlan] = useState<EnrichedPlan | null>(null);

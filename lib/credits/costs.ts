@@ -114,6 +114,33 @@ export const BUYER_REVEAL_COST_CREDITS = {
   basic:    2,
 } as const
 
+/**
+ * Tier hierarchy rank — utile pour comparer deux tiers (ex: "premium or above").
+ * Les tiers legacy 'enterprise'/'standard'/'basic'/'explorer' sont mappés sur
+ * leur équivalent canonique pour éviter les faux négatifs pendant la migration.
+ */
+const TIER_RANK: Record<string, number> = {
+  free: 0,
+  explorer: 0,       // legacy → free
+  solo_producer: 1,
+  basic: 2,          // legacy → starter
+  starter: 2,
+  standard: 3,       // legacy → strategy
+  strategy: 3,
+  premium: 4,
+  ultimate: 5,
+  enterprise: 5,     // legacy → ultimate/custom
+  custom: 6,
+}
+
+/** true si `userTier` a le rang requis par `minTier` ou supérieur. */
+export function hasTier(userTier: string | null | undefined, minTier: PlanTier): boolean {
+  if (!userTier) return false
+  const u = TIER_RANK[userTier] ?? -1
+  const m = TIER_RANK[minTier] ?? Number.MAX_SAFE_INTEGER
+  return u >= m
+}
+
 /** Anti-scraping caps */
 export const LIMITS = {
   actions_per_min: 60,          // rate limit global par user

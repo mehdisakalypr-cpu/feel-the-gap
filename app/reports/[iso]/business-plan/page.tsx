@@ -1,9 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+// Auth-v2 stocke la session dans les cookies (via @supabase/ssr) — le client
+// `supabase` vanilla lit localStorage et ne voit pas la session, ce qui
+// gatait les users premium/ultimate comme free. On utilise le BrowserClient
+// SSR-aware à la place.
+import { createSupabaseBrowser } from '@/lib/supabase'
+import { hasTier } from '@/lib/credits/costs'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -614,7 +619,10 @@ function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChan
   oppIds: string[]
   onReduceScope: (pct: number) => void
 }) {
-  const isPremium = ['premium', 'enterprise'].includes(userTier)
+  // hasTier normalise les tiers legacy (enterprise→ultimate, etc.) et couvre
+  // premium ET ultimate d'un seul check — remplace l'ancien hardcode
+  // ['premium', 'enterprise'] qui manquait ultimate.
+  const isPremium = hasTier(userTier, 'premium')
 
   // Deduplicate b2b_targets if empty
   const b2bTargets = plan.b2b_targets?.length ? plan.b2b_targets : []
@@ -1186,6 +1194,8 @@ export default function BusinessPlanPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const iso = (params?.iso as string ?? '').toUpperCase()
+  // SSR-aware browser client — lit les cookies auth-v2.
+  const supabase = useMemo(() => createSupabaseBrowser(), [])
 
   const selectedOppIds = (searchParams?.get('opps') ?? '').split(',').filter(Boolean)
   const urlModels = (searchParams?.get('models') ?? '').split(',').filter(Boolean)
