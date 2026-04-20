@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
+import SectionFillLoader from '@/components/SectionFillLoader'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,10 +78,14 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
         </p>
 
         {videos.length === 0 && (
-          <div className="p-6 rounded-2xl border border-white/10 bg-white/5 text-center">
-            <p className="text-gray-400 text-sm">Pas encore de vidéo indexée pour ce marché.</p>
-            <p className="text-xs text-gray-500 mt-2">Nos agents YouTube Intel alimentent la base toutes les 24h.</p>
-          </div>
+          // Anti "section-vide-payée" : on déclenche un fetch on-demand côté
+          // agent au moment où l'user atterrit sur une section vide.
+          <SectionFillLoader
+            iso={iso}
+            section="videos"
+            product={product}
+            label="Recherche YouTube en cours…"
+          />
         )}
 
         {[...topics.entries()].map(([topic, vids]) => (

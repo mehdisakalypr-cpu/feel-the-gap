@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
+import SectionFillLoader from '@/components/SectionFillLoader'
 import { supabase } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
 import MethodsComparator, {
@@ -266,6 +267,15 @@ function MethodsPageInner() {
             <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-12 flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
             </div>
+          ) : methods.length === 0 ? (
+            // Anti "section-vide-payée" : seed minimal (artisanal/mécanisé/IA)
+            // côté agent, sans débit crédits.
+            <SectionFillLoader
+              iso={iso!.toUpperCase()}
+              section="methods"
+              product={productSlug}
+              label={`Génération des méthodes pour « ${productSlug} »…`}
+            />
           ) : (
             <MethodsComparator
               iso={iso!}

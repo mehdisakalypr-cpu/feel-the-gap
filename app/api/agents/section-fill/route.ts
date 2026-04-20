@@ -1,0 +1,377 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { searchAndEnrich } from '@/lib/youtube-api'
+
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
+
+/**
+ * POST /api/agents/section-fill
+ * body: { iso: string, section: 'videos'|'clients'|'methods'|'studies', product?: string }
+ *
+ * Anti "section-vide-payée" : à chaque ouverture d'une section vide, on déclenche
+ * un fetch on-demand côté agent — l'utilisateur ne paie pas (pas de débit credits).
+ *
+ * Comportement :
+ *  - Vérifie si la table source pour (iso, [product]) est vide → sinon no-op.
+ *  - Tente un remplissage minimal (4-10 entrées) avec les sources disponibles
+ *    (YouTube Data API v3 fallback HTML si pas de clé, agent local-buyers via
+ *    Serper, seed templates pour methods/studies).
+ *  - Idempotent : si un autre client a rempli entre-temps, on retourne ok=true,
+ *    items_added=0.
+ *
+ * Réponse : { ok:true, items_added: N, source: '<provider>' }
+ *           | { ok:false, error: '<message>' }
+ */
+
+type Section = 'videos' | 'clients' | 'methods' | 'studies'
+const VALID_SECTIONS = new Set<Section>(['videos', 'clients', 'methods', 'studies'])
+
+interface FillRequest {
+  iso?: string
+  section?: string
+  product?: string
+}
+
+function db() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } },
+  )
+}
+
+// ─── Country code → readable name (limité — fallback raw ISO sinon) ─────────
+const COUNTRY_NAMES: Record<string, string> = {
+  CI: "Côte d'Ivoire", SN: 'Sénégal', NG: 'Nigeria', KE: 'Kenya', GH: 'Ghana',
+  BF: 'Burkina Faso', ML: 'Mali', CM: 'Cameroun', CD: 'RDC', ET: 'Éthiopie',
+  TZ: 'Tanzanie', UG: 'Ouganda', MA: 'Maroc', DZ: 'Algérie', EG: 'Égypte',
+  IN: 'Inde', VN: 'Vietnam', BR: 'Brésil', MX: 'Mexique', ID: 'Indonésie',
+  RW: 'Rwanda', BJ: 'Bénin', TG: 'Togo', GN: 'Guinée', NE: 'Niger',
+}
+
+function countryName(iso: string): string {
+  return COUNTRY_NAMES[iso.toUpperCase()] ?? iso.toUpperCase()
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// VIDEOS — YouTube Data API v3, fallback HTML scrape
+// ════════════════════════════════════════════════════════════════════════════
+interface YoutubeMinimal {
+  videoId: string
+  title: string
+  channelTitle: string
+  thumbnailUrl: string
+  publishedAt?: string
+  viewCount?: number
+}
+
+async function fetchYoutubeFallbackHtml(query: string): Promise<YoutubeMinimal[]> {
+  // Quick & dirty fallback when YOUTUBE_API_KEY is missing.
+  // Parses the search results page; resilient to minor layout changes.
+  try {
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
+    const res = await fetch(url, {
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; FTG-bot/1.0)' },
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) return []
+    const html = await res.text()
+    // Scrape the videoRenderer JSON blocks (loose regex — best-effort).
+    const matches = [...html.matchAll(/"videoRenderer":\{"videoId":"([\w-]{11})","thumbnail":\{"thumbnails":\[\{"url":"([^"]+)".*?"title":\{"runs":\[\{"text":"([^"]+)"/g)]
+    const seen = new Set<string>()
+    const out: YoutubeMinimal[] = []
+    for (const m of matches) {
+      const [, videoId, thumb, title] = m
+      if (seen.has(videoId)) continue
+      seen.add(videoId)
+      out.push({
+        videoId,
+        title: title.replace(/\\u0026/g, '&').replace(/\\"/g, '"'),
+        channelTitle: 'YouTube',
+        thumbnailUrl: thumb.replace(/\\u0026/g, '&'),
+      })
+      if (out.length >= 10) break
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
+async function fillVideos(iso: string, product?: string): Promise<{ added: number; source: string }> {
+  const sb = db()
+  const productLabel = product ? product.replace(/[-_]+/g, ' ') : ''
+  const query = product
+    ? `${productLabel} ${countryName(iso)} export business import`
+    : `${countryName(iso)} import export business opportunités`
+
+  // 1) YouTube Data API v3 (preferred)
+  if (process.env.YOUTUBE_API_KEY) {
+    try {
+      const enriched = await searchAndEnrich({
+        query,
+        maxResults: 10,
+        order: 'relevance',
+        regionCode: iso.toUpperCase(),
+      })
+      if (enriched.length > 0) {
+        const rows = enriched.slice(0, 10).map((v) => ({
+          video_id: v.videoId,
+          channel_id: v.channelId,
+          channel_name: v.channelTitle,
+          title: v.title,
+          description: v.description,
+          thumbnail_url: v.thumbnailUrl,
+          published_at: v.publishedAt,
+          duration_seconds: v.durationSeconds,
+          view_count: v.viewCount,
+          like_count: v.likeCount,
+          comment_count: v.commentCount,
+          country_iso: iso.toUpperCase(),
+          product_category: product ?? null,
+          relevance_score: 0.5,
+          search_query: query,
+          processed_at: new Date().toISOString(),
+        }))
+        const { error } = await sb.from('youtube_insights').upsert(rows, { onConflict: 'video_id' })
+        if (!error) return { added: rows.length, source: 'youtube_api' }
+      }
+    } catch (err) {
+      console.warn('[section-fill/videos] YouTube API failed:', (err as Error).message)
+    }
+  }
+
+  // 2) Fallback : HTML scrape
+  const fallback = await fetchYoutubeFallbackHtml(query)
+  if (fallback.length === 0) return { added: 0, source: 'fallback_empty' }
+
+  const rows = fallback.slice(0, 10).map((v) => ({
+    video_id: v.videoId,
+    channel_name: v.channelTitle,
+    title: v.title,
+    thumbnail_url: v.thumbnailUrl,
+    country_iso: iso.toUpperCase(),
+    product_category: product ?? null,
+    relevance_score: 0.3,
+    search_query: query,
+    processed_at: new Date().toISOString(),
+  }))
+  const { error } = await sb.from('youtube_insights').upsert(rows, { onConflict: 'video_id' })
+  if (error) {
+    console.warn('[section-fill/videos] insert failed:', error.message)
+    return { added: 0, source: 'fallback_insert_error' }
+  }
+  return { added: rows.length, source: 'youtube_html' }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CLIENTS — local_buyers via Serper / seed via product taxonomy
+// ════════════════════════════════════════════════════════════════════════════
+interface SerperHit {
+  title?: string
+  link?: string
+  snippet?: string
+}
+
+async function searchSerper(query: string): Promise<SerperHit[]> {
+  const keys = [process.env.SERPER_API_KEY, process.env.SERPER_API_KEY_2, process.env.SERPER_API_KEY_3]
+    .filter((k): k is string => Boolean(k))
+  if (keys.length === 0) return []
+  for (const k of keys) {
+    try {
+      const res = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: { 'X-API-KEY': k, 'content-type': 'application/json' },
+        body: JSON.stringify({ q: query, num: 10 }),
+        signal: AbortSignal.timeout(8_000),
+      })
+      if (!res.ok) continue
+      const j = (await res.json()) as { organic?: SerperHit[] }
+      return j.organic ?? []
+    } catch {
+      // try next key
+    }
+  }
+  return []
+}
+
+const BUYER_TYPES: Array<{ type: string; queries: string[] }> = [
+  { type: 'industriel',     queries: ['usine {p} {c}', 'industriel {p} {c}'] },
+  { type: 'grossiste',      queries: ['grossiste {p} {c}', 'wholesaler {p} {c}'] },
+  { type: 'transformateur', queries: ['transformateur {p} {c}', 'processor {p} {c}'] },
+  { type: 'distributeur',   queries: ['distributeur {p} {c}', 'importateur {p} {c}'] },
+]
+
+function extractDomainCity(hit: SerperHit): { name: string; website?: string } {
+  const title = (hit.title ?? '').replace(/\s*-\s*[^-]+$/, '').trim()
+  return { name: title || (hit.link ?? 'Acheteur identifié').split('/')[2] || 'Acheteur', website: hit.link }
+}
+
+async function fillClients(iso: string, product?: string): Promise<{ added: number; source: string }> {
+  const sb = db()
+  if (!product) return { added: 0, source: 'product_required' }
+  const cName = countryName(iso)
+
+  const candidates: Array<{
+    name: string
+    buyer_type: string
+    country_iso: string
+    website_url: string | null
+    product_slugs: string[]
+    confidence_score: number
+    source: string
+    notes: string
+  }> = []
+  const seen = new Set<string>()
+
+  for (const bt of BUYER_TYPES) {
+    if (candidates.length >= 10) break
+    for (const tpl of bt.queries) {
+      const q = tpl.replaceAll('{p}', product).replaceAll('{c}', cName)
+      const hits = await searchSerper(q)
+      for (const hit of hits) {
+        const { name, website } = extractDomainCity(hit)
+        const key = (website ?? name).toLowerCase()
+        if (!name || seen.has(key)) continue
+        seen.add(key)
+        candidates.push({
+          name: name.slice(0, 200),
+          buyer_type: bt.type,
+          country_iso: iso.toUpperCase(),
+          website_url: website ?? null,
+          product_slugs: [product.toLowerCase()],
+          confidence_score: 0.4,
+          source: 'ai_research',
+          notes: hit.snippet?.slice(0, 240) ?? '',
+        })
+        if (candidates.length >= 10) break
+      }
+      if (candidates.length >= 10) break
+    }
+  }
+
+  if (candidates.length === 0) return { added: 0, source: 'no_results' }
+
+  // Insert; ignore conflicts on (country_iso, name) if any (no unique index — best-effort).
+  const { error } = await sb.from('local_buyers').insert(candidates)
+  if (error) {
+    console.warn('[section-fill/clients] insert failed:', error.message)
+    return { added: 0, source: 'insert_error' }
+  }
+  return { added: candidates.length, source: 'serper' }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// METHODS — seed minimal pour le produit (template par défaut)
+// ════════════════════════════════════════════════════════════════════════════
+async function fillMethods(_iso: string, product?: string): Promise<{ added: number; source: string }> {
+  // TODO : intégrer agents/crop-curriculum-builder pour seed riche.
+  if (!product) return { added: 0, source: 'product_required' }
+  const sb = db()
+
+  const seeds = [
+    { name: 'Méthode artisanale',  description_md: `Production artisanale de ${product} — main d'œuvre locale, outillage manuel, échelle pilote (1-5 t/an).`, popularity_rank: 1 },
+    { name: 'Méthode mécanisée',   description_md: `Production mécanisée de ${product} — équipements semi-industriels, équipe formée, échelle commerciale (10-100 t/an).`, popularity_rank: 2 },
+    { name: 'Méthode automatisée', description_md: `Production automatisée IA de ${product} — capteurs, monitoring temps réel, optimisation rendement (>100 t/an).`, popularity_rank: 3 },
+  ].map(s => ({ ...s, product_slug: product }))
+
+  const { error } = await sb.from('production_methods').upsert(seeds, { onConflict: 'product_slug,name' })
+  if (error) {
+    console.warn('[section-fill/methods] insert failed:', error.message)
+    return { added: 0, source: 'insert_error' }
+  }
+  return { added: seeds.length, source: 'template_seed' }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STUDIES — stub : seed minimal (TODO LLM deep research)
+// ════════════════════════════════════════════════════════════════════════════
+async function fillStudies(iso: string, _product?: string): Promise<{ added: number; source: string }> {
+  // TODO : appeler agent custom_study (Gemini deep research) + insérer
+  // dans `country_studies` avec content_html + tier_required='free'.
+  const sb = db()
+  const stubHtml = `
+    <h2>Étude marché ${countryName(iso)}</h2>
+    <p>Synthèse minimale en cours de génération par notre agent recherche.
+    Les données détaillées seront disponibles d'ici 24h.</p>
+  `.trim()
+  const { error } = await sb.from('country_studies').upsert(
+    [{ country_iso: iso.toUpperCase(), part: 1, content_html: stubHtml, tier_required: 'free' }],
+    { onConflict: 'country_iso,part' },
+  )
+  if (error) return { added: 0, source: 'insert_error' }
+  return { added: 1, source: 'stub' }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Idempotence — vérifie si la section a déjà du contenu
+// ════════════════════════════════════════════════════════════════════════════
+async function alreadyHasContent(iso: string, section: Section, product?: string): Promise<boolean> {
+  const sb = db()
+  switch (section) {
+    case 'videos': {
+      const q = sb.from('youtube_insights').select('id', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase())
+      const { count } = await q
+      return (count ?? 0) > 0
+    }
+    case 'clients': {
+      let q = sb.from('local_buyers').select('id', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase())
+      if (product) q = q.contains('product_slugs', [product.toLowerCase()])
+      const { count } = await q
+      return (count ?? 0) > 0
+    }
+    case 'methods': {
+      if (!product) return true // pas de produit → considère "rempli" (page gère le fallback)
+      const { count } = await sb.from('production_methods').select('id', { count: 'exact', head: true }).eq('product_slug', product)
+      return (count ?? 0) > 0
+    }
+    case 'studies': {
+      const { count } = await sb.from('country_studies').select('id', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase())
+      return (count ?? 0) > 0
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Handler
+// ════════════════════════════════════════════════════════════════════════════
+export async function POST(req: NextRequest) {
+  let body: FillRequest = {}
+  try {
+    body = (await req.json()) as FillRequest
+  } catch {
+    return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 })
+  }
+
+  const iso = String(body.iso ?? '').trim().toUpperCase()
+  const sectionRaw = String(body.section ?? '').trim().toLowerCase()
+  const product = body.product ? String(body.product).trim().toLowerCase() : undefined
+
+  if (!iso || iso.length !== 3 && iso.length !== 2) {
+    return NextResponse.json({ ok: false, error: 'invalid_iso' }, { status: 400 })
+  }
+  if (!VALID_SECTIONS.has(sectionRaw as Section)) {
+    return NextResponse.json({ ok: false, error: 'invalid_section' }, { status: 400 })
+  }
+  const section = sectionRaw as Section
+
+  // Idempotence : si déjà rempli, on ne touche à rien.
+  if (await alreadyHasContent(iso, section, product)) {
+    return NextResponse.json({ ok: true, items_added: 0, source: 'already_present' })
+  }
+
+  try {
+    let result: { added: number; source: string }
+    switch (section) {
+      case 'videos':  result = await fillVideos(iso, product); break
+      case 'clients': result = await fillClients(iso, product); break
+      case 'methods': result = await fillMethods(iso, product); break
+      case 'studies': result = await fillStudies(iso, product); break
+    }
+    return NextResponse.json({ ok: true, items_added: result.added, source: result.source })
+  } catch (err) {
+    console.error('[section-fill]', err)
+    return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 })
+  }
+}
