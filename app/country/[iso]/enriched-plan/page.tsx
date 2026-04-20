@@ -328,13 +328,16 @@ export default function EnrichedPlanPage() {
     setLoading(true);
     setError(null);
     try {
+      // FIX 2026-04-19 : si pas de modif paramètres, vérifier d'abord le cache via GET
+      // → évite la régénération LLM coûteuse à chaque visite (règle utilisateur explicite).
+      // Le cache est déjà géré côté API : table cached_business_plans (user × pays × opps).
       const res = applyPrecision
         ? await fetch('/api/reports/enriched-plan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ country: iso, product: productSlug, precision, lang: L }),
           })
-        : await fetch(`/api/reports/enriched-plan?country=${iso}&product=${productSlug}&lang=${L}`);
+        : await fetch(`/api/reports/enriched-plan?country=${iso}&product=${productSlug}&lang=${L}&prefer_cache=1`);
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
