@@ -90,6 +90,30 @@ export function applyDurationDiscount(monthlyEur: number, months: DurationMonths
   return { monthlyEffective, totalUpfront, discountPct: dur.discountPct, savingsVsMonthly }
 }
 
+/**
+ * Buyers (clients potentiels) — quota inclus par tier (top-N révélés
+ * automatiquement par pays selon ranking verified > confidence_score).
+ * Au-delà : débit Fill-the-Gap par buyer (BUYER_REVEAL_COST_CREDITS).
+ *
+ * `null` = illimité (pas de gating quantitatif).
+ */
+export const BUYER_REVEAL_QUOTA_BY_TIER: Record<PlanTier, number | null> = {
+  free:          0,
+  solo_producer: 0,
+  starter:       0,
+  strategy:      10,
+  premium:       50,
+  ultimate:      null,
+  custom:        null,
+}
+
+/** Coût en crédits Fill-the-Gap pour révéler un buyer hors quota.
+ *  Différencié verified/basic — un contact vérifié vaut 2.5× plus. */
+export const BUYER_REVEAL_COST_CREDITS = {
+  verified: 5,
+  basic:    2,
+} as const
+
 /** Anti-scraping caps */
 export const LIMITS = {
   actions_per_min: 60,          // rate limit global par user
