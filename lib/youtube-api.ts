@@ -4,11 +4,9 @@
 // Docs: https://developers.google.com/youtube/v3/docs
 
 const API_BASE = 'https://www.googleapis.com/youtube/v3';
-const API_KEY = process.env.YOUTUBE_API_KEY;
-
-if (!API_KEY && typeof window === 'undefined') {
-  // Warn only server-side
-  console.warn('[youtube-api] YOUTUBE_API_KEY not set');
+// Lazy getter so loadEnv() can populate process.env before first call
+function getApiKey(): string | undefined {
+  return process.env.YOUTUBE_API_KEY
 }
 
 export interface YouTubeSearchResult {
@@ -71,7 +69,8 @@ function trackQuota(units: number): void {
 
 // ─── Low-level fetch wrapper ────────────────────────────────────────────────
 async function ytFetch<T>(endpoint: string, params: Record<string, string>, quotaCost: number): Promise<T> {
-  if (!API_KEY) {
+  const apiKey = getApiKey()
+  if (!apiKey) {
     throw new Error('YOUTUBE_API_KEY is not configured');
   }
   if (quotaUsed + quotaCost > QUOTA_DAILY_LIMIT) {
@@ -79,7 +78,7 @@ async function ytFetch<T>(endpoint: string, params: Record<string, string>, quot
   }
 
   const url = new URL(`${API_BASE}/${endpoint}`);
-  url.searchParams.set('key', API_KEY);
+  url.searchParams.set('key', apiKey);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
   }

@@ -57,13 +57,43 @@ type AgentResult = {
   quotaHit?: boolean
 }
 
+/** ISO3 → ISO2 mapping for the common ones (countries table keys are iso2). */
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA:'US', CHN:'CN', JPN:'JP', NLD:'NL', EGY:'EG', ECU:'EC', NPL:'NP', DEU:'DE',
+  GBR:'GB', MOZ:'MZ', THA:'TH', ERI:'ER', ITA:'IT', NAM:'NA', ZMB:'ZM', DOM:'DO',
+  JOR:'JO', FRA:'FR', ESP:'ES', PRT:'PT', BEL:'BE', SWE:'SE', NOR:'NO', FIN:'FI',
+  DNK:'DK', POL:'PL', CHE:'CH', AUT:'AT', GRC:'GR', TUR:'TR', RUS:'RU', UKR:'UA',
+  IND:'IN', IDN:'ID', PAK:'PK', BGD:'BD', PHL:'PH', VNM:'VN', MYS:'MY', SGP:'SG',
+  KOR:'KR', KAZ:'KZ', UZB:'UZ', AUS:'AU', NZL:'NZ', CAN:'CA', MEX:'MX', BRA:'BR',
+  ARG:'AR', COL:'CO', CHL:'CL', PER:'PE', VEN:'VE', BOL:'BO', PRY:'PY', URY:'UY',
+  ZAF:'ZA', NGA:'NG', KEN:'KE', ETH:'ET', MAR:'MA', DZA:'DZ', TUN:'TN', LBY:'LY',
+  GHA:'GH', CIV:'CI', SEN:'SN', MLI:'ML', BFA:'BF', NER:'NE', TCD:'TD', SDN:'SD',
+  TZA:'TZ', UGA:'UG', RWA:'RW', MDG:'MG', MUS:'MU', GNB:'GW', PAN:'PA', MNG:'MN',
+  TLS:'TL',
+}
+
 /** Fetch opp + product + country needed by agents. */
 async function loadContext(sb: any, opp_id: string, country_iso: string) {
   const { data: opp } = await sb.from('opportunities').select('*').eq('id', opp_id).maybeSingle()
   if (!opp) throw new Error(`opp ${opp_id} not found`)
-  const { data: country } = await sb.from('countries').select('iso3, name_fr, name_en').eq('iso3', country_iso).maybeSingle()
-  const productName = opp.product_name || opp.product_slug || 'unknown'
-  const countryName = country?.name_fr || country?.name_en || country_iso
+
+  // Products table: fetch by product_id
+  let productName = 'unknown'
+  if (opp.product_id) {
+    const { data: p } = await sb.from('products').select('name_fr, name').eq('id', opp.product_id).maybeSingle()
+    productName = p?.name_fr || p?.name || 'unknown'
+  }
+
+  // Countries table uses iso2; opportunities uses iso3 — map for lookup
+  const iso2 = ISO3_TO_ISO2[country_iso] || country_iso
+  let countryName = country_iso
+  if (iso2) {
+    const { data: country } = await sb.from('countries').select('iso2, name_fr, name').eq('iso2', iso2).maybeSingle()
+    countryName = country?.name_fr || country?.name || country_iso
+    // attach iso2 for YouTube regionCode
+    ;(opp as any).country_iso2 = iso2
+  }
+
   return { opp, productName, countryName }
 }
 
