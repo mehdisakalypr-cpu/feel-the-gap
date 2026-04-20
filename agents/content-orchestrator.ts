@@ -158,13 +158,21 @@ async function runJob(sb: any, job: Job): Promise<AgentResult> {
   let quotaHit = false
   const errs: string[] = []
 
+  // Per-agent timeout to prevent infinite hangs when LLM providers stall
+  const AGENT_TIMEOUT_MS = 120_000 // 2 min
+  const withTimeout = <T,>(p: Promise<T>, label: string): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${label} timeout after ${AGENT_TIMEOUT_MS/1000}s`)), AGENT_TIMEOUT_MS)),
+    ])
+
   for (const st of subtypes) {
     try {
       let r: { payload: unknown; cost_eur: number }
-      if (st === 'production_methods') r = await generateProductionMethods(ctx.opp, ctx.productName, ctx.countryName, job.lang)
-      else if (st === 'business_plans') r = await generateBusinessPlans(ctx.opp, ctx.productName, ctx.countryName, job.lang)
-      else if (st === 'potential_clients') r = await generatePotentialClients(ctx.opp, ctx.productName, ctx.countryName, job.lang)
-      else r = await generateYoutubeVideos(ctx.opp, ctx.productName, ctx.countryName, job.lang)
+      if (st === 'production_methods') r = await withTimeout(generateProductionMethods(ctx.opp, ctx.productName, ctx.countryName, job.lang), 'shikamaru')
+      else if (st === 'business_plans') r = await withTimeout(generateBusinessPlans(ctx.opp, ctx.productName, ctx.countryName, job.lang), 'itachi')
+      else if (st === 'potential_clients') r = await withTimeout(generatePotentialClients(ctx.opp, ctx.productName, ctx.countryName, job.lang), 'hancock')
+      else r = await withTimeout(generateYoutubeVideos(ctx.opp, ctx.productName, ctx.countryName, job.lang), 'rock-lee')
 
       await writeSlice(sb, st, job.opp_id, job.country_iso, job.lang, r.payload, r.cost_eur)
       totalCost += r.cost_eur

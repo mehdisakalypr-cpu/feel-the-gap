@@ -136,7 +136,9 @@ export default function QuoteButton(props: {
         </div>
         <button type="button" onClick={handleEstimate} disabled={estimating} style={{
           background: 'transparent', border: `1px dashed ${C.gold}`, color: C.gold,
-          padding: '6px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          padding: '6px 10px', fontSize: 11, fontWeight: 600,
+          cursor: estimating ? 'not-allowed' : 'pointer',
+          opacity: estimating ? 0.6 : 1,
         }}>
           {estimating ? 'Estimation…' : '→ Estimer transport (3 modes)'}
         </button>
@@ -164,7 +166,7 @@ export default function QuoteButton(props: {
         <textarea name="message" placeholder="Message (optionnel)" rows={2} style={fieldStyle} />
         {error && <div style={{ color: C.red, fontSize: 11 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 6 }}>
-          <button type="submit" disabled={submitting} style={{ flex: 1, background: C.accent, color: C.bg, padding: '8px 12px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+          <button type="submit" disabled={submitting} style={{ flex: 1, background: C.accent, color: C.bg, padding: '8px 12px', border: 'none', fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1, fontSize: 12 }}>
             {submitting ? 'Envoi…' : 'Envoyer la demande'}
           </button>
           <button type="button" onClick={() => setOpen(false)} style={{ padding: '8px 12px', background: 'transparent', border: `1px solid ${C.border}`, color: C.muted, cursor: 'pointer', fontSize: 12 }}>
