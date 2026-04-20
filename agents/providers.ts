@@ -52,7 +52,8 @@ export async function gen(prompt: string, tokens = 8192): Promise<string> {
       const { text } = await generateText({ model: p.model, prompt, maxOutputTokens: tokens, temperature: 0.7 })
       return text
     } catch (err: any) {
-      if (err.message?.toLowerCase().match(/429|quota|rate|billing|disabled|exceeded/)) {
+      const m = err.message?.toLowerCase() || ''
+      if (m.match(/429|quota|rate|billing|disabled|exceeded|high demand|overload|unavailable|503|service.*busy|resource.?exhausted/)) {
         p.exhausted = true; idx = (idx + 1) % providers.length; continue
       }
       throw err
