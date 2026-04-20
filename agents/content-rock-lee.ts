@@ -59,9 +59,13 @@ export async function generateYoutubeVideos(
         if (!seen.has(v.videoId)) { seen.add(v.videoId); all.push(v) }
       }
     } catch (e: any) {
-      // quota exhausted → stop trying more queries
-      if (/quota/i.test(e?.message || '')) throw e
-      console.warn(`[rock-lee] query failed: ${query} — ${e.message}`)
+      const msg = e?.message || ''
+      // quota exhausted or key missing → stop gracefully, return what we have
+      if (/quota|403|not configured/i.test(msg)) {
+        console.warn(`[rock-lee] stopping: ${msg.slice(0, 80)}`)
+        break
+      }
+      console.warn(`[rock-lee] query failed: ${query} — ${msg}`)
     }
   }
 
