@@ -305,6 +305,9 @@ export default function MatchDetailPage() {
           Vous êtes : {isBuyer ? 'Acheteur' : isProducer ? 'Producteur' : '—'}
         </div>
 
+        {/* Deal Room — producer only */}
+        {isProducer && <DealRoomSection match={match} />}
+
         {/* Escrow flow */}
         <section className="p-5 bg-[#0D1117] border border-[#C9A84C]/30 rounded-2xl space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -406,5 +409,111 @@ export default function MatchDetailPage() {
 
       </div>
     </div>
+  )
+}
+
+function DealRoomSection({ match }: { match: Match }) {
+  const [busy, setBusy] = useState(false)
+  const [existing, setExisting] = useState<{ slug: string; status: string; id: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function check() {
+      try {
+        const res = await fetch('/api/deal-rooms')
+        if (!res.ok) { setChecked(true); return }
+        const j = await res.json() as { items?: Array<{ id: string; slug: string; status: string; match_id?: string | null }> }
+        const hit = (j.items ?? []).find(r => (r as unknown as { match_id?: string }).match_id === match.id)
+        if (!cancelled && hit) setExisting({ slug: hit.slug, status: hit.status, id: hit.id })
+      } catch {}
+      if (!cancelled) setChecked(true)
+    }
+    check()
+    return () => { cancelled = true }
+  }, [match.id])
+
+  const create = async (publish: boolean) => {
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch('/api/deal-rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `${match.volume?.product_label ?? match.volume?.product_slug ?? 'Produit'} · ${match.volume?.country_iso ?? ''}`.trim(),
+          summary: `Offre issue d'un match marketplace Feel The Gap. Quantité ${match.proposed_quantity_kg.toLocaleString('fr-FR')} kg — prix cible ${match.proposed_price_eur_per_kg.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €/kg.`,
+          product_slug: match.volume?.product_slug,
+          product_label: match.volume?.product_label,
+          country_iso: match.volume?.country_iso,
+          match_id: match.id,
+          publish,
+        }),
+      })
+      const j = await res.json() as { ok?: boolean; slug?: string; id?: string; status?: string; error?: string }
+      if (!res.ok || !j.ok) { setError(j.error ?? 'create_failed'); return }
+      setExisting({ slug: String(j.slug), status: String(j.status), id: String(j.id) })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'network_error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!checked) return null
+
+  if (existing) {
+    return (
+      <section className="p-5 bg-[#0D1117] border border-[#C9A84C]/30 rounded-2xl">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-200">Deal room liée</h2>
+            <p className="text-[11px] text-gray-500 mt-1">Statut : {existing.status}</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {existing.status === 'published' && (
+              <Link
+                href={`/deal/${existing.slug}`}
+                target="_blank"
+                className="text-xs rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 hover:bg-white/10"
+              >Voir la page publique ↗</Link>
+            )}
+            <Link
+              href={`/seller/deal-rooms/${existing.id}/leads`}
+              className="text-xs rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 hover:bg-white/10"
+            >Voir les leads</Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="p-5 bg-[#0D1117] border border-[#C9A84C]/30 rounded-2xl space-y-3">
+      <div>
+        <h2 className="text-sm font-semibold text-gray-200">Générer une deal room</h2>
+        <p className="text-[11px] text-gray-500 mt-1">
+          Mini-site public sous <code>feel-the-gap.com/deal/…</code> pré-rempli avec les données de ce match.
+          SEO mutualisé, leads routés vers votre email par Feel The Gap.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => create(true)}
+          disabled={busy}
+          className="rounded-xl bg-[#C9A84C] px-4 py-2 text-sm font-semibold text-[#07090F] hover:bg-[#d6b658] disabled:opacity-60"
+        >
+          {busy ? 'Création…' : '🚀 Créer et publier'}
+        </button>
+        <button
+          type="button"
+          onClick={() => create(false)}
+          disabled={busy}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold hover:bg-white/10 disabled:opacity-60"
+        >Créer en brouillon</button>
+      </div>
+      {error && <p className="text-xs text-red-300">Erreur : {error}</p>}
+    </section>
   )
 }

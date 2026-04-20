@@ -44,7 +44,7 @@ export async function GET() {
 
   const { data, error } = await admin()
     .from('deal_rooms')
-    .select('id, slug, title, product_label, country_iso, status, published_at, created_at')
+    .select('id, slug, title, product_label, country_iso, status, match_id, opportunity_id, published_at, created_at')
     .eq('seller_id', user.id)
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
