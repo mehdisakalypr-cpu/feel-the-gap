@@ -267,19 +267,19 @@ export default function ReportPage() {
   const remainingQuota = Math.max(0, effectiveGrant - usedTotal)
 
   const toggleOpp = (id: string) => {
-    // Determine if we're adding or removing — only adds consume quota.
+    // 2026-04-20 fix: on ne gate plus la case à cocher par le localUsed (qui était
+    // persisté par mois non-partitionné par pays et bloquait les checkboxes sur
+    // tous les pays dès que le quota était atteint sur un seul). Le débit réel
+    // du quota Fill-the-Gap se fait server-side au moment de la génération de BP.
+    // Flash offer reste déclenché au moment du bouton "Générer les BP" si besoin.
     const isAdding = !selectedOpps.has(id)
-    if (isAdding && effectiveGrant > 0 && remainingQuota <= 0) {
-      // Quota dépassé : on bloque et on propose flash offer.
-      setShowFlashOffer(true)
-      return
-    }
     setSelectedOpps(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
-    // Compteur local : +1 quand on coche, -1 quand on décoche (jamais < 0).
+    // Compteur local : garde la visibilité du "reste à consommer" dans la session
+    // courante, mais sans persistance inter-sessions ni blocage des ticks.
     setLocalUsed((u) => Math.max(0, u + (isAdding ? 1 : -1)))
   }
 
@@ -392,26 +392,17 @@ export default function ReportPage() {
 
   // Persist & restore the local "opps utilisées ce mois" counter (per user
   // session, scoped to the current YYYY-MM so it auto-resets monthly).
-  // Hydrate at mount (then writes track changes).
+  // 2026-04-20 fix: on ne persiste plus le localUsed en localStorage. Il était
+  // keyé par YYYY-MM global (pas par ISO) → bloquait les checkboxes sur tous
+  // les pays dès que la quota était atteinte sur un seul. On garde le compteur
+  // session-only pour l'UX compteur visible, mais sans persistance.
   useEffect(() => {
     try {
-      const ym = new Date().toISOString().slice(0, 7) // YYYY-MM
-      const raw = localStorage.getItem(`ftg_local_opp_used_${ym}`)
-      if (raw) {
-        const n = Number(raw)
-        if (Number.isFinite(n) && n >= 0) setLocalUsed(n)
-      }
-    } catch {}
-    // run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    try {
+      // Nettoyage des anciennes clés pour les users existants
       const ym = new Date().toISOString().slice(0, 7)
-      localStorage.setItem(`ftg_local_opp_used_${ym}`, String(localUsed))
+      localStorage.removeItem(`ftg_local_opp_used_${ym}`)
     } catch {}
-  }, [localUsed])
+  }, [])
 
   // Mirror checked opportunities → journey store (`selectedProducts`).
   // Dedupe by product slug. The store's `setSelectedProducts` preserves
