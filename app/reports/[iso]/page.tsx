@@ -1,13 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import JourneySidebar from '@/components/JourneySidebar'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import FillTheGapCreditModal from '@/components/FillTheGapCreditModal'
 import FlashOfferModal from '@/components/FlashOfferModal'
-import { supabase } from '@/lib/supabase'
+// Auth-v2 met la session Supabase dans les cookies via @supabase/ssr ;
+// le client `supabase` (createClient vanilla) ne lit que localStorage et
+// retourne toujours null → le tier restait figé à 'free' et le bouton
+// "Passer Premium" apparaissait même pour les users payants. On utilise
+// le BrowserClient SSR-aware pour lire la vraie session.
+import { createSupabaseBrowser } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
 import { FILLTHEGAP_QUOTA_BY_TIER, type PlanTier } from '@/lib/credits/costs'
 import DOMPurify from 'dompurify'
@@ -198,6 +203,8 @@ export default function ReportPage() {
   const params = useParams()
   const router = useRouter()
   const iso = (params?.iso as string ?? '').toUpperCase()
+  // SSR-aware browser client (lit la session auth-v2 depuis les cookies).
+  const supabase = useMemo(() => createSupabaseBrowser(), [])
 
   const [country, setCountry] = useState<Country | null>(null)
   const [opps, setOpps] = useState<Opportunity[]>([])
