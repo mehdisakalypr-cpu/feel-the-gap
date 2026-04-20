@@ -24,6 +24,7 @@ const NAV = [
   { href: '/admin/features',      label: 'Features',       icon: '🚦' },
   { href: '/admin/marketplace',   label: 'Marketplace',    icon: '🌍' },
   { href: '/admin/api-usage',     label: 'API Usage',       icon: '🔑' },
+  { href: '/admin/content-generation', label: 'Content Gen',  icon: '🌀' },
   { href: '/admin/fraud-events',  label: 'Fraud',           icon: '🛡️' },
 ]
 
