@@ -8,6 +8,7 @@ import ConversionBar from '@/components/ConversionBar'
 import AuthorshipMeta from '@/components/AuthorshipMeta'
 import { WebVitalsReporter } from '@/components/WebVitalsReporter'
 import Topbar from '@/components/Topbar'
+import MaintenanceBanner from '@/components/MaintenanceBanner'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthorshipMeta />
       </head>
       <body className="min-h-full bg-[#07090F] text-white antialiased">
+        <MaintenanceBanner />
         <WebVitalsReporter />
         <LanguageProvider>
           <CookieBannerProvider>
