@@ -667,6 +667,50 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── Radar / fraud signals ──────────────────────────────────────────────
+  if (
+    event.type === 'review.opened' ||
+    event.type === 'review.closed' ||
+    event.type === 'radar.early_fraud_warning.created' ||
+    event.type === 'charge.dispute.created' ||
+    event.type === 'charge.dispute.closed'
+  ) {
+    const obj = event.data.object as unknown as Record<string, unknown>
+    const paymentIntentId =
+      (obj.payment_intent as string | null) ||
+      ((obj.charge as Record<string, unknown> | undefined)?.payment_intent as string | null) ||
+      null
+    const chargeId = (obj.charge as string | null) || (obj.id as string | null) || null
+    const reason = (obj.reason as string | null) || (obj.opened_reason as string | null) || (obj.closed_reason as string | null) || null
+    const payload = {
+      stripe_event_id: event.id,
+      event_type: event.type,
+      payment_intent_id: paymentIntentId,
+      charge_id: chargeId,
+      reason,
+      amount_cents: typeof obj.amount === 'number' ? obj.amount : null,
+      currency: typeof obj.currency === 'string' ? (obj.currency as string).toUpperCase() : null,
+      livemode: Boolean(obj.livemode),
+      raw: obj as unknown,
+    }
+    const { error: fraudErr } = await supabaseAdmin.from('store_fraud_events').insert(payload)
+    if (fraudErr) {
+      console.error('[webhook] fraud event insert failed', fraudErr.message, event.type)
+    }
+    // Flag order if we can trace it back
+    if (paymentIntentId) {
+      const flagStatus = event.type === 'review.opened' || event.type === 'radar.early_fraud_warning.created'
+        ? 'under_review'
+        : event.type === 'charge.dispute.created' ? 'disputed' : null
+      if (flagStatus) {
+        await supabaseAdmin
+          .from('store_orders')
+          .update({ fraud_status: flagStatus })
+          .eq('stripe_payment_intent', paymentIntentId)
+      }
+    }
+  }
+
   // ── payment_intent.canceled / payment_failed — escrow annulé ou KO ──────
   if (event.type === 'payment_intent.canceled' || event.type === 'payment_intent.payment_failed') {
     const pi = event.data.object as import('stripe').Stripe.PaymentIntent

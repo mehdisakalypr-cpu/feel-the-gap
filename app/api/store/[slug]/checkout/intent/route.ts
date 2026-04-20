@@ -160,8 +160,13 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     billing?: AddressPayload
     rate_id?: string
     discount_code?: string | null
+    radar_session?: string
   }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'bad_json' }, { status: 400 }) }
+
+  // Fraud signals for Stripe Radar (IP + UA captured for metadata enrichment)
+  const clientIp = (req.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() || req.headers.get('x-real-ip') || ''
+  const userAgent = req.headers.get('user-agent')?.slice(0, 256) || ''
 
   const sb = await createSupabaseServer()
   const { data: { user } } = await sb.auth.getUser()
@@ -284,6 +289,19 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       automatic_payment_methods: { enabled: true },
       receipt_email: buyerEmail,
       description: `Order ${orderId} — ${store.name}`,
+      // Radar scoring: shipping + radar_session dramatically improve fraud detection
+      shipping: {
+        name: shipping.full_name,
+        phone: shipping.phone ?? undefined,
+        address: {
+          line1: shipping.line1,
+          line2: shipping.line2 ?? undefined,
+          postal_code: shipping.postal_code,
+          city: shipping.city,
+          country: shipping.country_iso2,
+        },
+      },
+      ...(body.radar_session ? { radar_options: { session: String(body.radar_session) } } : {}),
       metadata: {
         product: 'ftg-store',
         store_id: store.id,
@@ -292,6 +310,12 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
         cart_id: cart.id,
         buyer_email: buyerEmail,
         buyer_user_id: user?.id ?? '',
+        buyer_ip: clientIp,
+        buyer_ua: userAgent,
+        shipping_country: shipping.country_iso2,
+        billing_country: billing.country_iso2,
+        item_count: String(cart.items.reduce((a, it) => a + it.qty, 0)),
+        segment: orderSegment,
       },
     })
   } catch (err) {
