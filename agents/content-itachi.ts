@@ -13,12 +13,10 @@ export async function generateBusinessPlans(
   countryName: string,
   lang: string = 'fr',
 ): Promise<{ payload: unknown; cost_eur: number }> {
-  // Tier 'standard' → single-pass Gemini (free via providers rotation)
-  // Upgrade à 'premium' pour les top pays/opps si besoin (cost ~€0.01/plan)
-  const [tradePlan, productionPlan] = await Promise.all([
-    buildTradePlanTiered(opp, productName, countryName, 'standard'),
-    buildProductionPlanTiered(opp, productName, countryName, 'standard'),
-  ])
+  // Sequential to avoid Gemini quota burst (Promise.all would double the rate
+  // on a single provider and hit limits → whole agent fails instead of one plan).
+  const tradePlan = await buildTradePlanTiered(opp, productName, countryName, 'standard')
+  const productionPlan = await buildProductionPlanTiered(opp, productName, countryName, 'standard')
 
   const payload = {
     lang,
