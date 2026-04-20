@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const C = {
   card: '#0F172A', border: 'rgba(201,168,76,.2)',
@@ -17,6 +17,15 @@ export default function ContentGenerationPanel({ countries, topOpps }: { countri
   const [jobType, setJobType] = useState<'full' | 'production_methods' | 'business_plans' | 'potential_clients' | 'youtube_videos'>('full')
   const [status, setStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+
+  // Auto-refresh every 15s
+  useEffect(() => {
+    if (!autoRefresh) return
+    const t = setInterval(() => window.location.reload(), 15000)
+    return () => clearInterval(t)
+  }, [autoRefresh])
 
   async function trigger() {
     setLoading(true); setStatus(null)
@@ -34,6 +43,22 @@ export default function ContentGenerationPanel({ countries, topOpps }: { countri
       setStatus(`❌ ${e.message}`)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function retryFailed() {
+    if (!confirm('Retry tous les jobs en failed (reset attempts=0) ?')) return
+    setRetrying(true); setStatus(null)
+    try {
+      const res = await fetch('/api/admin/content-jobs?action=retry_failed', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`)
+      setStatus(`♻️ ${json.retried} jobs re-queued`)
+      setTimeout(() => window.location.reload(), 1500)
+    } catch (e: any) {
+      setStatus(`❌ ${e.message}`)
+    } finally {
+      setRetrying(false)
     }
   }
 
@@ -129,10 +154,29 @@ export default function ContentGenerationPanel({ countries, topOpps }: { countri
       </button>
 
       {status && (
-        <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: status.startsWith('✅') ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)', borderRadius: 6 }}>
+        <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: status.startsWith('✅') || status.startsWith('♻️') ? 'rgba(16,185,129,.1)' : 'rgba(239,68,68,.1)', borderRadius: 6 }}>
           {status}
         </div>
       )}
+
+      {/* Retry + auto-refresh controls */}
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${C.border}`, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button
+          onClick={retryFailed}
+          disabled={retrying}
+          style={{
+            background: 'transparent', color: C.red, border: `1px solid ${C.red}`,
+            padding: '0.5rem 1rem', fontSize: 13, borderRadius: 6, cursor: 'pointer',
+            opacity: retrying ? 0.6 : 1,
+          }}
+        >
+          {retrying ? '♻️ Resetting...' : '♻️ Retry failed jobs'}
+        </button>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: C.muted, fontSize: 13 }}>
+          <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+          Auto-refresh 15s
+        </label>
+      </div>
     </div>
   )
 }

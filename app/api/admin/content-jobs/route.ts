@@ -33,10 +33,23 @@ export async function POST(req: Request) {
   const user = await requireAdmin()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
+  const url = new URL(req.url)
+  const action = url.searchParams.get('action')
+  const db = admin()
+
+  // Action : retry_failed — reset tous les jobs en 'failed' vers 'pending' (attempts=0)
+  if (action === 'retry_failed') {
+    const { count, error } = await db
+      .from('ftg_content_jobs')
+      .update({ status: 'pending', attempts: 0, last_error: null, started_at: null, finished_at: null }, { count: 'exact' })
+      .eq('status', 'failed')
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ retried: count ?? 0 })
+  }
+
   const body: Body = await req.json()
   const lang = body.lang || 'fr'
   const priority = body.priority ?? 100
-  const db = admin()
 
   const pairs: Array<{ opp_id: string; country_iso: string }> = []
 

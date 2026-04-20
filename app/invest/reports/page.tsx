@@ -1,4 +1,15 @@
+import type { Metadata } from 'next'
 import DossierFeed from '@/components/DossierFeed'
+
+export const metadata: Metadata = {
+  title: 'Deal Flow Investissement — Feel The Gap',
+  description: "Dossiers de levée de fonds qualifiés et scorés, prêts pour due diligence. Identités anonymisées jusqu'à souscription Invest Premium.",
+  openGraph: {
+    title: 'Deal Flow Investissement — Feel The Gap',
+    description: "Dossiers de levée de fonds qualifiés et scorés, prêts pour due diligence.",
+    type: 'website',
+  },
+}
 
 export default function InvestReportsPage() {
   return (

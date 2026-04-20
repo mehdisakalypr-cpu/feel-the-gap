@@ -28,7 +28,7 @@ function admin() {
 async function loadData() {
   const db = admin()
 
-  const [jobsPending, jobsRunning, jobsDone, jobsFailed, contentReady, contentTotal, recentFails, countries, topOpps] = await Promise.all([
+  const [jobsPending, jobsRunning, jobsDone, jobsFailed, contentReady, contentTotal, recentFails, countries, topOpps, recentContent] = await Promise.all([
     db.from('ftg_content_jobs').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     db.from('ftg_content_jobs').select('*', { count: 'exact', head: true }).eq('status', 'running'),
     db.from('ftg_content_jobs').select('*', { count: 'exact', head: true }).eq('status', 'done'),
@@ -36,8 +36,9 @@ async function loadData() {
     db.from('ftg_opportunity_content').select('*', { count: 'exact', head: true }).eq('status', 'ready'),
     db.from('ftg_opportunity_content').select('*', { count: 'exact', head: true }),
     db.from('ftg_content_jobs').select('id, job_type, country_iso, last_error, finished_at').eq('status', 'failed').order('finished_at', { ascending: false }).limit(10),
-    db.from('countries').select('iso3, name_fr').order('iso3').limit(250),
-    db.from('opportunities').select('id, product_name, country_iso, gap_value_usd').order('gap_value_usd', { ascending: false }).limit(100),
+    db.from('countries').select('iso2, name_fr').order('iso2').limit(250),
+    db.from('opportunities').select('id, product_id, country_iso, gap_value_usd').order('gap_value_usd', { ascending: false }).limit(100),
+    db.from('ftg_opportunity_content').select('opp_id, country_iso, lang, status, generated_at, cost_eur, agent_versions').order('updated_at', { ascending: false }).limit(25),
   ])
 
   const { data: costAgg } = await db
@@ -59,11 +60,12 @@ async function loadData() {
     recentFails: recentFails.data || [],
     countries: countries.data || [],
     topOpps: topOpps.data || [],
+    recentContent: recentContent.data || [],
   }
 }
 
 export default async function ContentGenerationAdmin() {
-  const { stats, recentFails, countries, topOpps } = await loadData()
+  const { stats, recentFails, countries, topOpps, recentContent } = await loadData()
 
   return (
     <main style={{ background: C.bg, color: C.text, minHeight: '100vh', padding: '2rem' }}>
@@ -90,6 +92,52 @@ export default async function ContentGenerationAdmin() {
 
         {/* Triggers */}
         <ContentGenerationPanel countries={countries} topOpps={topOpps} />
+
+        {/* Recent content generated */}
+        {recentContent.length > 0 && (
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1.5rem', marginTop: '2rem' }}>
+            <h2 style={{ fontSize: 18, color: C.accent, marginBottom: '1rem' }}>📦 Dernières paires générées</h2>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ color: C.muted, textAlign: 'left' }}>
+                  <th style={{ padding: '0.5rem' }}>Pays</th>
+                  <th style={{ padding: '0.5rem' }}>Opp ID</th>
+                  <th style={{ padding: '0.5rem' }}>Status</th>
+                  <th style={{ padding: '0.5rem' }}>Agents</th>
+                  <th style={{ padding: '0.5rem' }}>Cost</th>
+                  <th style={{ padding: '0.5rem' }}>Généré le</th>
+                  <th style={{ padding: '0.5rem' }}>Preview</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentContent.map((r: any) => {
+                  const agents = Object.keys(r.agent_versions || {})
+                  return (
+                    <tr key={`${r.opp_id}_${r.country_iso}_${r.lang}`} style={{ borderTop: `1px solid ${C.border}` }}>
+                      <td style={{ padding: '0.5rem' }}>{r.country_iso}</td>
+                      <td style={{ padding: '0.5rem', fontFamily: 'monospace', fontSize: 11 }}>{String(r.opp_id).slice(0, 8)}</td>
+                      <td style={{ padding: '0.5rem', color: r.status === 'ready' ? C.green : r.status === 'failed' ? C.red : C.yellow }}>
+                        {r.status}
+                      </td>
+                      <td style={{ padding: '0.5rem', color: C.muted, fontSize: 11 }}>
+                        {agents.length}/4 ({agents.map((a: string) => a.split('_')[0][0]).join('')})
+                      </td>
+                      <td style={{ padding: '0.5rem', color: C.muted }}>€{(r.cost_eur || 0).toFixed(3)}</td>
+                      <td style={{ padding: '0.5rem', color: C.muted }}>
+                        {r.generated_at ? new Date(r.generated_at).toLocaleString('fr-FR') : '—'}
+                      </td>
+                      <td style={{ padding: '0.5rem' }}>
+                        <a href={`/opportunities/${r.country_iso.toLowerCase()}/${r.opp_id}`} target="_blank" rel="noopener" style={{ color: C.accent, textDecoration: 'none' }}>
+                          👁 View
+                        </a>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Recent failures */}
         {recentFails.length > 0 && (

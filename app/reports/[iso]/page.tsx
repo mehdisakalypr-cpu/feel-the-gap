@@ -985,6 +985,17 @@ export default function ReportPage() {
                       </div>
                     )}
 
+                    {/* Analyse complète (content-gen agents) */}
+                    <div className="px-5 py-2 border-t border-white/5">
+                      <Link
+                        href={`/opportunities/${(iso || '').toLowerCase()}/${opp.id}`}
+                        className="text-xs text-[#C9A84C] hover:text-white transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <span>🌀</span>
+                        <span>Analyse complète : méthodes, business plans, clients, vidéos →</span>
+                      </Link>
+                    </div>
+
                     {/* Context factors */}
                     <div className="px-5 py-3 border-t border-white/5 flex flex-wrap gap-4 text-xs text-gray-500">
                       {opp.land_availability && (
