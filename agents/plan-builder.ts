@@ -14,6 +14,7 @@ import { generateText } from 'ai'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { Opportunity } from '@/types/database'
 import { runCascadeJson, type AiTier } from '@/lib/ai/cascade'
+import { gen } from './providers'
 
 /**
  * Tier-aware wrappers — Vague 4 #8 · 2026-04-18
@@ -82,9 +83,7 @@ Structure JSON complète avec : title, executive_summary, production_setup{land_
 // ── Direct Trade Plan ─────────────────────────────────────────────────────────
 
 async function buildTradePlan(opp: Opportunity, productName: string, countryName: string) {
-  const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
-    prompt: `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
+  const prompt = `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
 
 Country: ${countryName}
 Product: ${productName}
@@ -116,10 +115,8 @@ Return ONLY valid JSON with this structure:
   },
   "risks": ["string"],
   "next_steps": ["string"]
-}`,
-    maxTokens: 2000,
-  })
-
+}`
+  const text = await gen(prompt, 2000)
   try {
     return JSON.parse(text.replace(/```json\n?|\n?```/g, ''))
   } catch {
@@ -130,9 +127,7 @@ Return ONLY valid JSON with this structure:
 // ── Local Production Plan ─────────────────────────────────────────────────────
 
 async function buildProductionPlan(opp: Opportunity, productName: string, countryName: string) {
-  const { text } = await generateText({
-    model: google('gemini-2.5-flash'),
-    prompt: `You are an agricultural/industrial investment consultant specializing in emerging markets.
+  const prompt = `You are an agricultural/industrial investment consultant specializing in emerging markets.
 Generate a detailed local production business plan in JSON format.
 
 Country: ${countryName}
@@ -181,10 +176,8 @@ Return ONLY valid JSON:
   "risks_and_mitigations": [{ "risk": "string", "mitigation": "string" }],
   "implementation_roadmap": [{ "phase": number, "name": "string", "duration": "string", "key_actions": ["string"] }],
   "next_steps": ["string"]
-}`,
-    maxTokens: 3000,
-  })
-
+}`
+  const text = await gen(prompt, 3000)
   try {
     return JSON.parse(text.replace(/```json\n?|\n?```/g, ''))
   } catch {
