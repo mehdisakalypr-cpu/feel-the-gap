@@ -13,12 +13,15 @@ export interface Provider { name: string; model: LanguageModel; exhausted: boole
 
 export function buildProviders(): Provider[] {
   const p: Provider[] = []
-  // Gratuits en priorité — rotation sur 4 clés Gemini pour ×4 throughput (quota 20 rpm/clé)
+  // Gratuits en priorité — rotation Gemini (quota 20 rpm/clé, ×N throughput)
   const geminiKeys = [
     process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_5,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_6,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_7,
   ].filter(Boolean) as string[]
   geminiKeys.forEach((k, i) => {
     const g = createGoogleGenerativeAI({ apiKey: k })
