@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { LanguageProvider } from '@/components/LanguageProvider'
+import { CookieBannerProvider } from '@/components/CookieBannerProvider'
 import ExitFeedback from '@/components/ExitFeedback'
 import ConversionBar from '@/components/ConversionBar'
 import AuthorshipMeta from '@/components/AuthorshipMeta'
@@ -67,10 +68,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full bg-[#07090F] text-white antialiased">
         <WebVitalsReporter />
         <LanguageProvider>
-          <Topbar />
-          {children}
-          <ConversionBar />
-          <ExitFeedback />
+          <CookieBannerProvider>
+            <Topbar />
+            {children}
+            <ConversionBar />
+            <ExitFeedback />
+          </CookieBannerProvider>
         </LanguageProvider>
       </body>
     </html>
