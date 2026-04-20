@@ -180,6 +180,19 @@ export async function confirmFromIntent(args: {
       .is('buyer_user_id', null)
   }
 
+  // 6a. Create pending shipment (idempotent by order_id). Label created later via cron.
+  if (!alreadyPaid) {
+    try {
+      await a.from('store_shipments').upsert({
+        order_id: order.id,
+        store_id: order.store_id,
+        status: 'pending',
+      }, { onConflict: 'order_id', ignoreDuplicates: true })
+    } catch (err) {
+      console.error('[store-confirm] shipment create error', err)
+    }
+  }
+
   // 6. Generate invoice (idempotent by store+order)
   const invoice = await ensureInvoice(order)
 
