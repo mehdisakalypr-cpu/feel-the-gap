@@ -6,8 +6,10 @@ import Link from 'next/link'
 import JourneySidebar from '@/components/JourneySidebar'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import FillTheGapCreditModal from '@/components/FillTheGapCreditModal'
+import FlashOfferModal from '@/components/FlashOfferModal'
 import { supabase } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
+import { FILLTHEGAP_QUOTA_BY_TIER, type PlanTier } from '@/lib/credits/costs'
 import DOMPurify from 'dompurify'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -174,6 +176,24 @@ const MODELS = [
   { id: 'train_locals',    label: 'Former les locaux',  icon: '🎓', desc: 'Modèle services / transfert de compétences' },
 ]
 
+// Soft "discovery" quotas pour les tiers SANS Fill-the-Gap (free / solo_producer
+// / starter / strategy). Ils peuvent quand même cocher quelques opportunités
+// pour goûter à l'expérience puis sont poussés vers Premium via FlashOfferModal.
+// Premium et Ultimate tirent leur quota de FILLTHEGAP_QUOTA_BY_TIER (server-side).
+const SOFT_TIER_QUOTA: Record<string, number> = {
+  free: 3,
+  solo_producer: 5,
+  starter: 5,
+  strategy: 10,
+}
+
+// PlanTier passé à FlashOfferModal/tier-helpers : on map les valeurs DB
+// "tier" sur la hiérarchie canonique. Tier inconnu = 'free'.
+function toPlanTier(t: string): PlanTier {
+  const known: PlanTier[] = ['free', 'solo_producer', 'starter', 'strategy', 'premium', 'ultimate', 'custom']
+  return (known.includes(t as PlanTier) ? (t as PlanTier) : 'free')
+}
+
 export default function ReportPage() {
   const params = useParams()
   const router = useRouter()
@@ -199,6 +219,14 @@ export default function ReportPage() {
   const [bpSubmitting, setBpSubmitting] = useState(false)
   const [flash, setFlash] = useState<{ kind: 'success' | 'error' | 'info'; msg: string } | null>(null)
 
+  // ── Quota gating cumulatif (sur le check d'opp) ────────────────────────────
+  // `localUsed` = compteur local des opps NOUVELLEMENT cochées par l'user
+  // depuis le dernier reset mensuel ; il s'ajoute aux opps déjà débitées
+  // côté serveur (used = grant - balance) pour Premium/Ultimate, ou
+  // simplement compté tel quel pour les tiers soft. Persisté localStorage.
+  const [localUsed, setLocalUsed] = useState<number>(0)
+  const [showFlashOffer, setShowFlashOffer] = useState(false)
+
   // Tier gating :
   //  - canSelectOpps : tout user authentifié (sauf free/anonymous) peut cocher
   //    → incite à la découverte + permet upsell ciblé au moment de générer.
@@ -217,11 +245,43 @@ export default function ReportPage() {
     if (iso) setIsoInStore(iso)
   }, [iso, setIsoInStore])
 
-  const toggleOpp = (id: string) => setSelectedOpps(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
-    return next
-  })
+  // Effective monthly quota for opportunity selection.
+  //  - Premium / Ultimate : real Fill-the-Gap grant from the API (150 / 250).
+  //  - Other tiers        : a small "discovery" quota (3-10) so users can
+  //    sample the experience before being prompted to upgrade.
+  const tierGrant = FILLTHEGAP_QUOTA_BY_TIER[toPlanTier(userTier)] ?? 0
+  const effectiveGrant = tierGrant > 0
+    ? tierGrant
+    : (SOFT_TIER_QUOTA[userTier] ?? 0)
+
+  // For Premium/Ultimate, the canonical "used" value comes from the server
+  // (grant - remaining balance). We add `localUsed` to count opps the user
+  // ticked during this session that haven't been debited server-side yet
+  // (debit happens at BP generation, not on tick — so we still need the
+  // optimistic counter to gate further ticks). For soft tiers, `localUsed`
+  // is the only counter (no API), persisted to localStorage per ISO+month.
+  const serverUsed = ftgGrant > 0 && ftgBalance !== null
+    ? Math.max(0, ftgGrant - ftgBalance)
+    : 0
+  const usedTotal = serverUsed + localUsed
+  const remainingQuota = Math.max(0, effectiveGrant - usedTotal)
+
+  const toggleOpp = (id: string) => {
+    // Determine if we're adding or removing — only adds consume quota.
+    const isAdding = !selectedOpps.has(id)
+    if (isAdding && effectiveGrant > 0 && remainingQuota <= 0) {
+      // Quota dépassé : on bloque et on propose flash offer.
+      setShowFlashOffer(true)
+      return
+    }
+    setSelectedOpps(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+    // Compteur local : +1 quand on coche, -1 quand on décoche (jamais < 0).
+    setLocalUsed((u) => Math.max(0, u + (isAdding ? 1 : -1)))
+  }
 
   const toggleModel = (id: string) => setSelectedModels(prev => {
     const next = new Set(prev)
@@ -292,9 +352,12 @@ export default function ReportPage() {
     } catch {}
   }, [iso])
 
-  // Fetch Fill-the-Gap balance (Premium / Ultimate only)
+  // Fetch Fill-the-Gap balance — pour TOUS les tiers authentifiés.
+  // Premium / Ultimate ont un vrai grant côté DB ; les autres tiers
+  // reçoivent grant=0 et tombent sur la soft quota gérée localement.
+  // Le compteur visuel et le gating en haut du rapport en dépendent.
   useEffect(() => {
-    if (!canBulkBp) return
+    if (userTier === 'free' || userTier === '') return
     let cancelled = false
     fetch('/api/credits/fillthegap/balance')
       .then((r) => r.json())
@@ -306,7 +369,7 @@ export default function ReportPage() {
       })
       .catch(() => { /* silent — non-blocking */ })
     return () => { cancelled = true }
-  }, [canBulkBp])
+  }, [userTier])
 
   // Auto-dismiss flash after 6s
   useEffect(() => {
@@ -327,6 +390,29 @@ export default function ReportPage() {
     } catch {}
   }, [selectedOpps, iso])
 
+  // Persist & restore the local "opps utilisées ce mois" counter (per user
+  // session, scoped to the current YYYY-MM so it auto-resets monthly).
+  // Hydrate at mount (then writes track changes).
+  useEffect(() => {
+    try {
+      const ym = new Date().toISOString().slice(0, 7) // YYYY-MM
+      const raw = localStorage.getItem(`ftg_local_opp_used_${ym}`)
+      if (raw) {
+        const n = Number(raw)
+        if (Number.isFinite(n) && n >= 0) setLocalUsed(n)
+      }
+    } catch {}
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    try {
+      const ym = new Date().toISOString().slice(0, 7)
+      localStorage.setItem(`ftg_local_opp_used_${ym}`, String(localUsed))
+    } catch {}
+  }, [localUsed])
+
   // Mirror checked opportunities → journey store (`selectedProducts`).
   // Dedupe by product slug. The store's `setSelectedProducts` preserves
   // `activeProduct` when it remains in the list, or falls back to the first.
@@ -343,18 +429,34 @@ export default function ReportPage() {
     setSelectedProductsInStore(unique)
   }, [selectedOpps, opps, setSelectedProductsInStore])
 
-  // Select all visible (filtered) / clear — Premium + Ultimate only
+  // Select all visible (filtered) / clear — quota-aware.
+  // On respecte le quota : on n'ajoute que jusqu'à `remainingQuota` opps.
+  // Si on en bloque au moins une faute de crédits, on ouvre le FlashOffer
+  // pour que l'user puisse débloquer la suite immédiatement.
   const selectAllFiltered = () => {
     const all = new Set<string>(selectedOpps)
-    // Note: depends on filteredOpps which is computed after loading — we handle empty-case by
-    // selecting every opp visible in the DOM; `opps` is already the post-fetch list and
-    // `minScore` is applied via filteredOpps below. Resolved via `opps` + minScore here.
-    for (const o of opps) {
-      if (minScore === 0 || (o.opportunity_score ?? 0) >= minScore) all.add(o.id)
+    const candidates = opps.filter(o =>
+      minScore === 0 || (o.opportunity_score ?? 0) >= minScore,
+    )
+    // Compute capacity left.
+    const noQuotaLimit = effectiveGrant === 0  // tier inconnu ou sans gating
+    let added = 0
+    let blocked = 0
+    for (const o of candidates) {
+      if (all.has(o.id)) continue
+      if (!noQuotaLimit && added >= remainingQuota) { blocked++; continue }
+      all.add(o.id)
+      added++
     }
     setSelectedOpps(all)
+    setLocalUsed((u) => u + added)
+    if (blocked > 0) setShowFlashOffer(true)
   }
-  const clearAllSelection = () => setSelectedOpps(new Set())
+  const clearAllSelection = () => {
+    // Décocher en lot rend les crédits locaux (pas de débit DB pour ces opps).
+    setLocalUsed((u) => Math.max(0, u - selectedOpps.size))
+    setSelectedOpps(new Set())
+  }
 
   // Submit the bulk BP debit — called from the modal's onConfirm
   const submitBulkBp = async () => {
@@ -392,6 +494,11 @@ export default function ReportPage() {
         kind: 'success',
         msg: `${j.queued ?? ids.length} business plan${(j.queued ?? ids.length) > 1 ? 's' : ''} en cours de génération.`,
       })
+      // Le débit est désormais comptabilisé côté serveur (serverUsed augmente
+      // de `queued` au prochain fetch balance) → on retire l'équivalent du
+      // compteur local pour éviter le double-count dans usedTotal.
+      const queued = typeof j.queued === 'number' ? j.queued : ids.length
+      setLocalUsed((u) => Math.max(0, u - queued))
       setSelectedOpps(new Set())
       setShowBpModal(false)
       // Soft navigation signal — keep user on the report but add a query param for downstream.
@@ -675,6 +782,46 @@ export default function ReportPage() {
               </span>
             </h2>
 
+            {/* Quota progress bar — visible dès qu'on a un grant > 0.
+                 Vert >50%, orange 20-50%, rouge <20%. Cliquable → ouvre la
+                 popup flash si l'user veut anticiper l'upgrade. */}
+            {canSelectOpps && effectiveGrant > 0 && (() => {
+              const pct = Math.min(100, Math.round((usedTotal / effectiveGrant) * 100))
+              const remainPct = 100 - pct
+              const barColor = remainPct > 50 ? '#34D399'
+                : remainPct >= 20 ? '#F59E0B'
+                : '#EF4444'
+              const labelTier = tierGrant > 0 ? 'Fill-the-Gap' : 'découverte'
+              return (
+                <button
+                  type="button"
+                  onClick={() => { if (remainingQuota === 0) setShowFlashOffer(true) }}
+                  className="w-full mb-3 text-left rounded-xl bg-[#0D1117] border border-white/5 px-4 py-3 transition-colors hover:border-white/10 cursor-default"
+                  aria-label="Quota d'opportunités utilisées ce mois"
+                >
+                  <div className="flex items-baseline justify-between gap-2 mb-1.5 text-xs">
+                    <span className="text-gray-400">
+                      <strong className="text-white">{usedTotal}</strong>
+                      {' / '}
+                      <strong className="text-white">{effectiveGrant}</strong>
+                      {' '}opps {labelTier} utilisées ce mois
+                    </span>
+                    <span className="text-gray-500">
+                      {remainingQuota > 0
+                        ? <>{remainingQuota} restante{remainingQuota > 1 ? 's' : ''}</>
+                        : <span className="text-amber-400 font-semibold">Quota atteint</span>}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${pct}%`, background: barColor }}
+                    />
+                  </div>
+                </button>
+              )
+            })()}
+
             {/* Bulk select controls — tout user authentifié (Data+) */}
             {canSelectOpps && filteredOpps.length > 0 && (
               <div className="flex items-center gap-3 mb-3 flex-wrap text-xs">
@@ -693,10 +840,10 @@ export default function ReportPage() {
                 >
                   ☐ Tout désélectionner
                 </button>
-                {ftgBalance !== null && (
+                {ftgBalance !== null && ftgGrant > 0 && (
                   <span className="text-gray-500 ml-auto">
-                    Crédits Fill the Gap : <span className="text-white font-semibold">{ftgBalance}</span>
-                    {ftgGrant > 0 && <span className="text-gray-600"> / {ftgGrant}</span>}
+                    Crédits BP : <span className="text-white font-semibold">{ftgBalance}</span>
+                    <span className="text-gray-600"> / {ftgGrant}</span>
                   </span>
                 )}
               </div>
@@ -1103,6 +1250,16 @@ export default function ReportPage() {
           onConfirm={submitBulkBp}
         />
       )}
+
+      {/* ── Flash offer modal (quota d'opps atteint) ── */}
+      <FlashOfferModal
+        open={showFlashOffer}
+        onClose={() => setShowFlashOffer(false)}
+        currentTier={toPlanTier(userTier)}
+        used={usedTotal}
+        grant={effectiveGrant}
+        packSize={50}
+      />
     </div>
   )
 }
