@@ -65,10 +65,12 @@ export default function MentionsLegalesPage() {
           (<Link href="/api/_authorship" className="text-[#C9A84C]">/api/_authorship</Link>), fingerprint projet
           <code className="text-[#C9A84C]">66d440006ffee21786ba79e378cd021a</code>, horodatage blockchain Bitcoin via
           OpenTimestamps (hash <code className="text-[#C9A84C]">c43c7d569377f80b4126d0511e99fb90704a51f14bb7226fcea95353382d8da5</code>),
-          dépôt INPI e-Soleau (France). Licence propriétaire
-          <code className="text-[#C9A84C]">LicenseRef-Proprietary-Sakaly</code>. Usage pour entraînement de modèles
-          d&apos;apprentissage automatique <strong>explicitement interdit</strong>. En utilisant ce site, l&apos;utilisateur
-          s&apos;engage à respecter les présentes mentions et les
+          <strong>dépôt INPI e-Soleau n°&nbsp;<code className="text-[#C9A84C]">DSO2026014334</code></strong>
+          (France, déposé le 20/04/2026 à 09:12:00&nbsp;UTC, valide jusqu&apos;au 20/04/2031, empreinte
+          package <code className="text-[#C9A84C]">ccb46a5b851a46209b95e7847b71b6aece792657684b37d356629d5b6846cc4b</code>).
+          Licence propriétaire <code className="text-[#C9A84C]">LicenseRef-Proprietary-Sakaly</code>. Usage pour
+          entraînement de modèles d&apos;apprentissage automatique <strong>explicitement interdit</strong>. En utilisant
+          ce site, l&apos;utilisateur s&apos;engage à respecter les présentes mentions et les
           <Link href="/legal/cgu" className="text-[#C9A84C]"> conditions d&apos;utilisation</Link>.
         </p>
 
