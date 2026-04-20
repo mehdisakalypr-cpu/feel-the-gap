@@ -51,7 +51,7 @@ export default function BuyersList({
   iso,
   userTier = 'free',
   userCredits = 0,
-  quotaIncluded = 0,
+  quotaIncluded = null,    // legacy default: unlimited (used by /success/debouches without props)
   revealedSet,
 }: BuyersListProps) {
   const [filter, setFilter] = useState<string>('all')
