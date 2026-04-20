@@ -41,7 +41,11 @@ p, span, div, td, li, h1, h2, h3, h4, h5, h6 { overflow-wrap: normal; word-break
 body {
   background: var(--bg);
   color: #F9FAFB;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  /* Emoji fallbacks AVANT system-ui : sans ça, Windows+Chrome rend 🇫🇷
+     comme "FR" (regional indicator non composé). Ordre : Apple (macOS/iOS) →
+     Segoe (Windows 10+) → Noto Color Emoji (chargé depuis Google Fonts pour
+     couvrir Linux / Windows <build 22621) → system-ui. */
+  font-family: var(--font-inter), 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol', system-ui, sans-serif;
 }
 
 /* Leaflet overrides */

@@ -63,6 +63,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} h-full`}>
       <head>
+        {/* Noto Color Emoji fallback — sans cette font, Windows+Chrome et
+            Linux rendent les drapeaux 🇫🇷 comme "FR" (regional indicators
+            non composés). La fallback déclarée dans globals.css fait le
+            pointage ; ce <link> s'assure qu'elle est disponible. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap"
+        />
         <AuthorshipMeta />
       </head>
       <body className="min-h-full bg-[#07090F] text-white antialiased">
