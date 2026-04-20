@@ -228,11 +228,13 @@ export default function ReportPage() {
   const [showFlashOffer, setShowFlashOffer] = useState(false)
 
   // Tier gating :
-  //  - canSelectOpps : tout user authentifié (sauf free/anonymous) peut cocher
-  //    → incite à la découverte + permet upsell ciblé au moment de générer.
+  //  - canSelectOpps : TOUJOURS actif (free + anonymes inclus) — les cases à
+  //    cocher ne doivent jamais disparaître, sinon les démos prospect sont
+  //    cassées. L'upsell se fait au clic sur "Générer les BP" (bouton devient
+  //    "🔒 Passer Premium" pour les non-premium) — voir ligne ~1124.
   //  - canBulkBp : seuls Premium et Ultimate ont le quota Fill-the-Gap requis
   //    → le bouton "Générer" devient "Passer Premium" pour les autres.
-  const canSelectOpps = userTier !== 'free' && userTier !== ''
+  const canSelectOpps = true
   const canBulkBp = userTier === 'premium' || userTier === 'ultimate'
 
   // Journey store — when user ticks opportunities, mirror the unique product
