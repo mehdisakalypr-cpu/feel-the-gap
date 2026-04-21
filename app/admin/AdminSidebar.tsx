@@ -22,6 +22,7 @@ const NAV = [
   { href: '/admin/prospection',   label: 'Prospection',    icon: '📡' },
   { href: '/admin/videos',        label: 'Vidéos',         icon: '🎬' },
   { href: '/admin/features',      label: 'Features',       icon: '🚦' },
+  { href: '/admin/parcours',      label: 'Parcours',       icon: '🚪' },
   { href: '/admin/marketplace',   label: 'Marketplace',    icon: '🌍' },
   { href: '/admin/api-usage',     label: 'API Usage',       icon: '🔑' },
   { href: '/admin/content-generation', label: 'Content Gen',  icon: '🌀' },

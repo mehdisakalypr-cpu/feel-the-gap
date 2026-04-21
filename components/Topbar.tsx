@@ -176,7 +176,6 @@ function LangSwitcher({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => voi
 
 export default function Topbar() {
   const router = useRouter()
-  const [search, setSearch] = useState('')
   const [userInitial, setUserInitial] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [tier, setTier] = useState<string | null>(null)
@@ -186,6 +185,9 @@ export default function Topbar() {
   const [roles, setRoles] = useState<UserRole[]>([])
   const [activeRole, setActiveRole] = useState<UserRole>('entrepreneur')
   const [roleMenuOpen, setRoleMenuOpen] = useState(false)
+  const [parcoursEnabled, setParcoursEnabled] = useState<Record<UserRole, boolean>>({
+    entrepreneur: true, financeur: true, investisseur: true, influenceur: true,
+  })
   const navRef = useRef<HTMLElement>(null)
   const roleMenuRef = useRef<HTMLDivElement>(null)
   const { lang, setLang, t } = useLang()
@@ -214,6 +216,22 @@ export default function Topbar() {
     fetch('/api/features', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.flags) setFlags(d.flags) })
+      .catch(() => {})
+  }, [])
+
+  // Load parcours_state — filter out disabled parcours from the role switcher.
+  useEffect(() => {
+    fetch('/api/parcours-state')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d?.parcours) return
+        setParcoursEnabled({
+          entrepreneur: true,
+          financeur:    d.parcours.financeur?.enabled === true,
+          investisseur: d.parcours.investisseur?.enabled === true,
+          influenceur:  d.parcours.influenceur?.enabled === true,
+        })
+      })
       .catch(() => {})
   }, [])
 
@@ -258,14 +276,6 @@ export default function Topbar() {
       window.removeEventListener('resize', checkScroll)
     }
   }, [checkScroll])
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const q = search.trim()
-    if (!q) return
-    // Navigate to reports with search query
-    router.push(`/reports?q=${encodeURIComponent(q)}`)
-  }
 
   return (
     <header className="sticky top-0 h-14 flex items-center px-3 md:px-4 border-b border-[rgba(201,168,76,.15)] bg-[#0D1117]/95 backdrop-blur shrink-0 z-50 gap-2">
@@ -320,39 +330,7 @@ export default function Topbar() {
         </Link>
       )}
 
-      {/* Search — toujours visible (fix #27)
-          Root cause : avec `w-40 md:w-56 shrink-0`, sur certaines largeurs
-          intermédiaires (notamment quand on quitte /map vers /country où le
-          JourneySidebar lg:pl-80 modifie la perception de l'espace dispo)
-          l'utilisateur perçoit la search comme "disparue". Fix : search en
-          flex 1 (peut grandir pour remplir), avec un min-w garanti pour
-          rester utilisable et un max-w propre. Pas de `shrink-0` → si jamais
-          l'espace manque vraiment, la search se contracte avant les chevrons
-          de la nav, mais ne disparaît jamais. */}
-      <form
-        onSubmit={handleSearch}
-        className="relative flex-1 min-w-[140px] max-w-[260px] order-none"
-      >
-        <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"/>
-        </svg>
-        <input
-          type="text"
-          placeholder={fr ? 'Rechercher un pays…' : 'Search country…'}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          aria-label={fr ? 'Rechercher un pays' : 'Search country'}
-          className="w-full pl-8 pr-9 h-8 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#C9A84C] transition-colors"
-        />
-        <button
-          type="submit"
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md bg-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/40 transition-colors"
-          title="OK"
-          aria-label={fr ? 'Lancer la recherche' : 'Submit search'}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </button>
-      </form>
+      {/* Search déplacée sur /map uniquement (components/MapCountrySearch). */}
 
       {/* Nav with scroll indicator — `min-w-0` pour permettre le shrink, mais
           pas `flex-1` (la search prend désormais l'espace flexible), juste
@@ -444,19 +422,22 @@ export default function Topbar() {
                         )
                       })}
                       <div className="border-t border-white/5">
-                        {ALL_ROLES.filter((r) => !roles.includes(r)).map((role) => {
-                          const cfg = ROLE_CONFIG[role]
-                          return (
-                            <Link
-                              key={role}
-                              href={cfg.home}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-gray-500 hover:bg-white/5 hover:text-gray-300 transition-colors"
-                            >
-                              <span className="text-sm opacity-60">{cfg.icon}</span>
-                              <span className="flex-1">+ Découvrir {cfg.label}</span>
-                            </Link>
-                          )
-                        })}
+                        {ALL_ROLES
+                          .filter((r) => !roles.includes(r))
+                          .filter((r) => parcoursEnabled[r])
+                          .map((role) => {
+                            const cfg = ROLE_CONFIG[role]
+                            return (
+                              <Link
+                                key={role}
+                                href={cfg.home}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-gray-500 hover:bg-white/5 hover:text-gray-300 transition-colors"
+                              >
+                                <span className="text-sm opacity-60">{cfg.icon}</span>
+                                <span className="flex-1">+ Découvrir {cfg.label}</span>
+                              </Link>
+                            )
+                          })}
                       </div>
                     </div>
                   )}

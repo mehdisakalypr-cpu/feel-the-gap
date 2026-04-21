@@ -38,3 +38,20 @@ export async function isFeatureEnabled(key: FeatureKey): Promise<boolean> {
     return false
   }
 }
+
+/**
+ * Server-side check of parcours_state for financeur/investisseur/influenceur.
+ * Returns true by default for 'entrepreneur' (always-on) or if the row is missing.
+ */
+export type ParcoursRoleKey = 'entrepreneur' | 'financeur' | 'investisseur' | 'influenceur'
+
+export async function isParcoursEnabled(role: ParcoursRoleKey): Promise<boolean> {
+  if (role === 'entrepreneur') return true
+  try {
+    const sb = await createSupabaseServer()
+    const { data } = await sb.from('parcours_state').select('enabled').eq('role_kind', role).maybeSingle()
+    return data?.enabled === true
+  } catch {
+    return false
+  }
+}
