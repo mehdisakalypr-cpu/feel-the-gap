@@ -10,6 +10,7 @@
  *   côté UI via cc_load_policy=1&cc_lang_pref={userLang}&hl={userLang}
  */
 import { searchAndEnrich, type YouTubeVideoDetails } from '@/lib/youtube-api'
+import { enrichWithTranscripts } from '@/lib/youtube-transcripts'
 
 function scoreVideo(v: YouTubeVideoDetails): number {
   const viewScore = Math.log10(Math.max(v.viewCount, 1)) * 10
@@ -65,7 +66,7 @@ export async function generateProductCountryVideos(
         if (/quota|403|not configured/i.test(msg)) {
           console.warn(`[rock-lee-v2] stopping: ${msg.slice(0, 80)}`)
           // Sort de toutes les boucles, on renvoie ce qu'on a
-          return finalize(all, queriesRan, productName, countryName)
+          return await finalize(all, queriesRan, productName, countryName)
         }
         console.warn(`[rock-lee-v2] query failed: ${query} — ${msg}`)
       }
@@ -75,34 +76,45 @@ export async function generateProductCountryVideos(
   return finalize(all, queriesRan, productName, countryName)
 }
 
-function finalize(all: YouTubeVideoDetails[], queriesRan: string[], productName: string, countryName: string) {
+async function finalize(all: YouTubeVideoDetails[], queriesRan: string[], productName: string, countryName: string) {
   const top = all
     .map((v) => ({ ...v, _score: scoreVideo(v) }))
     .sort((a, b) => b._score - a._score)
     .slice(0, 10)
 
+  // Opportunistic transcript enrichment — doesn't block on failures.
+  // Only runs server-side (VPS cron) where yt-transcript CLI is installed.
+  const enriched = await enrichWithTranscripts(
+    top.map((v) => ({ videoId: v.videoId })),
+    { concurrency: 3 },
+  )
+  const excerptByVid = new Map(enriched.map((e) => [e.videoId, { excerpt: e.transcript_excerpt, lang: e.transcript_lang }]))
+
   const payload = {
     product: productName,
     country: countryName,
-    videos: top.map((v) => ({
-      videoId: v.videoId,
-      title: v.title,
-      channelTitle: v.channelTitle,
-      description: v.description?.slice(0, 500) ?? '',
-      publishedAt: v.publishedAt,
-      durationSeconds: v.durationSeconds,
-      viewCount: v.viewCount,
-      likeCount: v.likeCount,
-      thumbnailUrl: v.thumbnailUrl,
-      hasCaptions: v.hasCaptions,
-      defaultLanguage: v.defaultLanguage,
-      url: `https://www.youtube.com/watch?v=${v.videoId}`,
-    })),
+    videos: top.map((v) => {
+      const tr = excerptByVid.get(v.videoId)
+      return {
+        videoId: v.videoId,
+        title: v.title,
+        channelTitle: v.channelTitle,
+        description: v.description?.slice(0, 500) ?? '',
+        publishedAt: v.publishedAt,
+        durationSeconds: v.durationSeconds,
+        viewCount: v.viewCount,
+        likeCount: v.likeCount,
+        thumbnailUrl: v.thumbnailUrl,
+        hasCaptions: v.hasCaptions,
+        defaultLanguage: v.defaultLanguage,
+        url: `https://www.youtube.com/watch?v=${v.videoId}`,
+        transcript_excerpt: tr?.excerpt ?? null,
+        transcript_lang: tr?.lang ?? null,
+      }
+    }),
     generated_queries: queriesRan,
     total_searched: all.length,
     generated_at: new Date().toISOString(),
   }
-  // YouTube v3 pricing: 9 search calls × 100 units + 1-2 videos.list × 1 unit = ~902 units max
-  // Cost is still free tier — we bill cost_eur=0 unless we later move to paid API
   return { payload, cost_eur: 0 }
 }
