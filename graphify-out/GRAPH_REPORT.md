@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-04-21)
 
 ## Corpus Check
-- 655 files · ~510,025 words
+- 655 files · ~510,097 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -1556,11 +1556,11 @@ Nodes (0):
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `POST()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 41`, `Community 10`, `Community 42`, `Community 12`, `Community 9`, `Community 14`, `Community 15`, `Community 27`?**
-  _High betweenness centrality (0.257) - this node is a cross-community bridge._
+  _High betweenness centrality (0.242) - this node is a cross-community bridge._
 - **Why does `GET()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 13`, `Community 14`, `Community 15`, `Community 20`, `Community 23`, `Community 37`, `Community 41`, `Community 42`, `Community 60`, `Community 72`, `Community 73`?**
-  _High betweenness centrality (0.201) - this node is a cross-community bridge._
-- **Why does `update()` connect `Community 2` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 38`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 39`, `Community 11`, `Community 12`, `Community 7`, `Community 15`, `Community 16`, `Community 17`, `Community 56`?**
-  _High betweenness centrality (0.103) - this node is a cross-community bridge._
+  _High betweenness centrality (0.184) - this node is a cross-community bridge._
+- **Why does `add()` connect `Community 5` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 8`, `Community 11`, `Community 13`, `Community 25`, `Community 26`?**
+  _High betweenness centrality (0.119) - this node is a cross-community bridge._
 - **Are the 87 inferred relationships involving `POST()` (e.g. with `assertCsrf()` and `getClientIp()`) actually correct?**
   _`POST()` has 87 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 69 inferred relationships involving `GET()` (e.g. with `proxy()` and `update()`) actually correct?**

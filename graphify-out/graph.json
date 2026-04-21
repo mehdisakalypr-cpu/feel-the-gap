@@ -33954,8 +33954,8 @@
       "source_file": "agents/eishi-base-runner.ts",
       "source_location": "L122",
       "weight": 1.0,
-      "_src": "eishi_base_runner_runtriple",
-      "_tgt": "revenueglobe_update",
+      "_src": "revenueglobe_update",
+      "_tgt": "eishi_base_runner_runtriple",
       "source": "revenueglobe_update",
       "target": "eishi_base_runner_runtriple"
     },
@@ -38742,8 +38742,8 @@
       "source_file": "agents/eishi-base-runner.ts",
       "source_location": "L100",
       "weight": 1.0,
-      "_src": "eishi_base_runner_runtriple",
-      "_tgt": "content_hancock_generatepotentialclients",
+      "_src": "content_hancock_generatepotentialclients",
+      "_tgt": "eishi_base_runner_runtriple",
       "source": "content_hancock_generatepotentialclients",
       "target": "eishi_base_runner_runtriple"
     },
