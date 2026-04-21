@@ -53,15 +53,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Check caller profile — need roles + tier + admin
+    // Check caller profile — need roles + admin flags
     const { data: profile } = await supabase
       .from('profiles')
-      .select('roles, tier, is_admin, is_delegate_admin')
+      .select('roles, is_admin, is_delegate_admin')
       .eq('id', user.id)
       .single()
     const roles = (profile?.roles ?? []) as string[]
     const isAdmin = profile?.is_admin || profile?.is_delegate_admin
-    const tier = profile?.tier as string | undefined
 
     // Load the dossier
     const { data: dossier, error } = await supabase
@@ -80,9 +79,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // Full access: owner, admin, or premium tier for the corresponding role
-    const hasPremium = tier === 'premium' || tier === 'enterprise'
-    const allowFull = isOwner || isAdmin || hasPremium
+    // Full access: owner, admin, or active investor_subscriptions with tier in ('active','pro').
+    // Explorer tier sees anonymized data only (gate enforced via this RPC).
+    let hasActiveSub = false
+    if (!isOwner && !isAdmin) {
+      const { data: canView } = await supabase.rpc('investor_can_view_full_dossier', { p_user: user.id })
+      hasActiveSub = canView === true
+    }
+    const allowFull = isOwner || isAdmin || hasActiveSub
 
     return NextResponse.json({
       dossier: {

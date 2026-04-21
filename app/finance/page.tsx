@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import MarketplaceStateBanner from '@/components/MarketplaceStateBanner'
 
 // Homepage /finance — destinée aux financeurs (banques, institutions de crédit,
 // crowdlenders, family offices côté dette, fonds de garantie).
@@ -55,10 +56,10 @@ export default function FinanceHomePage() {
           <div className="flex flex-wrap gap-3">
             {hasFinancierRole ? (
               <>
-                <Link href="/finance/reports"
+                <Link href="/finance/dashboard"
                   className="px-6 py-3 rounded-xl font-bold text-sm"
                   style={{ background: 'linear-gradient(135deg,#34D399,#10B981)', color: '#07090F' }}>
-                  📍 Ouvrir la carte des marchés →
+                  📊 Mon pipeline →
                 </Link>
                 <Link href="/finance/reports"
                   className="px-6 py-3 rounded-xl font-bold text-sm"
@@ -82,6 +83,16 @@ export default function FinanceHomePage() {
             )}
           </div>
         </div>
+      </section>
+
+      {/* ── Marketplace state banner ────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-4 -mt-6 mb-4">
+        <MarketplaceStateBanner
+          role="financeur"
+          accentColor="#34D399"
+          waitlistHref="/finance/waitlist"
+          catalogHref="/finance/reports"
+        />
       </section>
 
       {/* ── Value props ─────────────────────────────────────── */}
@@ -181,7 +192,7 @@ export default function FinanceHomePage() {
             ))}
           </ul>
           <div className="mt-6">
-            <Link href="/pricing?role=financeur"
+            <Link href="/pricing/funding?role=financeur"
               className="inline-block px-5 py-2.5 rounded-xl font-bold text-sm"
               style={{ background: 'linear-gradient(135deg,#34D399,#10B981)', color: '#07090F' }}>
               Voir les tarifs Finance Premium →

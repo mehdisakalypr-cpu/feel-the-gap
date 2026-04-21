@@ -207,6 +207,112 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, kind: 'marketplace_fee_paid', matchId })
     }
 
+    // ── Funding marketplace subscription (investor/financeur Explorer/Active/Pro) ─
+    if (session.metadata?.kind === 'funding_investor_subscription' && userId) {
+      const roleKind = session.metadata.role_kind as 'financeur' | 'investisseur'
+      const tier = session.metadata.tier as 'explorer' | 'active' | 'pro'
+      const durationMonths = Number(session.metadata.duration_months ?? '1')
+      const foundingPioneer = session.metadata.founding_pioneer === 'true'
+      const quotaMonth = Number(session.metadata.quota_month ?? '5')
+      const monthlyCents = Number(session.metadata.monthly_effective_cents ?? '0')
+      const customerId = (session.customer as string | null) ?? null
+      const subscriptionId = (session.subscription as string | null) ?? null
+      const nowIso = new Date().toISOString()
+      const renewsAt = new Date(Date.now() + durationMonths * 30 * 24 * 3600 * 1000).toISOString()
+
+      await supabaseAdmin.from('investor_subscriptions').upsert({
+        investor_id: userId,
+        role_kind: roleKind,
+        tier,
+        status: 'active',
+        commitment_months: durationMonths,
+        founding_pioneer: foundingPioneer,
+        quota_month: quotaMonth,
+        quota_used_month: 0,
+        quota_period_start: nowIso.slice(0, 10),
+        extra_credits: 0,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        renews_at: renewsAt,
+        updated_at: nowIso,
+      }, { onConflict: 'investor_id' })
+
+      // Ensure the role is granted on profiles (activate-role idempotent).
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles').select('roles').eq('id', userId).maybeSingle()
+      const existingRoles = (existingProfile?.roles ?? []) as string[]
+      if (!existingRoles.includes(roleKind)) {
+        await supabaseAdmin.from('profiles')
+          .update({ roles: [...existingRoles, roleKind] })
+          .eq('id', userId)
+      }
+
+      // Increment founding_pioneer_used under advisory lock semantics —
+      // single-row UPDATE is atomic in Postgres, good enough here.
+      if (foundingPioneer) {
+        const { error: incErr } = await supabaseAdmin.rpc('increment_founding_pioneer_used')
+        if (incErr) {
+          // Fallback: raw increment.
+          const { data: st } = await supabaseAdmin
+            .from('marketplace_state').select('founding_pioneer_used').eq('id', 1).maybeSingle()
+          await supabaseAdmin.from('marketplace_state')
+            .update({ founding_pioneer_used: (st?.founding_pioneer_used ?? 0) + 1 })
+            .eq('id', 1)
+        }
+      }
+
+      await trackRevenue({
+        id: `funding_sub_${session.id}`,
+        event_type: 'funding_investor_subscription_created',
+        stripe_event_id: event.id,
+        customer_id: customerId ?? undefined,
+        user_id: userId,
+        email: userEmail,
+        amount_eur: (session.amount_total ?? 0) / 100,
+        plan: `funding_${tier}`,
+        interval: durationMonths === 1 ? 'month' : `${durationMonths}_months_upfront`,
+        metadata: { role_kind: roleKind, founding_pioneer: foundingPioneer, quota_month: quotaMonth, monthly_cents: monthlyCents },
+      })
+
+      return NextResponse.json({ ok: true, kind: 'funding_investor_subscription_applied', tier, roleKind })
+    }
+
+    // ── Funding marketplace extra credits (one-shot top-up) ─────────────────
+    if (session.metadata?.kind === 'funding_investor_credits' && userId) {
+      const packKind = session.metadata.pack_kind as 'single' | 'pack5' | 'pack10' | 'pack25'
+      const credits = Number(session.metadata.credits ?? '0')
+      const adjustedEur = Number(session.metadata.adjusted_eur ?? '0')
+
+      if (credits > 0) {
+        await supabaseAdmin.from('funding_credits').insert({
+          investor_id: userId,
+          pack_kind: packKind,
+          credits_added: credits,
+          price_paid_eur: adjustedEur,
+          stripe_payment_intent_id: (session.payment_intent as string) ?? session.id,
+        })
+
+        // Bump investor_subscriptions.extra_credits so the existing accept_offer_atomic
+        // RPC can consume them when the monthly quota is exhausted.
+        const { data: sub } = await supabaseAdmin
+          .from('investor_subscriptions').select('extra_credits').eq('investor_id', userId).maybeSingle()
+        await supabaseAdmin.from('investor_subscriptions')
+          .update({ extra_credits: (sub?.extra_credits ?? 0) + credits })
+          .eq('investor_id', userId)
+      }
+
+      await trackRevenue({
+        id: `funding_credits_${session.id}`,
+        event_type: 'funding_investor_credits_purchased',
+        stripe_event_id: event.id,
+        user_id: userId, email: userEmail,
+        amount_eur: (session.amount_total ?? 0) / 100,
+        metadata: { pack_kind: packKind, credits },
+      })
+
+      return NextResponse.json({ ok: true, kind: 'funding_investor_credits_applied', credits })
+    }
+
     // ── V2 credit quota: subscription starter/premium ─────────────────────
     if (session.metadata?.kind === 'subscription' && userId) {
       const plan = session.metadata.plan as 'starter' | 'premium' | undefined

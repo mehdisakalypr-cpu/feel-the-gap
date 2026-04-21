@@ -40,7 +40,7 @@ export default function InvestSignupPage() {
       })
       const j = await res.json()
       if (!res.ok) throw new Error(j.error ?? 'Erreur')
-      router.push('/invest/map')
+      router.push('/invest/onboarding')
     } catch (err) {
       setError((err as Error).message)
     } finally {

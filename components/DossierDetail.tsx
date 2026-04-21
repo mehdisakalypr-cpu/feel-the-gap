@@ -149,7 +149,7 @@ export default function DossierDetail({ dossierId, accentColor, baseHref }: Doss
               sont masqués. Souscrivez à {dossier.type === 'financement' ? 'Finance Premium' : 'Invest Premium'} pour
               accéder au dossier complet et faire une proposition.
             </div>
-            <Link href={`/pricing?role=${dossier.type === 'financement' ? 'financeur' : 'investisseur'}`}
+            <Link href={`/pricing/funding?role=${dossier.type === 'financement' ? 'financeur' : 'investisseur'}`}
               className="inline-block text-xs font-semibold hover:underline" style={{ color: accentColor }}>
               Voir les tarifs Premium →
             </Link>
@@ -203,7 +203,7 @@ export default function DossierDetail({ dossierId, accentColor, baseHref }: Doss
             {dossier.type === 'financement' ? '💰 Proposer un financement' : '📈 Proposer un investissement'}
           </button>
         ) : (
-          <Link href={`/pricing?role=${dossier.type === 'financement' ? 'financeur' : 'investisseur'}`}
+          <Link href={`/pricing/funding?role=${dossier.type === 'financement' ? 'financeur' : 'investisseur'}`}
             className="inline-block px-6 py-3 rounded-xl font-bold text-sm"
             style={{ background: `linear-gradient(135deg,${accentColor},${accentColor}cc)`, color: '#07090F' }}>
             🔓 Débloquer Premium pour faire une offre
@@ -255,8 +255,8 @@ function OfferFormModal({ dossier, accentColor, onClose }: {
     setSubmitting(true)
     setError('')
     try {
-      const endpoint = dossier.type === 'financement' ? '/api/funding/offers' : '/api/investor/offers'
       const body = dossier.type === 'financement' ? {
+        kind: 'funding' as const,
         dossier_id: dossier.id,
         amount_eur: amount,
         interest_rate_pct: rate,
@@ -265,15 +265,15 @@ function OfferFormModal({ dossier, accentColor, onClose }: {
         fees_eur: fees,
         message,
       } : {
+        kind: 'investor' as const,
         dossier_id: dossier.id,
         pct_capital: pctCapital,
         platform_valuation_eur: platformValuation,
         user_valuation_eur: isCounterProposal ? userValuation : null,
         amount_eur: investmentFromPct,
-        is_counter_proposal: isCounterProposal,
         message,
       }
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/funding/offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

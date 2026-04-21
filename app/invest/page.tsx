@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import MarketplaceStateBanner from '@/components/MarketplaceStateBanner'
 
 // Homepage /invest — destinée aux investisseurs en capital : business angels,
 // fonds d'amorçage/Série A, family offices côté equity, corporate VC.
@@ -55,15 +56,15 @@ export default function InvestHomePage() {
           <div className="flex flex-wrap gap-3">
             {hasInvestorRole ? (
               <>
-                <Link href="/invest/reports"
+                <Link href="/invest/dashboard"
                   className="px-6 py-3 rounded-xl font-bold text-sm"
                   style={{ background: 'linear-gradient(135deg,#60A5FA,#A78BFA)', color: '#07090F' }}>
-                  🌍 Ouvrir la carte du deal flow →
+                  📊 Mon pipeline →
                 </Link>
                 <Link href="/invest/reports"
                   className="px-6 py-3 rounded-xl font-bold text-sm"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  Parcourir le pipeline
+                  Parcourir le deal flow
                 </Link>
               </>
             ) : (
@@ -82,6 +83,16 @@ export default function InvestHomePage() {
             )}
           </div>
         </div>
+      </section>
+
+      {/* ── Marketplace state banner ────────────────────────── */}
+      <section className="max-w-6xl mx-auto px-4 -mt-6 mb-4">
+        <MarketplaceStateBanner
+          role="investisseur"
+          accentColor="#60A5FA"
+          waitlistHref="/invest/waitlist"
+          catalogHref="/invest/reports"
+        />
       </section>
 
       {/* ── Value props ─────────────────────────────────────── */}
@@ -205,7 +216,7 @@ export default function InvestHomePage() {
             ))}
           </ul>
           <div className="mt-6">
-            <Link href="/pricing?role=investisseur"
+            <Link href="/pricing/funding?role=investisseur"
               className="inline-block px-5 py-2.5 rounded-xl font-bold text-sm"
               style={{ background: 'linear-gradient(135deg,#60A5FA,#A78BFA)', color: '#07090F' }}>
               Voir les tarifs Invest Premium →

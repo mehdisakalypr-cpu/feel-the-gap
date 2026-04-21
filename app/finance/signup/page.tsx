@@ -40,7 +40,7 @@ export default function FinanceSignupPage() {
       })
       const j = await res.json()
       if (!res.ok) throw new Error(j.error ?? 'Erreur')
-      router.push('/finance/map')
+      router.push('/finance/onboarding')
     } catch (err) {
       setError((err as Error).message)
     } finally {
