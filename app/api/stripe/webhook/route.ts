@@ -149,6 +149,64 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, kind: 'credit_pack_applied', packSize })
     }
 
+    // ── Marketplace subscription (Shaka 2026-04-21) ───────────────────────
+    if (session.metadata?.kind === 'marketplace_subscription' && userId) {
+      const tier = session.metadata.marketplace_tier as string
+      const quota = Number(session.metadata.quota ?? 0)
+      const baselineCents = Number(session.metadata.baseline_cents ?? 0)
+      const adjustedCents = Number(session.metadata.adjusted_cents ?? 0)
+      const pppMult = Number(session.metadata.ppp_multiplier ?? 1)
+      const country = session.metadata.country || null
+      const subscriptionId = session.subscription as string | null
+      const customerId = session.customer as string | null
+
+      // Insert marketplace_subscriptions row (active)
+      await supabaseAdmin.from('marketplace_subscriptions').upsert({
+        user_id: userId,
+        tier,
+        status: 'active',
+        matches_per_month: quota,
+        matches_used_this_period: 0,
+        period_start: new Date().toISOString(),
+        period_end: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        pricing_multiplier_at_start: pppMult,
+        base_price_eur_cents: baselineCents,
+        adjusted_price_eur_cents: adjustedCents,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'stripe_subscription_id' })
+
+      await trackRevenue({
+        id: `mp_sub_${session.id}`, event_type: 'marketplace_subscription_created',
+        stripe_event_id: event.id, customer_id: customerId ?? undefined, user_id: userId,
+        email: userEmail, amount_eur: adjustedCents / 100, plan: `marketplace_${tier}`, interval: 'month',
+        metadata: { tier, country, ppp_multiplier: pppMult },
+      })
+
+      return NextResponse.json({ ok: true, kind: 'marketplace_subscription_applied', tier })
+    }
+
+    // ── Marketplace fee (pay-per-act one-shot) ─────────────────────────────
+    if (session.metadata?.kind === 'marketplace_fee') {
+      const matchId = session.metadata.match_id
+      if (matchId) {
+        const now = new Date().toISOString()
+        await supabaseAdmin.from('marketplace_matches').update({
+          status: 'paid',
+          identities_revealed_at: now,
+        }).eq('id', matchId)
+
+        await trackRevenue({
+          id: `mp_fee_${session.id}`, event_type: 'marketplace_fee_paid',
+          stripe_event_id: event.id, user_id: userId, email: userEmail,
+          amount_eur: (session.amount_total ?? 0) / 100,
+          metadata: { match_id: matchId, tier_label: session.metadata.tier_label, country: session.metadata.country },
+        })
+      }
+      return NextResponse.json({ ok: true, kind: 'marketplace_fee_paid', matchId })
+    }
+
     // ── V2 credit quota: subscription starter/premium ─────────────────────
     if (session.metadata?.kind === 'subscription' && userId) {
       const plan = session.metadata.plan as 'starter' | 'premium' | undefined

@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { StoreChrome } from '@/components/store-public/StoreChrome'
 import { ProductCard, type ProductCardData } from '@/components/store-public/ProductCard'
+import { SegmentGate, SegmentSwitch } from '@/components/store-public/SegmentGate'
 import { loadChrome } from '../_chrome'
+import { resolveSegment, shouldShowGate } from '../_segment'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -63,7 +65,15 @@ export default async function ProductsListPage({ params, searchParams }: Props) 
   const sb = await createSupabaseServer()
   const accent = store.primary_color || '#C9A84C'
 
-  const segment: 'b2c' | 'b2b' = sp.segment === 'b2b' ? 'b2b' : 'b2c'
+  // Segment resolution order: explicit ?segment=… (one-off visit) > cookie > store default
+  const cookieSegment = await resolveSegment(store)
+  const segment: 'b2c' | 'b2b' = sp.segment === 'b2b'
+    ? 'b2b'
+    : sp.segment === 'b2c'
+      ? 'b2c'
+      : cookieSegment
+  const showGate = await shouldShowGate(store)
+  const canSwitch = Boolean(store.mode_b2b && store.mode_b2c)
   const minCents = sp.min ? Math.max(0, Math.round(Number(sp.min) * 100)) : null
   const maxCents = sp.max ? Math.max(0, Math.round(Number(sp.max) * 100)) : null
   const inStockOnly = sp.in_stock === '1'
@@ -131,9 +141,6 @@ export default async function ProductsListPage({ params, searchParams }: Props) 
     }
   }
 
-  const allowB2B = store.billing_entity ? true : true // any visitor may see B2B if mode_b2b enabled — placeholder
-  void allowB2B
-
   return (
     <StoreChrome
       slug={store.slug}
@@ -143,6 +150,7 @@ export default async function ProductsListPage({ params, searchParams }: Props) 
       cartCount={cartCount}
       userEmail={user?.email ?? null}
     >
+      {showGate && <SegmentGate slug={store.slug} storeName={store.name} accent={accent} />}
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-white">Catalogue</h1>
@@ -172,13 +180,15 @@ export default async function ProductsListPage({ params, searchParams }: Props) 
                   <input id="max" name="max" type="number" step="0.01" defaultValue={sp.max ?? ''} className="mt-1 w-full rounded-lg border border-white/10 bg-[#111827] px-2 py-1.5 text-xs text-white focus:border-[#C9A84C] focus:outline-none" />
                 </div>
               </div>
-              <div>
-                <label htmlFor="segment" className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Segment</label>
-                <select id="segment" name="segment" defaultValue={segment} className="mt-1 w-full rounded-lg border border-white/10 bg-[#111827] px-2 py-1.5 text-xs text-white focus:border-[#C9A84C] focus:outline-none">
-                  <option value="b2c">Particulier (TTC)</option>
-                  <option value="b2b">Professionnel (HT)</option>
-                </select>
-              </div>
+              {(store.mode_b2b && store.mode_b2c) && (
+                <div>
+                  <label htmlFor="segment" className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Segment</label>
+                  <select id="segment" name="segment" defaultValue={segment} className="mt-1 w-full rounded-lg border border-white/10 bg-[#111827] px-2 py-1.5 text-xs text-white focus:border-[#C9A84C] focus:outline-none">
+                    <option value="b2c">Particulier (TTC)</option>
+                    <option value="b2b">Professionnel (HT)</option>
+                  </select>
+                </div>
+              )}
               <label className="flex items-center gap-2 text-xs text-gray-300">
                 <input type="checkbox" name="in_stock" value="1" defaultChecked={inStockOnly} className="rounded border-white/10 bg-[#111827]" />
                 En stock uniquement
@@ -241,6 +251,10 @@ export default async function ProductsListPage({ params, searchParams }: Props) 
             )}
           </section>
         </div>
+
+        <footer className="mt-10 text-center">
+          <SegmentSwitch slug={store.slug} current={segment} canSwitch={canSwitch} />
+        </footer>
       </div>
     </StoreChrome>
   )

@@ -89,6 +89,22 @@ export default function MyOffersPage() {
 
   useEffect(() => { load() }, [])
 
+  async function payFee(id: string) {
+    setSubmitting(true); setError(null)
+    try {
+      const r = await fetch(`/api/marketplace/matches/${id}/pay-fee`, { method: 'POST' })
+      const j = await r.json()
+      if (r.status === 401 && j.redirect) { window.location.href = j.redirect; return }
+      if (!r.ok) throw new Error(j.error || 'Paiement impossible')
+      if (j.url) { window.location.href = j.url; return } // Stripe redirect
+      if (j.mode === 'subscription') {
+        // Quota consommé, UI rafraîchie pour refléter paid+reveal
+        await load()
+      }
+    } catch (e) { setError((e as Error).message) }
+    finally { setSubmitting(false) }
+  }
+
   async function decide(id: string, action: 'accept' | 'refuse' | 'counter', counter?: { price?: number; quantity?: number; message?: string }) {
     setSubmitting(true); setError(null)
     try {
@@ -303,15 +319,24 @@ export default function MyOffersPage() {
                 {isSel && m.status === 'confirmed' && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.dim}33` }}>
                     <button
-                      disabled
-                      style={{ ...actionBtn(C.gold), cursor: 'not-allowed', opacity: 0.7 }}
-                      title="Stripe checkout TODO Phase 2"
+                      onClick={(e) => { e.stopPropagation(); payFee(m.id) }}
+                      disabled={submitting}
+                      style={actionBtn(C.gold)}
                     >
                       💳 Payer la commission ({m.pricing_tier_fee_eur ? `€${(m.pricing_tier_fee_eur / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}` : '—'})
                     </button>
-                    <span style={{ marginLeft: 10, fontSize: '.7rem', color: C.amber }}>
-                      ⚙️ Stripe checkout en cours d&apos;intégration (Phase 2)
+                    <span style={{ marginLeft: 10, fontSize: '.7rem', color: C.muted }}>
+                      Pris sur ton abo si quota dispo, sinon Stripe one-shot.
                     </span>
+                  </div>
+                )}
+
+                {isSel && m.status === 'paid' && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.dim}33`, fontSize: '.78rem', color: C.muted }}>
+                    <div style={{ color: C.green, fontWeight: 600, marginBottom: 6 }}>
+                      ✓ Commission payée le {m.identities_revealed_at ? new Date(m.identities_revealed_at).toLocaleDateString('fr-FR') : '—'}
+                    </div>
+                    Ouvre le fil de discussion dans <a href={`/marketplace/${m.id}`} style={{ color: C.gold }}>la fiche du match</a> pour récupérer les coordonnées de l&apos;autre partie et organiser la transaction.
                   </div>
                 )}
               </div>

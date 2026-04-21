@@ -11,6 +11,8 @@ export interface StoreContext {
   logo_url: string | null
   status: string
   billing_entity: Record<string, unknown> | null
+  mode_b2b: boolean
+  mode_b2c: boolean
 }
 
 /**
@@ -21,7 +23,7 @@ export async function getStoreBySlug(slug: string): Promise<StoreContext | null>
   const sb = await createSupabaseServer()
   const { data } = await sb
     .from('stores')
-    .select('id, slug, name, primary_color, logo_url, status, billing_entity')
+    .select('id, slug, name, primary_color, logo_url, status, billing_entity, mode_b2b, mode_b2c')
     .eq('slug', slug)
     .maybeSingle()
   if (!data) return null
@@ -33,6 +35,8 @@ export async function getStoreBySlug(slug: string): Promise<StoreContext | null>
     logo_url: data.logo_url ? String(data.logo_url) : null,
     status: String(data.status),
     billing_entity: (data.billing_entity ?? null) as Record<string, unknown> | null,
+    mode_b2b: Boolean(data.mode_b2b ?? false),
+    mode_b2c: Boolean(data.mode_b2c ?? true),
   }
 }
 

@@ -35,14 +35,37 @@ const TIERS: Tier[] = [
 ]
 
 const PAY_PER_ACT = [
-  { range: '€0 − €50k',   fee: 149 },
-  { range: '€50k − €500k', fee: 499 },
-  { range: '€500k+',       fee: 999 },
+  { range: '€0 − €10k',      fee: 149 },
+  { range: '€10k − €50k',    fee: 349 },
+  { range: '€50k − €200k',   fee: 749 },
+  { range: '€200k − €1M',    fee: 1499 },
+  { range: '€1M+',           fee: 2999 },
 ]
 
 export default function SubscriptionsPage() {
   const [multiplier, setMultiplier] = useState<number>(1.0)
   const [countryLabel, setCountryLabel] = useState<string>('🇫🇷 France (PPP 1.0)')
+  const [checkoutErr, setCheckoutErr] = useState<string | null>(null)
+  const [checkingOut, setCheckingOut] = useState<string | null>(null)
+
+  async function subscribe(tier: Tier['key']) {
+    setCheckoutErr(null); setCheckingOut(tier)
+    try {
+      const r = await fetch('/api/marketplace/subscriptions/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier }),
+      })
+      const j = await r.json()
+      if (r.status === 401 && j.redirect) { window.location.href = j.redirect; return }
+      if (!r.ok) throw new Error(j.error || 'Checkout failed')
+      if (j.url) window.location.href = j.url
+    } catch (e) {
+      setCheckoutErr((e as Error).message)
+    } finally {
+      setCheckingOut(null)
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -95,6 +118,12 @@ export default function SubscriptionsPage() {
         </p>
       </header>
 
+      {checkoutErr && (
+        <div style={{ padding: 12, background: `${C.red}15`, border: `1px solid ${C.red}44`, color: C.red, fontSize: '.78rem', marginBottom: 12, borderRadius: 4 }}>
+          {checkoutErr}
+        </div>
+      )}
+
       {/* Abonnement tiers */}
       <section style={{ marginBottom: 36 }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: C.gold, marginBottom: 14, borderLeft: `3px solid ${C.gold}`, paddingLeft: 10 }}>
@@ -135,14 +164,17 @@ export default function SubscriptionsPage() {
                 </div>
 
                 <button
-                  onClick={() => alert(`Stripe subscription checkout (Phase 2) — tier ${t.key}`)}
+                  onClick={() => subscribe(t.key)}
+                  disabled={checkingOut !== null}
                   style={{
                     width: '100%', padding: 10, background: t.color, color: C.bg,
-                    border: 'none', fontWeight: 700, fontSize: '.82rem', cursor: 'pointer',
+                    border: 'none', fontWeight: 700, fontSize: '.82rem',
+                    cursor: checkingOut !== null ? 'wait' : 'pointer',
+                    opacity: checkingOut && checkingOut !== t.key ? 0.5 : 1,
                     fontFamily: 'inherit', borderRadius: 4,
                   }}
                 >
-                  Choisir {t.label}
+                  {checkingOut === t.key ? 'Redirection Stripe…' : `Choisir ${t.label}`}
                 </button>
               </div>
             )

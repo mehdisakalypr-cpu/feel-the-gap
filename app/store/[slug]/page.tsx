@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { StoreChrome } from '@/components/store-public/StoreChrome'
 import { ProductCard, type ProductCardData } from '@/components/store-public/ProductCard'
+import { SegmentGate, SegmentSwitch } from '@/components/store-public/SegmentGate'
 import { loadChrome } from './_chrome'
+import { resolveSegment, shouldShowGate, productVisibleForSegment } from './_segment'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -97,8 +99,11 @@ export default async function StoreHomePage({ params }: Props) {
     }
   }
 
-  // Visitor segment heuristic: anonymous defaults to b2c
-  const visitorSegment: 'b2c' | 'b2b' = 'b2c'
+  // Visitor segment — driven by cookie (set by SegmentGate) + store B2B/B2C modes.
+  const visitorSegment = await resolveSegment(store)
+  const showGate = await shouldShowGate(store)
+  const canSwitch = Boolean(store.mode_b2b && store.mode_b2c)
+  const visibleProducts = products.filter(p => productVisibleForSegment(p.segment, visitorSegment))
 
   return (
     <StoreChrome
@@ -109,6 +114,7 @@ export default async function StoreHomePage({ params }: Props) {
       cartCount={cartCount}
       userEmail={user?.email ?? null}
     >
+      {showGate && <SegmentGate slug={store.slug} storeName={store.name} accent={accent} /> }
       <section
         className="border-b border-white/5 bg-gradient-to-b from-[#0B0F1A] to-[#07090F] px-4 py-16 text-center"
       >
@@ -172,13 +178,13 @@ export default async function StoreHomePage({ params }: Props) {
             Tout voir →
           </Link>
         </div>
-        {products.length === 0 ? (
+        {visibleProducts.length === 0 ? (
           <p className="rounded-2xl border border-white/5 bg-[#0D1117] p-8 text-center text-sm text-gray-500">
-            Aucun produit disponible pour le moment. Revenez bientôt !
+            Aucun produit {visitorSegment === 'b2b' ? 'pro' : 'particulier'} disponible pour le moment. Revenez bientôt !
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {products.map(p => {
+            {visibleProducts.map(p => {
               const data: ProductCardData = {
                 id: p.id,
                 name: p.name,
@@ -195,6 +201,10 @@ export default async function StoreHomePage({ params }: Props) {
           </div>
         )}
       </section>
+
+      <footer className="mx-auto max-w-6xl px-4 pb-12 pt-4 text-center">
+        <SegmentSwitch slug={store.slug} current={visitorSegment} canSwitch={canSwitch} />
+      </footer>
     </StoreChrome>
   )
 }
