@@ -25,6 +25,7 @@ const NAV = [
   { href: '/admin/marketplace',   label: 'Marketplace',    icon: '🌍' },
   { href: '/admin/api-usage',     label: 'API Usage',       icon: '🔑' },
   { href: '/admin/content-generation', label: 'Content Gen',  icon: '🌀' },
+  { href: '/admin/eishi-coverage', label: 'Eishi Coverage', icon: '🍴' },
   { href: '/admin/fraud-events',  label: 'Fraud',           icon: '🛡️' },
 ]
 
