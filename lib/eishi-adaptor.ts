@@ -98,11 +98,19 @@ export async function auditAndEnqueueForOpp(
     .maybeSingle()
   const productId = opp?.product_id as string | undefined
 
-  // Load shared bases in parallel: opp content (per opp×country×lang) + videos (per product×country)
-  const [{ data: content }, videosRes] = await Promise.all([
+  // Load 3 sources in parallel:
+  //   opp content (layer 2, per-opp personalization)
+  //   base content (layer 1, shared per product×country×lang)
+  //   videos cache (shared per product×country)
+  const [{ data: content }, { data: baseContent }, videosRes] = await Promise.all([
     sb.from('ftg_opportunity_content')
       .select('status, production_methods, business_plans, potential_clients, youtube_videos')
       .eq('opp_id', params.oppId).eq('country_iso', country).eq('lang', lang).maybeSingle(),
+    productId
+      ? sb.from('ftg_product_country_content')
+          .select('status, production_methods, business_plans, potential_clients')
+          .eq('product_id', productId).eq('country_iso', country).eq('lang', lang).maybeSingle()
+      : Promise.resolve({ data: null as any }),
     productId
       ? sb.from('ftg_product_country_videos')
           .select('status, payload')
@@ -112,11 +120,17 @@ export async function auditAndEnqueueForOpp(
 
   const videosRow = (videosRes as any)?.data
 
-  // Score each section. "generating" overrides ready/thin/missing if a job is in flight.
+  // Merge base (layer 1) + per-opp (layer 2) per section. Per-opp wins.
+  const merged = {
+    production_methods: content?.production_methods ?? baseContent?.production_methods,
+    business_plans:     content?.business_plans ?? baseContent?.business_plans,
+    potential_clients:  content?.potential_clients ?? baseContent?.potential_clients,
+  }
+
   const sections: Record<SectionKey, SectionSnapshot> = {
-    production_methods: { key: 'production_methods', state: scoreProductionMethods(content?.production_methods), enqueued: false },
-    business_plans:     { key: 'business_plans',     state: scoreBusinessPlans(content?.business_plans),         enqueued: false },
-    potential_clients:  { key: 'potential_clients',  state: scorePotentialClients(content?.potential_clients),   enqueued: false },
+    production_methods: { key: 'production_methods', state: scoreProductionMethods(merged.production_methods), enqueued: false },
+    business_plans:     { key: 'business_plans',     state: scoreBusinessPlans(merged.business_plans),         enqueued: false },
+    potential_clients:  { key: 'potential_clients',  state: scorePotentialClients(merged.potential_clients),   enqueued: false },
     youtube_videos:     { key: 'youtube_videos',     state: videosRow?.status === 'ready' ? scoreVideos(videosRow.payload) : (videosRow?.status === 'generating' ? 'generating' : 'missing'), enqueued: false },
   }
 

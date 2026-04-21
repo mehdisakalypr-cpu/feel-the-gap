@@ -54,20 +54,31 @@ async function loadContent(country: string, oppSlug: string) {
     .eq('lang', 'fr')
     .maybeSingle()
 
-  // v2 dedup cache: videos keyed on (product_id, country_iso) only.
-  // Reads from ftg_product_country_videos if populated; UI falls back to
-  // content.youtube_videos (legacy per-opp cache) while v2 backfills.
-  const { data: videosV2 } = opp.product_id
-    ? await db
-        .from('ftg_product_country_videos')
-        .select('payload, status')
-        .eq('product_id', opp.product_id)
-        .eq('country_iso', country)
-        .eq('status', 'ready')
-        .maybeSingle()
-    : { data: null as any }
+  // Eishi Layer 1 base (shared per product × country) — read in parallel with
+  // per-opp personalization. The UI merges: prefer per-opp override if present,
+  // fall back to shared base, then to the empty-state synthesizing screen.
+  const [{ data: videosV2 }, { data: baseContent }] = await Promise.all([
+    opp.product_id
+      ? db.from('ftg_product_country_videos')
+          .select('payload, status')
+          .eq('product_id', opp.product_id).eq('country_iso', country)
+          .eq('status', 'ready').maybeSingle()
+      : Promise.resolve({ data: null as any }),
+    opp.product_id
+      ? db.from('ftg_product_country_content')
+          .select('production_methods, business_plans, potential_clients, status, generated_at')
+          .eq('product_id', opp.product_id).eq('country_iso', country).eq('lang', 'fr')
+          .eq('status', 'ready').maybeSingle()
+      : Promise.resolve({ data: null as any }),
+  ])
 
-  return { opp, country: countryRow, content, videosV2: videosV2?.payload ?? null }
+  return {
+    opp,
+    country: countryRow,
+    content,
+    videosV2: videosV2?.payload ?? null,
+    baseContent: baseContent ?? null,
+  }
 }
 
 export default async function OppPage({ params }: Params) {
@@ -75,20 +86,20 @@ export default async function OppPage({ params }: Params) {
   const data = await loadContent(country.toUpperCase(), oppSlug)
   if (!data) return notFound()
 
-  const { opp, country: c, content, videosV2 } = data
+  const { opp, country: c, content, videosV2, baseContent } = data
   const countryName = c?.name_fr || c?.name_en || country
   const userLang = 'fr'  // TODO: read from i18n/cookie when multi-lang ships
   const videosData = videosV2 || content?.youtube_videos
 
-  // Eishi layered rendering: always show the layout. Each section renders its
-  // content if ready, or <SectionSynthesizing /> which polls + enqueues
-  // priority=100 for paid users. No more all-or-nothing "coming soon" screen.
-  const sectionStates = {
-    production_methods: !!content?.production_methods,
-    business_plans:     !!content?.business_plans,
-    potential_clients:  !!content?.potential_clients,
-    youtube_videos:     !!videosData,
-  }
+  // Eishi merge: per-opp override (layer 2) wins over shared base (layer 1).
+  // UI treats either as ready for display; empty/missing still hits Synthesizing.
+  const prodMethods     = content?.production_methods ?? baseContent?.production_methods ?? null
+  const businessPlans   = content?.business_plans ?? baseContent?.business_plans ?? null
+  const potentialClients= content?.potential_clients ?? baseContent?.potential_clients ?? null
+
+  // Eishi layered rendering: base (layer 1, shared) + personalization (layer 2)
+  // merged above. Each section shows content if any layer populated it, otherwise
+  // <SectionSynthesizing /> polls + enqueues priority=100 for paid users.
 
   return (
     <main style={{ background: C.bg, color: C.text, minHeight: '100vh', padding: '2rem' }}>
@@ -106,20 +117,20 @@ export default async function OppPage({ params }: Params) {
         </div>
 
         <Section title="🏭 Méthodes de production">
-          {content?.production_methods
-            ? <ProductionMethodsView data={content.production_methods} />
+          {prodMethods
+            ? <ProductionMethodsView data={prodMethods} />
             : <OppPageClient oppId={opp.id} country={country} section="production_methods" label="les méthodes de production" icon="🏭" />}
         </Section>
 
         <Section title="📋 Business plans">
-          {content?.business_plans
-            ? <BusinessPlansView data={content.business_plans} />
+          {businessPlans
+            ? <BusinessPlansView data={businessPlans} />
             : <OppPageClient oppId={opp.id} country={country} section="business_plans" label="votre business plan" icon="📋" />}
         </Section>
 
         <Section title="🤝 Clients potentiels">
-          {content?.potential_clients
-            ? <PotentialClientsView data={content.potential_clients} />
+          {potentialClients
+            ? <PotentialClientsView data={potentialClients} />
             : <OppPageClient oppId={opp.id} country={country} section="potential_clients" label="les clients potentiels" icon="🤝" />}
         </Section>
 
