@@ -50,7 +50,7 @@ body {
 
 /* Leaflet overrides */
 .leaflet-container { background: #cfe3ee !important; }
-/* Atlas + Voyager modes keep tiles natural — only night mode darkens via tile source itself */
+/* Satellite + Voyager modes keep tiles natural — only night mode darkens via tile source itself */
 .leaflet-tile-pane { filter: none; }
 .leaflet-container.ftg-night { background: #1e293b !important; }
 .leaflet-container.ftg-night .leaflet-tile-pane { filter: none; }

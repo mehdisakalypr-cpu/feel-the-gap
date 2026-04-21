@@ -83,12 +83,10 @@ function fmtUsd(v: number | null): string {
 }
 
 const TILE_URLS = {
-  // Atlas — National Geographic style: continents relief tan/vert, océans bleu clair,
-  // frontières nettes, labels lisibles. C'est le look cartographique classique.
-  atlas:     { url: 'https://services.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 16, attribution: '© Esri · National Geographic' } },
+  // Satellite — Esri World Imagery (défaut, vue premier lancement)
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Esri' } },
   // Standard — Carto Voyager (urbain, roads, parcs verts)
   standard:  { url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19, attribution: '© OpenStreetMap, © CARTO' } },
-  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts: { maxZoom: 19, attribution: 'Esri' } },
   night:     { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', opts: { maxZoom: 19 } },
 } as const
 
@@ -113,9 +111,8 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
   // Senku 2026-04-18 : user a constaté que "la carte affiche une seconde ~200 opportunités puis bascule sur le bon nombre".
   const [countries, setCountries] = useState<CountryMapData[]>([])
   const [mapReady, setMapReady] = useState(false)
-  // Atlas par défaut — look cartographique classique (relief tan/vert, océans clairs,
-  // frontières nettes). Lisible, bright, pro. Satellite/Voyager/Nuit restent accessibles.
-  const [tileMode, setTileMode] = useState<'atlas' | 'standard' | 'satellite' | 'night'>('atlas')
+  // Satellite par défaut — imagerie réelle au lancement. Standard/Nuit restent accessibles.
+  const [tileMode, setTileMode] = useState<'standard' | 'satellite' | 'night'>('satellite')
   const [totalMarkets, setTotalMarkets] = useState<number | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tileLayerRef = useRef<any>(null)
@@ -193,9 +190,10 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       leafletMapRef.current = map
       leafletRef.current = L
 
-      // Démarre sur atlas — look cartographique classique (National Geographic).
-      // Labels déjà intégrés dans la tuile, pas besoin d'overlay séparé.
-      tileLayerRef.current = L.tileLayer(TILE_URLS.atlas.url, TILE_URLS.atlas.opts).addTo(map)
+      // Démarre sur satellite — imagerie Esri World Imagery.
+      // Labels non intégrés aux tuiles → overlay SATELLITE_LABEL_URL ajouté juste après.
+      tileLayerRef.current = L.tileLayer(TILE_URLS.satellite.url, TILE_URLS.satellite.opts).addTo(map)
+      labelLayerRef.current = L.tileLayer(SATELLITE_LABEL_URL, { maxZoom: 19, opacity: 1 }).addTo(map)
 
       setMapReady(true)
     }
@@ -380,9 +378,8 @@ export default function WorldMap({ activeCategories = [], activeSubs = [] }: Pro
       {/* Tile mode switcher — compact (icon-only on mobile, icon+label on md+) */}
       <div className={`absolute top-3 right-3 z-[400] flex gap-0.5 bg-[#0D1117]/90 border border-[rgba(201,168,76,.15)] rounded-lg p-0.5 backdrop-blur-sm ${selectedCountry ? 'hidden md:flex' : ''}`}>
         {([
-          { id: 'atlas',     label: t('map.tile_atlas') || 'Atlas',        icon: '📜' },
-          { id: 'standard',  label: t('map.tile_standard'),                 icon: '🗺️' },
           { id: 'satellite', label: t('map.tile_satellite'),                icon: '🛰️' },
+          { id: 'standard',  label: t('map.tile_standard'),                 icon: '🗺️' },
           { id: 'night',     label: t('map.tile_night'),                    icon: '🌙' },
         ] as const).map(m => (
           <button
@@ -492,7 +489,7 @@ function buildPopupHtml(c: CountryMapData, t: (key: string) => string): string {
   const ctaLabel = tr('map.see_details_opportunities', 'Voir détail & opportunités')
 
   return `
-    <div style="padding:14px 16px;min-width:260px;font-family:system-ui,sans-serif">
+    <div style="padding:14px 16px;min-width:260px;font-family:inherit">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="font-size:22px;line-height:1">${c.flag}</span>
         <div>
