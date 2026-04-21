@@ -1,7 +1,7 @@
 # Graph Report - .  (2026-04-21)
 
 ## Corpus Check
-- 677 files · ~523,544 words
+- 677 files · ~523,677 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -1556,11 +1556,11 @@ Nodes (0):
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `POST()` connect `Community 2` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 39`, `Community 40`, `Community 10`, `Community 9`, `Community 12`, `Community 13`, `Community 14`, `Community 8`, `Community 26`, `Community 63`?**
-  _High betweenness centrality (0.236) - this node is a cross-community bridge._
+  _High betweenness centrality (0.212) - this node is a cross-community bridge._
 - **Why does `GET()` connect `Community 0` to `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 39`, `Community 8`, `Community 10`, `Community 40`, `Community 12`, `Community 13`, `Community 14`, `Community 22`, `Community 36`?**
-  _High betweenness centrality (0.182) - this node is a cross-community bridge._
+  _High betweenness centrality (0.186) - this node is a cross-community bridge._
 - **Why does `add()` connect `Community 4` to `Community 0`, `Community 2`, `Community 3`, `Community 5`, `Community 6`, `Community 24`, `Community 25`?**
-  _High betweenness centrality (0.089) - this node is a cross-community bridge._
+  _High betweenness centrality (0.099) - this node is a cross-community bridge._
 - **Are the 89 inferred relationships involving `POST()` (e.g. with `assertCsrf()` and `getClientIp()`) actually correct?**
   _`POST()` has 89 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 71 inferred relationships involving `GET()` (e.g. with `proxy()` and `update()`) actually correct?**
