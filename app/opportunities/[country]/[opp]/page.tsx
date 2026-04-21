@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import YoutubeLiteEmbed from '@/components/YoutubeLiteEmbed'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -52,7 +53,20 @@ async function loadContent(country: string, oppSlug: string) {
     .eq('lang', 'fr')
     .maybeSingle()
 
-  return { opp, country: countryRow, content }
+  // v2 dedup cache: videos keyed on (product_id, country_iso) only.
+  // Reads from ftg_product_country_videos if populated; UI falls back to
+  // content.youtube_videos (legacy per-opp cache) while v2 backfills.
+  const { data: videosV2 } = opp.product_id
+    ? await db
+        .from('ftg_product_country_videos')
+        .select('payload, status')
+        .eq('product_id', opp.product_id)
+        .eq('country_iso', country)
+        .eq('status', 'ready')
+        .maybeSingle()
+    : { data: null as any }
+
+  return { opp, country: countryRow, content, videosV2: videosV2?.payload ?? null }
 }
 
 export default async function OppPage({ params }: Params) {
@@ -60,8 +74,10 @@ export default async function OppPage({ params }: Params) {
   const data = await loadContent(country.toUpperCase(), oppSlug)
   if (!data) return notFound()
 
-  const { opp, country: c, content } = data
+  const { opp, country: c, content, videosV2 } = data
   const countryName = c?.name_fr || c?.name_en || country
+  const userLang = 'fr'  // TODO: read from i18n/cookie when multi-lang ships
+  const videosData = videosV2 || content?.youtube_videos
 
   if (!content || content.status !== 'ready') {
     return (
@@ -121,10 +137,10 @@ export default async function OppPage({ params }: Params) {
           </Section>
         )}
 
-        {/* 4. YouTube Videos */}
-        {content.youtube_videos && (
+        {/* 4. YouTube Videos (v2 dedup cache preferred, falls back to legacy per-opp) */}
+        {videosData && (
           <Section title="🎥 Vidéos YouTube">
-            <YoutubeVideosView data={content.youtube_videos} />
+            <YoutubeVideosView data={videosData} userLang={userLang} />
           </Section>
         )}
       </div>
@@ -214,22 +230,12 @@ function PotentialClientsView({ data }: { data: any }) {
   )
 }
 
-function YoutubeVideosView({ data }: { data: any }) {
+function YoutubeVideosView({ data, userLang }: { data: any; userLang: string }) {
   const videos = data?.videos || []
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
       {videos.map((v: any) => (
-        <a key={v.videoId} href={v.url} target="_blank" rel="noopener noreferrer"
-          style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: 'hidden', textDecoration: 'none', color: C.text }}>
-          <img src={v.thumbnailUrl} alt={v.title} style={{ width: '100%', display: 'block' }} />
-          <div style={{ padding: '0.75rem' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3, minHeight: 40 }}>{v.title.slice(0, 80)}</div>
-            <div style={{ color: C.muted, fontSize: 12, marginTop: '0.5rem' }}>{v.channelTitle}</div>
-            <div style={{ color: C.muted, fontSize: 11, marginTop: '0.25rem' }}>
-              {v.viewCount?.toLocaleString()} vues · {new Date(v.publishedAt).toLocaleDateString('fr-FR')}
-            </div>
-          </div>
-        </a>
+        <YoutubeLiteEmbed key={v.videoId} video={v} userLang={userLang} />
       ))}
     </div>
   )

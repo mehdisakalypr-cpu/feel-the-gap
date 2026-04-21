@@ -4,10 +4,25 @@
 // Docs: https://developers.google.com/youtube/v3/docs
 
 const API_BASE = 'https://www.googleapis.com/youtube/v3';
-// Lazy getter so loadEnv() can populate process.env before first call
-function getApiKey(): string | undefined {
-  return process.env.YOUTUBE_API_KEY
+
+// Pool de clés YouTube (même pattern que Gemini×4 dans agents/providers.ts).
+// Chaque clé = son propre projet Google Cloud = quota 10k units/jour indépendant.
+// Lazy read pour que loadEnv()/cron env soit bien populé avant le 1er appel.
+function getApiKeys(): string[] {
+  const pool: string[] = []
+  const names = ['YOUTUBE_API_KEY']
+  for (let i = 2; i <= 15; i++) names.push(`YOUTUBE_API_KEY_${i}`)
+  for (const name of names) {
+    const v = process.env[name]
+    if (v && v.trim()) pool.push(v.trim())
+  }
+  return pool
 }
+// Index courant dans le pool — avancé sur 403 quota (rotation round-robin).
+let keyIndex = 0
+// Clés marquées "quota exhausted" pendant la journée (reset à minuit UTC côté Google,
+// mais on ne les retente pas dans la même session).
+const exhausted = new Set<number>()
 
 export interface YouTubeSearchResult {
   videoId: string;
@@ -34,6 +49,7 @@ export interface YouTubeVideoDetails {
   defaultLanguage?: string;
   defaultAudioLanguage?: string;
   thumbnailUrl: string;
+  hasCaptions: boolean;
 }
 
 export interface SearchOptions {
@@ -67,29 +83,46 @@ function trackQuota(units: number): void {
   }
 }
 
-// ─── Low-level fetch wrapper ────────────────────────────────────────────────
+// ─── Low-level fetch wrapper avec rotation de clés ─────────────────────────
 async function ytFetch<T>(endpoint: string, params: Record<string, string>, quotaCost: number): Promise<T> {
-  const apiKey = getApiKey()
-  if (!apiKey) {
+  const pool = getApiKeys()
+  if (pool.length === 0) {
     throw new Error('YOUTUBE_API_KEY is not configured');
   }
-  if (quotaUsed + quotaCost > QUOTA_DAILY_LIMIT) {
-    throw new Error(`[youtube-api] Quota exceeded: ${quotaUsed}/${QUOTA_DAILY_LIMIT}`);
-  }
 
-  const url = new URL(`${API_BASE}/${endpoint}`);
-  url.searchParams.set('key', apiKey);
+  const baseUrl = new URL(`${API_BASE}/${endpoint}`);
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
+    if (v !== undefined && v !== null && v !== '') baseUrl.searchParams.set(k, v);
   }
 
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
+  let lastError: Error | null = null
+  // Tenter chaque clé non-exhausted du pool avant d'abandonner.
+  for (let attempt = 0; attempt < pool.length; attempt++) {
+    const idx = keyIndex % pool.length
+    if (exhausted.has(idx)) { keyIndex++; continue }
+
+    const url = new URL(baseUrl.toString())
+    url.searchParams.set('key', pool[idx])
+    const res = await fetch(url.toString())
+
+    if (res.ok) {
+      trackQuota(quotaCost)
+      return res.json() as Promise<T>
+    }
+
+    const body = await res.text().catch(() => '')
+    // 403 quotaExceeded → marquer cette clé exhausted et rotate sur la suivante
+    if (res.status === 403 && /quota/i.test(body)) {
+      console.warn(`[youtube-api] key #${idx + 1}/${pool.length} quota exhausted, rotating`)
+      exhausted.add(idx)
+      keyIndex++
+      lastError = new Error(`[youtube-api] ${endpoint} 403 quotaExceeded (key ${idx + 1})`)
+      continue
+    }
+    // Autre erreur → abandonner (pas un souci de quota)
     throw new Error(`[youtube-api] ${endpoint} ${res.status}: ${body.slice(0, 200)}`);
   }
-  trackQuota(quotaCost);
-  return res.json() as Promise<T>;
+  throw lastError ?? new Error('[youtube-api] all keys exhausted')
 }
 
 // ─── Search videos (100 units per call) ─────────────────────────────────────
@@ -163,7 +196,7 @@ export async function getVideoDetails(videoIds: string[]): Promise<YouTubeVideoD
           defaultAudioLanguage?: string;
           thumbnails: { high?: { url: string }; medium?: { url: string }; default?: { url: string } };
         };
-        contentDetails: { duration: string };
+        contentDetails: { duration: string; caption?: string };
         statistics: { viewCount?: string; likeCount?: string; commentCount?: string };
       }>;
     }
@@ -197,6 +230,7 @@ export async function getVideoDetails(videoIds: string[]): Promise<YouTubeVideoD
           item.snippet.thumbnails.medium?.url ??
           item.snippet.thumbnails.default?.url ??
           '',
+        hasCaptions: item.contentDetails.caption === 'true',
       });
     }
   }

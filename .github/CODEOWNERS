@@ -1,0 +1,33 @@
+# CODEOWNERS — Convention de Co-Création des Moteurs (FTG-OFA-Engines)
+#
+# Pour chaque pull request touchant un path, GitHub requiert l'approbation
+# des owners listés. Combinée avec une règle Branch Protection "Require review
+# from Code Owners" + "Require 2 approvals" sur les chemins /engines/, ça force
+# la majorité 2/3 des partenaires (Article 8.2 de la Convention).
+#
+# Pour activer : copier ce fichier vers .github/CODEOWNERS dans chaque repo,
+# remplacer @mehdi-sakaly @yassine-khaled @younes-sakaly par les vrais
+# handles GitHub des partenaires une fois leurs comptes connus.
+
+# ── Co-IP Engines : revue obligatoire des 3 partenaires ────────
+/engines/website/    @mehdi-sakaly @yassine-khaled @younes-sakaly
+/engines/assets/     @mehdi-sakaly @yassine-khaled @younes-sakaly
+/engines/crm/        @mehdi-sakaly @yassine-khaled @younes-sakaly
+
+# ── Application FTG : Mehdi seul ────────────────────────────────
+/app/             @mehdi-sakaly
+/components/      @mehdi-sakaly
+/lib/             @mehdi-sakaly
+/agents/          @mehdi-sakaly
+/scripts/         @mehdi-sakaly
+/supabase/        @mehdi-sakaly
+
+# ── Documentation et legal : Mehdi ──────────────────────────────
+/docs/            @mehdi-sakaly
+/legal/           @mehdi-sakaly
+/COPYRIGHT.md     @mehdi-sakaly
+/LICENSE          @mehdi-sakaly
+/AUTHORS.md       @mehdi-sakaly
+
+# ── Default fallback : Mehdi ────────────────────────────────────
+*                 @mehdi-sakaly
