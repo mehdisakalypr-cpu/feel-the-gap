@@ -158,7 +158,7 @@ function MethodsPageInner() {
       try {
         const { data: methodsData, error: methodsErr } = await supabase
           .from('production_methods')
-          .select('id, product_slug, name, description_md, popularity_rank')
+          .select('id, product_slug, name, description_md, popularity_rank, process_steps_json, diagrams_json, comparison_table_json, graph_data_json, pros_cons_json')
           .eq('product_slug', productSlug)
           .order('popularity_rank', { ascending: true })
 

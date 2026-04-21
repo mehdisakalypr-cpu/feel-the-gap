@@ -17,6 +17,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { PlanTier } from '@/lib/credits/costs'
+import { MethodRichSections, type ProcessStep, type DiagramFlow, type ComparisonTable, type GraphData, type ProsCons } from './MethodRichDetail'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,11 @@ export type Method = {
   name: string
   description_md: string
   popularity_rank: number
+  process_steps_json?: ProcessStep[] | null
+  diagrams_json?: DiagramFlow[] | null
+  comparison_table_json?: ComparisonTable | null
+  graph_data_json?: GraphData | null
+  pros_cons_json?: ProsCons | null
 }
 
 export type Metric = {
@@ -238,6 +244,15 @@ function DetailPanel({
           </div>
         </div>
 
+        {/* Rich content : process steps, pros/cons, tableau, graphique, schémas */}
+        <MethodRichSections
+          processSteps={method.process_steps_json ?? undefined}
+          prosCons={method.pros_cons_json ?? undefined}
+          comparisonTable={method.comparison_table_json ?? undefined}
+          graphData={method.graph_data_json ?? undefined}
+          diagrams={method.diagrams_json ?? undefined}
+        />
+
         {/* Machines */}
         {machines.length > 0 && (
           <div className="space-y-2">
@@ -313,10 +328,13 @@ function DetailPanel({
           </div>
         )}
 
-        {/* Vidéos */}
+        {/* Vidéos (complément — YouTube si dispo) */}
         {videos.length > 0 && (
           <div className="space-y-2 md:col-span-2">
-            <div className="text-[10px] uppercase tracking-wide text-gray-500">Vidéos</div>
+            <div className="flex items-baseline gap-2">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">Vidéos</div>
+              <span className="text-[9px] text-gray-600 italic">(complément)</span>
+            </div>
             <ul className="space-y-1">
               {videos.map((m) => (
                 <li key={m.id}>
@@ -510,6 +528,7 @@ export default function MethodsComparator({
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-[#0D1117] z-10">
               <tr className="border-b border-white/10 text-[10px] uppercase text-gray-500">
+                <th className="text-center px-3 py-3 font-semibold w-10" title="Cocher pour afficher le détail"></th>
                 <th className="text-left px-4 py-3 font-semibold">Méthode</th>
                 <th className="text-right px-3 py-3 font-semibold">Coût /100</th>
                 <th className="text-right px-3 py-3 font-semibold">Temps (mois)</th>
@@ -546,6 +565,17 @@ export default function MethodsComparator({
                     }`}
                     onClick={() => setSelectedId(isSelected ? null : m.id)}
                   >
+                    <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <label className="inline-flex items-center cursor-pointer" title={isSelected ? 'Masquer le détail' : 'Afficher le détail de cette méthode'}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => setSelectedId(isSelected ? null : m.id)}
+                          className="w-4 h-4 rounded border-2 border-[#C9A84C]/40 bg-transparent checked:bg-[#C9A84C] checked:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/30 accent-[#C9A84C] cursor-pointer"
+                          aria-label={`Afficher le détail de ${m.name}`}
+                        />
+                      </label>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 min-w-0">
                         {isBest && (
