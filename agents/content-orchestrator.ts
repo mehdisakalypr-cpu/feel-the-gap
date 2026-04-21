@@ -23,12 +23,13 @@ import { generateYoutubeVideos } from './content-rock-lee'
 
 loadEnv()
 
-type CliArgs = { maxJobs: number; verbose: boolean }
+type CliArgs = { maxJobs: number; concurrency: number; verbose: boolean }
 function parseArgs(): CliArgs {
-  const out: CliArgs = { maxJobs: 10, verbose: false }
+  const out: CliArgs = { maxJobs: 10, concurrency: 4, verbose: false }
   for (const a of process.argv.slice(2)) {
     const [k, v] = a.replace(/^--/, '').split('=')
     if (k === 'max-jobs' && v) out.maxJobs = Number(v)
+    if (k === 'concurrency' && v) out.concurrency = Number(v)
     if (k === 'verbose') out.verbose = true
   }
   return out
@@ -196,43 +197,59 @@ async function runJob(sb: any, job: Job): Promise<AgentResult> {
 }
 
 async function main() {
-  const { maxJobs, verbose } = parseArgs()
+  const { maxJobs, concurrency } = parseArgs()
   const sb = db()
-  console.log(`▶ content-orchestrator (Shisui): maxJobs=${maxJobs}`)
+  console.log(`▶ content-orchestrator (Shisui): maxJobs=${maxJobs} concurrency=${concurrency}`)
 
-  for (let i = 0; i < maxJobs; i++) {
-    const { data: claimed, error } = await sb.rpc('claim_next_content_job')
-    if (error) { console.error('claim error:', error.message); break }
-    const job = claimed as Job | null
-    if (!job || !job.id) { console.log('— queue empty'); break }
+  // Shared counters across workers
+  const state = { processed: 0, globalQuotaHit: false, done: 0, retried: 0, failed: 0 }
 
-    console.log(`\n━━━ [${i+1}/${maxJobs}] ${job.job_type} · ${job.country_iso} · opp ${String(job.opp_id).slice(0,8)} (attempt ${job.attempts}) ━━━`)
+  // Each worker loops claim→process→update until maxJobs reached or queue empty.
+  // claim_next_content_job() uses FOR UPDATE SKIP LOCKED so concurrent workers
+  // safely grab disjoint jobs from the queue.
+  async function worker(wid: number) {
+    while (state.processed < maxJobs && !state.globalQuotaHit) {
+      const { data: claimed, error } = await sb.rpc('claim_next_content_job')
+      if (error) { console.error(`[w${wid}] claim error:`, error.message); return }
+      const job = claimed as Job | null
+      if (!job || !job.id) return  // queue empty → exit worker
 
-    const start = Date.now()
-    const res = await runJob(sb, job)
-    const elapsed = ((Date.now() - start) / 1000).toFixed(1)
+      const slot = ++state.processed
+      console.log(`━━━ [w${wid} · ${slot}/${maxJobs}] ${job.job_type} · ${job.country_iso} · opp ${String(job.opp_id).slice(0,8)} (attempt ${job.attempts}) ━━━`)
 
-    // Retry logic: if failed and attempts < max, requeue (pending); else mark failed
-    const shouldRetry = !res.ok && job.attempts < job.max_attempts
-    await sb.from('ftg_content_jobs').update({
-      status: shouldRetry ? 'pending' : (res.ok ? 'done' : 'failed'),
-      finished_at: shouldRetry ? null : new Date().toISOString(),
-      last_error: res.err || null,
-      cost_eur: res.cost_eur,
-    }).eq('id', job.id)
+      const start = Date.now()
+      const res = await runJob(sb, job)
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1)
 
-    console.log(res.ok
-      ? `✓ done (${elapsed}s, €${res.cost_eur.toFixed(3)})`
-      : `✗ ${shouldRetry ? 'retry' : 'failed'}: ${res.err}`
-    )
+      const shouldRetry = !res.ok && job.attempts < job.max_attempts
+      await sb.from('ftg_content_jobs').update({
+        status: shouldRetry ? 'pending' : (res.ok ? 'done' : 'failed'),
+        finished_at: shouldRetry ? null : new Date().toISOString(),
+        last_error: res.err || null,
+        cost_eur: res.cost_eur,
+      }).eq('id', job.id)
 
-    const sleepMs = res.quotaHit ? 60_000 : 2_000
-    await new Promise((r) => setTimeout(r, sleepMs))
+      if (res.ok) state.done++
+      else if (shouldRetry) state.retried++
+      else state.failed++
+
+      console.log(res.ok
+        ? `✓ [w${wid}·${slot}] done (${elapsed}s, €${res.cost_eur.toFixed(3)})`
+        : `✗ [w${wid}·${slot}] ${shouldRetry ? 'retry' : 'failed'}: ${String(res.err).slice(0,140)}`
+      )
+
+      if (res.quotaHit) {
+        // Brief cooldown on this worker to let providers rotate; other workers keep going
+        await new Promise((r) => setTimeout(r, 30_000))
+      }
+    }
   }
+
+  await Promise.all(Array.from({ length: concurrency }, (_, i) => worker(i + 1)))
 
   const { count: remaining } = await sb
     .from('ftg_content_jobs').select('*', { count:'exact', head:true }).eq('status','pending')
-  console.log(`\n→ remaining pending jobs = ${remaining}`)
+  console.log(`\n→ processed=${state.processed} (done=${state.done} retry=${state.retried} failed=${state.failed}) · pending left = ${remaining}`)
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
