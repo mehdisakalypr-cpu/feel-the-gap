@@ -27,6 +27,7 @@ const NAV = [
   { href: '/admin/content-generation', label: 'Content Gen',  icon: '🌀' },
   { href: '/admin/eishi-coverage', label: 'Eishi Coverage', icon: '🍴' },
   { href: '/admin/kaizen',        label: 'Kushina Kaizen',  icon: '🌀' },
+  { href: '/admin/merlin',        label: 'Merlin',          icon: '🧙' },
   { href: '/admin/fraud-events',  label: 'Fraud',           icon: '🛡️' },
 ]
 
