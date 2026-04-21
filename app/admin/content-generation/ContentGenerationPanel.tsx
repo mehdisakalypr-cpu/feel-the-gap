@@ -7,8 +7,8 @@ const C = {
   green: '#10B981', red: '#EF4444', btn: 'linear-gradient(135deg, #C9A84C, #B8953A)',
 }
 
-type Country = { iso3: string; name_fr: string | null }
-type Opp = { id: string; product_name: string | null; country_iso: string; gap_value_usd: number | null }
+type Country = { iso2?: string; iso3?: string; name_fr: string | null }
+type Opp = { id: string; product_name?: string | null; product_id?: string | null; country_iso: string; gap_value_usd: number | null }
 
 export default function ContentGenerationPanel({ countries, topOpps }: { countries: Country[]; topOpps: Opp[] }) {
   const [mode, setMode] = useState<'full' | 'per_country' | 'per_opportunity' | 'per_pair'>('per_pair')
@@ -98,9 +98,10 @@ export default function ContentGenerationPanel({ countries, topOpps }: { countri
             <select value={country} onChange={(e) => setCountry(e.target.value)}
               style={{ width: '100%', padding: '0.5rem', background: '#0B1220', color: C.text, border: `1px solid ${C.border}`, borderRadius: 6 }}>
               <option value="">— choisir —</option>
-              {countries.map((c) => (
-                <option key={c.iso3} value={c.iso3}>{c.iso3} — {c.name_fr}</option>
-              ))}
+              {countries.map((c) => {
+                const code = c.iso3 || c.iso2 || ''
+                return <option key={code} value={code}>{code} — {c.name_fr}</option>
+              })}
             </select>
           </div>
         )}
@@ -115,7 +116,7 @@ export default function ContentGenerationPanel({ countries, topOpps }: { countri
                 .filter((o) => mode === 'per_opportunity' || !country || o.country_iso === country)
                 .map((o) => (
                   <option key={o.id} value={o.id}>
-                    {o.country_iso} · {o.product_name || '?'} (${((o.gap_value_usd || 0) / 1e6).toFixed(1)}M)
+                    {o.country_iso} · {o.product_name || o.product_id || '?'} (${((o.gap_value_usd || 0) / 1e6).toFixed(1)}M)
                   </option>
                 ))}
             </select>

@@ -123,19 +123,30 @@ Génère **exactement 4-6 méthodes** diversifiées par niveau de mécanisation/
 
 // ── DB operations ─────────────────────────────────────────────────────────
 
+/**
+ * Products table uses `id` as primary key (ex: "0010_rice", "0010_cafe_arabica").
+ * production_methods uses `product_slug` — les 7 existants ont des slugs courts
+ * historiques (rice, cafe, cacao…). Pour la généralisation, on utilise `products.id`
+ * comme `product_slug` (stable, unique, lié au HS code). Les 7 rows existants
+ * restent indépendantes (référencent legacy slugs) et seront migrées plus tard.
+ */
+function productSlug(p: { id: string }): string {
+  return p.id
+}
+
 async function fetchTargetProducts(sb, args: CliArgs) {
   if (args.productSlug) {
     const { data } = await sb
       .from('products')
-      .select('id, slug, name, name_fr')
-      .eq('slug', args.productSlug)
-      .limit(1)
+      .select('id, name, name_fr, category')
+      .or(`id.eq.${args.productSlug},id.ilike.%${args.productSlug}%`)
+      .limit(5)
     return data ?? []
   }
 
   // Fetch all products + existing methods in parallel
   const [{ data: prods }, { data: methods }] = await Promise.all([
-    sb.from('products').select('id, slug, name, name_fr').order('slug'),
+    sb.from('products').select('id, name, name_fr, category').order('id'),
     sb.from('production_methods').select('product_slug, process_steps_json, diagrams_json, comparison_table_json, pros_cons_json'),
   ])
 
@@ -152,11 +163,11 @@ async function fetchTargetProducts(sb, args: CliArgs) {
   }
 
   const filtered = (prods ?? []).filter(p => {
-    const state = bySlug[p.slug]
+    const slug = productSlug(p)
+    const state = bySlug[slug]
     if (!state) return true  // aucune méthode → à générer
-    if (args.enrichEmptyOnly && state.allEmpty) return true  // méthodes vides → enrichir
-    if (!args.enrichEmptyOnly && state.allEmpty) return true
-    return false  // déjà riche
+    if (state.allEmpty) return true  // méthodes existent mais vides → enrichir
+    return false  // déjà riche (process_steps/diagrams/comparison non vides)
   })
 
   return filtered.slice(0, args.maxProducts)
@@ -165,18 +176,43 @@ async function fetchTargetProducts(sb, args: CliArgs) {
 function extractJson(raw: string): { methods?: any[] } {
   const cleaned = raw.replace(/```json\s*/gi, '').replace(/```/g, '').trim()
   const start = cleaned.indexOf('{')
-  const end = cleaned.lastIndexOf('}')
+  let end = cleaned.lastIndexOf('}')
   if (start === -1 || end === -1) throw new Error('No JSON object found in LLM output')
-  return JSON.parse(cleaned.slice(start, end + 1))
+
+  // Première tentative straight
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1))
+  } catch {}
+
+  // Recovery : output truncated mid-array. On coupe au dernier "}" avant un "]" valide
+  // et on clôture les structures.
+  const candidate = cleaned.slice(start, end + 1)
+  // Trouve le dernier objet complet dans "methods"
+  const methodsStart = candidate.indexOf('"methods"')
+  if (methodsStart !== -1) {
+    const arrStart = candidate.indexOf('[', methodsStart)
+    if (arrStart !== -1) {
+      // Trouve dernière occurrence de "}," (séparateur entre méthodes) et coupe là
+      const lastSep = candidate.lastIndexOf('},', candidate.length)
+      if (lastSep > arrStart) {
+        const repaired = candidate.slice(0, lastSep + 1) + ']}'
+        try {
+          return JSON.parse(repaired)
+        } catch {}
+      }
+    }
+  }
+  throw new Error('JSON parse failed + recovery impossible')
 }
 
 async function upsertMethodsForProduct(sb, product, methods: any[]) {
   let upserted = 0
+  const slug = productSlug(product)
   for (const m of methods) {
     if (!m.name || !m.description_md) continue
     const { error } = await sb.from('production_methods').upsert(
       {
-        product_slug: product.slug,
+        product_slug: slug,
         name: m.name,
         description_md: m.description_md,
         popularity_rank: m.popularity_rank ?? 99,
@@ -198,10 +234,11 @@ async function upsertMethodsForProduct(sb, product, methods: any[]) {
 
 async function processProduct(sb, product) {
   const name = product.name_fr || product.name
-  const prompt = PROMPT_TEMPLATE(name, product.slug, 'fr')
-  console.log(`\n🧘 ${product.slug} (${name})`)
+  const slug = productSlug(product)
+  const prompt = PROMPT_TEMPLATE(name, slug, 'fr')
+  console.log(`\n🧘 ${slug} (${name})`)
   try {
-    const raw = await gen(prompt, 8000)
+    const raw = await gen(prompt, 16000)  // large — JSON riche peut atteindre 20k+ tokens
     const parsed = extractJson(raw)
     const methods = parsed.methods ?? []
     if (!Array.isArray(methods) || methods.length === 0) {
