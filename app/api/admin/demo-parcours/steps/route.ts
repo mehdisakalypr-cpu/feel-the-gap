@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { requireAdmin } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
 // GET /api/admin/demo-parcours/steps?parcours=entrepreneur — List steps for a parcours
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   try {
     const parcours = req.nextUrl.searchParams.get('parcours')?.trim().toLowerCase()
     if (!parcours) {
@@ -32,6 +34,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/demo-parcours/steps — Upsert a step
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   try {
     const body = await req.json() as {
       id?: string
@@ -103,6 +106,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/admin/demo-parcours/steps?id=xxx — Delete a step
 export async function DELETE(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   try {
     const id = req.nextUrl.searchParams.get('id')
     if (!id) {
