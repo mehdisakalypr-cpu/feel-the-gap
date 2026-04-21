@@ -60,7 +60,7 @@ export default async function AcceptTermsPage({ searchParams }: { searchParams?:
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#fff' }}>Documents a relire</div>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.9, color: C.muted }}>
             <li><Link href="/legal/cgu" target="_blank" style={{ color: C.gold }}>Conditions d&apos;utilisation (CGU)</Link></li>
-            <li><Link href="/legal/mentions" target="_blank" style={{ color: C.gold }}>Mentions legales</Link> (incluant la tracabilite et la propriete intellectuelle)</li>
+            <li><Link href="/legal/mentions" target="_blank" style={{ color: C.gold }}>Mentions legales</Link></li>
             <li><Link href="/legal/privacy" target="_blank" style={{ color: C.gold }}>Politique de confidentialite</Link></li>
           </ul>
         </div>

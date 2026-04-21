@@ -96,8 +96,14 @@ export async function POST(req: NextRequest) {
       const tpl = renderOtpEmail({ code, purpose: 'reset', brand: cfg.appName, ttlMin: 10 })
       await sendEmail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text })
       await logEvent({ userId, event: 'reset_request', ip, ua })
-    } catch {
-      // Never leak via 500 — always generic ok.
+    } catch (err) {
+      // Never leak to client (generic ok), but DO log server-side.
+      // Without this, misconfig (Turnstile, Resend key, domain verif) stays invisible.
+      console.error('[auth-v2] forgot: OTP/email pipeline failed', {
+        userIdHash: userId.slice(0, 8),
+        reason: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+      })
+      try { await logEvent({ userId, event: 'reset_request_failed', ip, ua, meta: { err: err instanceof Error ? err.message.slice(0, 140) : 'unknown' } }) } catch { /* noop */ }
     }
   } else {
     // Pad timing — render a dummy template so response time matches the "found" path.

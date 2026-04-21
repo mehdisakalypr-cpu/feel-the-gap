@@ -625,23 +625,52 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* ── Header ── */}
+        {/* ── Header ── Nom pays en grand, contexte + produits listés en dessous */}
         <div className="flex items-start gap-4 md:gap-6 flex-wrap md:flex-nowrap">
-          <div className="text-6xl shrink-0">{country.flag}</div>
+          <div className="text-7xl md:text-8xl shrink-0 leading-none">{country.flag}</div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-bold text-white break-words">{country.name_fr}</h1>
+            <h1 className="text-4xl md:text-6xl font-bold text-white break-words leading-tight tracking-tight">
+              {country.name_fr}
+            </h1>
+            <div className="flex items-center gap-3 flex-wrap mt-2">
               <span className="px-2 py-0.5 bg-white/5 rounded-full text-xs text-gray-400">{country.sub_region}</span>
               {topOpp && (
                 <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: '#C9A84C22', color: '#C9A84C', border: '1px solid #C9A84C44' }}>
                   Score {topOpp.opportunity_score}/100
                 </span>
               )}
+              <span className="text-xs text-gray-500">Analyse {country.data_year ?? 2023}</span>
             </div>
-            <p className="text-gray-400 text-sm mt-2 max-w-2xl">
-              Analyse d'intelligence commerciale — {country.data_year ?? 2023}. Ce rapport synthétise les flux d'importation,
-              les écarts de production et les opportunités d'investissement identifiées pour {country.name_fr}.
-            </p>
+            {/* Contexte sous le gros nom */}
+            {(country.top_import_text || country.top_export_text) && (
+              <div className="mt-4 text-sm text-gray-300 leading-relaxed max-w-3xl space-y-1.5">
+                {country.top_import_text && (
+                  <p><span className="text-gray-500">Principales importations :</span> <span className="text-white">{country.top_import_text}</span></p>
+                )}
+                {country.top_export_text && (
+                  <p><span className="text-gray-500">Exportations clés :</span> <span className="text-white">{country.top_export_text}</span></p>
+                )}
+              </div>
+            )}
+            {/* Produits listés — chips des opps sous le contexte */}
+            {opps.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-1.5 max-w-3xl">
+                <span className="text-xs text-gray-500 py-1 mr-1">Produits identifiés ({opps.length}) :</span>
+                {opps.slice(0, 18).map(o => (
+                  <button
+                    key={o.id}
+                    onClick={() => document.getElementById(`opp-${o.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="px-2.5 py-1 rounded-full text-xs bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 hover:bg-[#C9A84C]/20 transition-colors"
+                    title={`Score ${o.opportunity_score}/100`}
+                  >
+                    {o.products?.name ?? 'Produit'}
+                  </button>
+                ))}
+                {opps.length > 18 && (
+                  <span className="px-2.5 py-1 text-xs text-gray-500">+{opps.length - 18}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

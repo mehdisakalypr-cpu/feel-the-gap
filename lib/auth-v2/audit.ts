@@ -15,6 +15,7 @@ export type AuthEventType =
   | 'register_fail'
   | 'logout'
   | 'reset_request'
+  | 'reset_request_failed'
   | 'reset_verify_ok'
   | 'reset_verify_fail'
   | 'reset_completed'
