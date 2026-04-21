@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import YoutubeLiteEmbed from '@/components/YoutubeLiteEmbed'
@@ -88,7 +89,8 @@ export default async function OppPage({ params }: Params) {
 
   const { opp, country: c, content, videosV2, baseContent } = data
   const countryName = c?.name_fr || c?.name_en || country
-  const userLang = 'fr'  // TODO: read from i18n/cookie when multi-lang ships
+  const localeCookie = (await cookies()).get('NEXT_LOCALE')?.value
+  const userLang: 'fr' | 'en' | 'es' = (localeCookie === 'en' || localeCookie === 'es') ? localeCookie : 'fr'
   const videosData = videosV2 || content?.youtube_videos
 
   // Eishi merge: per-opp override (layer 2) wins over shared base (layer 1).
