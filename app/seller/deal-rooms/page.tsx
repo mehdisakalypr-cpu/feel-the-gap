@@ -114,6 +114,18 @@ export default async function SellerDealRoomsPage() {
                     href={`/seller/deal-rooms/${r.id}/leads`}
                     className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 hover:bg-white/10"
                   >Leads ({counts.total})</Link>
+                  {(r.status === 'published' || r.status === 'paused') && (
+                    <Link
+                      href={`/seller/deal-rooms/${r.id}/migrate`}
+                      className="rounded-lg border border-[#C9A84C]/40 bg-[#C9A84C]/10 px-2.5 py-1 text-[#C9A84C] hover:bg-[#C9A84C]/20"
+                    >↗ Migrer vers OFA</Link>
+                  )}
+                  {r.status === 'migrated_to_standalone' && (
+                    <Link
+                      href={`/seller/deal-rooms/${r.id}/migrate`}
+                      className="rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-violet-200 hover:bg-violet-500/20"
+                    >Voir site OFA</Link>
+                  )}
                 </div>
               </li>
             )

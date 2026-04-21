@@ -30333,8 +30333,8 @@
       "source_file": "components/DemoTour.tsx",
       "source_location": "L78",
       "weight": 1.0,
-      "_src": "demotour_resolve",
-      "_tgt": "route_getuser",
+      "_src": "route_getuser",
+      "_tgt": "demotour_resolve",
       "source": "route_getuser",
       "target": "demotour_resolve"
     },
@@ -53577,8 +53577,8 @@
       "source_file": "components/DemoTour.tsx",
       "source_location": "L77",
       "weight": 1.0,
-      "_src": "demotour_resolve",
-      "_tgt": "supabase_createsupabasebrowser",
+      "_src": "supabase_createsupabasebrowser",
+      "_tgt": "demotour_resolve",
       "source": "supabase_createsupabasebrowser",
       "target": "demotour_resolve"
     },
@@ -60465,8 +60465,8 @@
       "source_file": "components/store-public/PaymentForm.tsx",
       "source_location": "L18",
       "weight": 1.0,
-      "_src": "paymentform_getstripepromise",
-      "_tgt": "demotour_resolve",
+      "_src": "demotour_resolve",
+      "_tgt": "paymentform_getstripepromise",
       "source": "demotour_resolve",
       "target": "paymentform_getstripepromise"
     },

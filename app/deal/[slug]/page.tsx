@@ -40,16 +40,29 @@ interface DealRoomRow {
   seo: { title?: string; description?: string; og_image?: string } | null
   status: string
   published_at: string | null
+  generated_site_id: string | null
+  migrated_at: string | null
 }
+
+const OFA_BASE = process.env.OFA_PUBLIC_BASE_URL || 'https://one-for-all-app.vercel.app'
 
 async function getRoom(slug: string): Promise<DealRoomRow | null> {
   const { data } = await sb()
     .from('deal_rooms')
-    .select('id, slug, title, summary, product_label, country_iso, archetype, hero_image_url, gallery, price_range, moq, lead_time_days, incoterms, certifications, cta_whatsapp, cta_email, cta_phone, cta_form, seo, status, published_at')
+    .select('id, slug, title, summary, product_label, country_iso, archetype, hero_image_url, gallery, price_range, moq, lead_time_days, incoterms, certifications, cta_whatsapp, cta_email, cta_phone, cta_form, seo, status, published_at, generated_site_id, migrated_at')
     .eq('slug', slug)
-    .eq('status', 'published')
+    .in('status', ['published', 'migrated_to_standalone'])
     .maybeSingle()
   return data as DealRoomRow | null
+}
+
+async function getGeneratedSiteSlug(id: string): Promise<string | null> {
+  const { data } = await sb()
+    .from('generated_sites')
+    .select('slug')
+    .eq('id', id)
+    .maybeSingle()
+  return (data as { slug: string } | null)?.slug ?? null
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -79,6 +92,37 @@ export default async function DealRoomPage({ params }: { params: Promise<{ slug:
 
   const accent = '#C9A84C'
   const gallery = Array.isArray(room.gallery) ? room.gallery : []
+
+  if (room.status === 'migrated_to_standalone' && room.generated_site_id) {
+    const siteSlug = await getGeneratedSiteSlug(room.generated_site_id)
+    const target = siteSlug ? `${OFA_BASE}/site/${siteSlug}` : null
+    return (
+      <main className="min-h-screen bg-[#07090F] text-neutral-100">
+        <section className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-start justify-center gap-6 px-6 py-20">
+          <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Feel The Gap · Deal Room</p>
+          <h1 className="text-3xl font-semibold md:text-4xl" style={{ color: accent }}>
+            {room.title}
+          </h1>
+          <p className="max-w-xl text-base text-neutral-300">
+            Ce vendeur a migré vers un site OFA indépendant. Retrouvez-le sur sa nouvelle adresse.
+          </p>
+          {target ? (
+            <a
+              href={target}
+              className="rounded-xl bg-[#C9A84C] px-5 py-2.5 text-sm font-semibold text-[#07090F] hover:bg-[#d6b658]"
+            >
+              Aller sur le site du vendeur →
+            </a>
+          ) : (
+            <p className="text-sm text-neutral-500">Le nouveau site sera disponible sous peu.</p>
+          )}
+          <p className="text-xs text-neutral-500">
+            Cette page de deal room redirigera automatiquement sous 30 jours.
+          </p>
+        </section>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[#07090F] text-neutral-100">
