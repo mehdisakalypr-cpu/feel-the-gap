@@ -100,7 +100,7 @@ export function toFtgLeadRow(p: ApolloPerson, country_iso3?: string) {
     linkedin_url: p.linkedin_url ?? null,
     first_name: p.first_name ?? null,
     last_name: p.last_name ?? null,
-    full_name: p.name ?? [p.first_name, p.last_name].filter(Boolean).join(' ') || null,
+    full_name: p.name ?? ([p.first_name, p.last_name].filter(Boolean).join(' ') || null),
     title: p.title ?? null,
     company_name: p.organization?.name ?? null,
     company_domain: p.organization?.primary_domain ?? null,
