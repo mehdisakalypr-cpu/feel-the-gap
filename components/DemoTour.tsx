@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
@@ -57,6 +57,17 @@ function matchUrl(pattern: string, pathname: string): boolean {
 }
 
 export default function DemoTour() {
+  // Suspense boundary required because DemoTourInner uses useSearchParams(),
+  // which would otherwise force the entire app into CSR on static-prerendered
+  // pages like /_not-found (Next.js 16 prerender error).
+  return (
+    <Suspense fallback={null}>
+      <DemoTourInner />
+    </Suspense>
+  )
+}
+
+function DemoTourInner() {
   const pathname = usePathname()
   const router = useRouter()
   const search = useSearchParams()
