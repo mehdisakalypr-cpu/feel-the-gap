@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -13,6 +14,7 @@ function admin() {
 }
 
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const url = new URL(req.url)
   const category = url.searchParams.get('category')
   let q = admin().from('ftg_ad_scenes')
@@ -25,6 +27,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   const name = String(body.name ?? '').trim().slice(0, 100)
   if (!name) return NextResponse.json({ error: 'name required' }, { status: 400 })
@@ -51,6 +54,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const id = new URL(req.url).searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
   const { error } = await admin().from('ftg_ad_scenes').delete().eq('id', id)

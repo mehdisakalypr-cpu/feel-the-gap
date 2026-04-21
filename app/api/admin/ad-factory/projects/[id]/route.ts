@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -13,6 +14,7 @@ function admin() {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { id } = await params
   const sb = admin()
   const [p, v, j] = await Promise.all([
@@ -34,6 +36,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { id } = await params
   const body = await req.json().catch(() => ({}))
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }

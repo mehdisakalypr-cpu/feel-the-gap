@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { publishToPlatform, type Platform } from '@/lib/ad-factory/distribution/platforms'
 import { convertToFormats, extractPoster } from '@/lib/ad-factory/formats'
@@ -20,6 +21,7 @@ function admin() {
  * Renvoie les outputs (formats) existants + publications programmées.
  */
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const variantId = new URL(req.url).searchParams.get('variant_id')
   if (!variantId) return NextResponse.json({ error: 'variant_id required' }, { status: 400 })
 
@@ -44,6 +46,7 @@ export async function GET(req: NextRequest) {
  * 2. Si publish fourni → POST stubbed sur chaque plateforme + track ftg_ad_publications
  */
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   const variantId = body.variant_id
   if (!variantId) return NextResponse.json({ error: 'variant_id required' }, { status: 400 })

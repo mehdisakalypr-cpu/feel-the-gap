@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -20,6 +21,7 @@ function admin() {
  * → insert batch dans ftg_ad_variants.
  */
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   const projectId = body.project_id
   if (!projectId) return NextResponse.json({ error: 'project_id required' }, { status: 400 })

@@ -4,6 +4,7 @@
  * avec tag "apollo-search" ou "manual-search".
  */
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -19,6 +20,7 @@ async function requireUser() {
 }
 
 export async function POST(req: Request) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { client, user } = await requireUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

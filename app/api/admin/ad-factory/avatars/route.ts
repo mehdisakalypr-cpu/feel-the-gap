@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -13,6 +14,7 @@ function admin() {
 }
 
 export async function GET() {
+  const gate = await requireAdmin(); if (gate) return gate
   const { data, error } = await admin()
     .from('ftg_ad_avatars')
     .select('id, name, prompt, image_url, thumb_url, provider, gender, ethnicity, age_range, style, tags, created_at')
@@ -23,6 +25,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   const name = String(body.name ?? '').trim().slice(0, 80)
   const prompt = String(body.prompt ?? '').trim()
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const url = new URL(req.url)
   const id = url.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })

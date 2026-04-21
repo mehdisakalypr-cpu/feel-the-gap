@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { generateScene } from '@/lib/ad-factory/providers/scene-gen'
 
 export const runtime = 'nodejs'
@@ -14,6 +15,7 @@ export const maxDuration = 300
  * Mode 3 (from-image) : sourceImageUrl + motionPrompt → animation (OFA hero upgrader)
  */
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   if (!body.motionPrompt && !body.generateImageVariants) {
     return NextResponse.json({ error: 'motionPrompt required (unless generateImageVariants=true for preview-only)' }, { status: 400 })

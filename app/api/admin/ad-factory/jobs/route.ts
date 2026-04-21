@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { runJob } from '@/lib/ad-factory/pipeline'
 
@@ -15,6 +16,7 @@ function admin() {
 }
 
 export async function GET() {
+  const gate = await requireAdmin(); if (gate) return gate
   const { data, error } = await admin()
     .from('ftg_ad_render_jobs')
     .select('id, variant_id, status, progress_pct, final_mp4_url, duration_s, cost_eur, error, started_at, completed_at, created_at')
@@ -29,6 +31,7 @@ export async function GET() {
  * Body: { variant_ids: string[], trigger?: 'sync'|'background' }
  */
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   const variantIds: string[] = Array.isArray(body.variant_ids) ? body.variant_ids : []
   if (variantIds.length === 0) return NextResponse.json({ error: 'variant_ids[] required' }, { status: 400 })

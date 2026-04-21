@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from '@/lib/supabase-server'
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/admin/cms/history?content_id=xxx — list last 5 versions
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const contentId = req.nextUrl.searchParams.get("content_id");
   if (!contentId) return NextResponse.json({ error: "content_id required" }, { status: 400 });
 
@@ -20,6 +22,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/cms/history — rollback to a specific version
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { history_id } = await req.json();
   if (!history_id) return NextResponse.json({ error: "history_id required" }, { status: 400 });
 

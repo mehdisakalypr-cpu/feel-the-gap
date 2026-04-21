@@ -5,6 +5,7 @@
  * Returns: { enriched: [{ ...lead, email, confidence, source }] }
  */
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { cascadeFindEmail, listConfiguredProviders } from '@/lib/email-finder/cascade'
@@ -21,12 +22,14 @@ async function requireUser() {
 }
 
 export async function GET() {
+  const gate = await requireAdmin(); if (gate) return gate
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   return NextResponse.json({ providers: listConfiguredProviders() })
 }
 
 export async function POST(req: Request) {
+  const gate = await requireAdmin(); if (gate) return gate
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

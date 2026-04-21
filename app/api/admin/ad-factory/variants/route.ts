@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
@@ -13,6 +14,7 @@ function admin() {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json().catch(() => ({}))
   if (!body.project_id || !body.lang) {
     return NextResponse.json({ error: 'project_id + lang required' }, { status: 400 })

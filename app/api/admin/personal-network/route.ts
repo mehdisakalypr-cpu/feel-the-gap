@@ -7,6 +7,7 @@
  * DELETE  → supprime une ligne
  */
 import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/supabase-server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -48,6 +49,7 @@ async function requireUser() {
 }
 
 export async function GET() {
+  const gate = await requireAdmin(); if (gate) return gate
   const { client, user, error } = await requireUser()
   if (error) return error
   const { data, error: err } = await client
@@ -60,6 +62,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { client, user, error } = await requireUser()
   if (error) return error
   const body = await req.json().catch(() => null) as { contacts?: ContactIn[] } | null
@@ -99,6 +102,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { client, user, error } = await requireUser()
   if (error) return error
   const body = await req.json().catch(() => null) as { id?: string; updates?: Record<string, unknown> } | null
@@ -130,6 +134,7 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const gate = await requireAdmin(); if (gate) return gate
   const { client, user, error } = await requireUser()
   if (error) return error
   const url = new URL(req.url)

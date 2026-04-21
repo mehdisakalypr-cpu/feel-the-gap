@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from '@/lib/supabase-server'
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/admin/cms?site=ftg&collection=landing
 export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const site = req.nextUrl.searchParams.get("site");
   const collection = req.nextUrl.searchParams.get("collection");
   const sb = supabaseAdmin();
@@ -18,6 +20,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/cms — upsert a content entry + save history
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const body = await req.json();
   const { site, collection, slug, field_type, value_en, value_fr, metadata, order, published } = body;
   if (!site || !collection || !slug) {
@@ -84,6 +87,7 @@ export async function POST(req: NextRequest) {
 
 // DELETE /api/admin/cms?id=xxx
 export async function DELETE(req: NextRequest) {
+  const gate = await requireAdmin(); if (gate) return gate
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
