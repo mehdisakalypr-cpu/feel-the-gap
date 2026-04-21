@@ -56,39 +56,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const sub = billing?.[0]
 
   if (sub?.mode === 'subscription' && sub.subscription_id && sub.quota_remaining > 0) {
-    // Consume quota + mark paid inline
-    const now = new Date().toISOString()
-    await sb
-      .from('marketplace_subscriptions')
-      .update({ matches_used_this_period: (await sb.from('marketplace_subscriptions').select('matches_used_this_period').eq('id', sub.subscription_id).single()).data?.matches_used_this_period + 1, updated_at: now })
-      .eq('id', sub.subscription_id)
+    // Atomic consume-quota + mark paid + reveal identities via RPC (prevents race condition)
+    const { data: consumeRaw, error: consumeErr } = await sb.rpc('marketplace_consume_subscription_match' as never, {
+      p_match_id:        id,
+      p_subscription_id: sub.subscription_id,
+      p_buyer_id:        user.id,
+    }) as { data: Array<{ consumed: boolean; already_paid: boolean; quota_remaining_after: number; error_code: string | null }> | null; error: unknown }
+    const consume = consumeRaw?.[0]
 
-    await sb
-      .from('marketplace_matches')
-      .update({
-        status: 'paid',
-        identities_revealed_at: now,
+    if (consumeErr || !consume) {
+      return NextResponse.json({ error: 'consume_rpc_failed' }, { status: 500 })
+    }
+    if (consume.already_paid) {
+      return NextResponse.json({
+        ok: true,
+        mode: 'subscription',
+        already_paid: true,
+        redirect: `/marketplace/my-offers?paid=${id}`,
       })
-      .eq('id', id)
-
-    // Track revenue (€0 for subscription consumption — already charged in abo)
-    await sb.from('revenue_events').upsert({
-      id: `mp_fee_sub_${id}`,
-      product: 'feel-the-gap',
-      event_type: 'marketplace_fee_subscription_consumed',
-      user_id: user.id,
-      amount_eur: 0,
-      metadata: { match_id: id, subscription_id: sub.subscription_id, tier_label: match.pricing_tier_label },
-      created_at: now,
-    }, { onConflict: 'id', ignoreDuplicates: true })
-
-    return NextResponse.json({
-      ok: true,
-      mode: 'subscription',
-      subscription_id: sub.subscription_id,
-      quota_remaining_after: sub.quota_remaining - 1,
-      redirect: `/marketplace/my-offers?paid=${id}`,
-    })
+    }
+    if (!consume.consumed) {
+      // Quota-exhausted or other validation → fall through to pay-per-act below
+      if (consume.error_code && consume.error_code !== 'quota_exhausted') {
+        return NextResponse.json({ error: consume.error_code }, { status: 409 })
+      }
+      // else: exhausted → continue to Stripe checkout
+    } else {
+      return NextResponse.json({
+        ok: true,
+        mode: 'subscription',
+        subscription_id: sub.subscription_id,
+        quota_remaining_after: consume.quota_remaining_after,
+        redirect: `/marketplace/my-offers?paid=${id}`,
+      })
+    }
   }
 
   // ── Pay-per-act → Stripe Checkout one-shot ────────────────────────────────

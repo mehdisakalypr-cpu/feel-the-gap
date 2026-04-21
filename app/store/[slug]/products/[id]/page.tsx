@@ -8,7 +8,7 @@ import { ProductGallery, type MediaItem } from '@/components/store-public/Produc
 import { AddToCartButton } from '@/components/store-public/AddToCartButton'
 import { fmtMoney } from '@/components/store-public/_lib'
 import { loadChrome } from '../../_chrome'
-import { resolveSegment } from '../../_segment'
+import { resolveSegment, productVisibleForSegment } from '../../_segment'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -88,6 +88,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
   // Shaka 2026-04-21 : segment driven by cookie (set by SegmentGate) with ?segment=… override
   const cookieSegment = await resolveSegment(store)
   const segment: 'b2c' | 'b2b' = sp.segment === 'b2b' ? 'b2b' : sp.segment === 'b2c' ? 'b2c' : cookieSegment
+  if (!productVisibleForSegment(product.segment, segment)) notFound()
   const showVat = segment === 'b2c'
   const priceCents = segment === 'b2b'
     ? product.price_b2b_ht_cents ?? product.price_b2c_ttc_cents ?? 0

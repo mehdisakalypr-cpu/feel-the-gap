@@ -85,5 +85,111 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "close": "Cerrar"
+  },
+  "marketplace": {
+    "myOffers": {
+      "title": "📬 Mis ofertas",
+      "description": "Coincidencias entre tu oferta (volumen de producción) y una demanda (comprador), o viceversa. {strong}Todo permanece anónimo{/strong} de ambos lados hasta que las 2 partes acepten {em}y{/em} se pague la comisión.",
+      "legend": {
+        "orange": "🟠 Naranja propuesto · acción requerida",
+        "blue": "🔵 Azul contraoferta pendiente",
+        "green": "🟢 Verde confirmado / pagado",
+        "red": "🔴 Rojo rechazado"
+      },
+      "filter": {
+        "all": "Todos"
+      },
+      "status": {
+        "proposed": "Match propuesto",
+        "counter_proposed": "Contraoferta pendiente",
+        "accepted_producer": "Productor aceptó · esperando comprador",
+        "accepted_buyer": "Comprador aceptó · esperando productor",
+        "confirmed": "Confirmado · pago pendiente",
+        "paid": "✓ Pagado · identidades reveladas",
+        "rejected": "Rechazado",
+        "expired": "Expirado"
+      },
+      "matchLine": "Match #{id} · puntuación {score}%",
+      "origin": "origen {country}",
+      "delivery": "entrega {country}",
+      "counterOffer": "Contraoferta ({by})",
+      "commissionDue": "Comisión pendiente",
+      "commissionDueSuffix": "({tier}, ajustado PPA país comprador)",
+      "receivedOn": "Recibido el {date}",
+      "paidOn": "✓ Comisión pagada el {date}",
+      "paidHint": "Abre la conversación en {link} para obtener los datos de contacto de la otra parte.",
+      "paidHintLink": "los detalles del match",
+      "loading": "Cargando…",
+      "empty": "Aún no hay ofertas en esta categoría.",
+      "actions": {
+        "accept": "✓ Aceptar",
+        "refuse": "✕ Rechazar",
+        "counter": "⇄ Contraoferta",
+        "sendCounter": "Enviar contraoferta",
+        "cancel": "Cancelar",
+        "payFee": "💳 Pagar la comisión ({amount})"
+      },
+      "counterForm": {
+        "pricePlaceholder": "Precio €/kg",
+        "quantityPlaceholder": "Cantidad kg",
+        "messagePlaceholder": "Mensaje opcional (motivo, condiciones…)"
+      },
+      "payFeeHint": "Tomado de tu suscripción si hay cuota disponible, si no Stripe one-shot.",
+      "errors": {
+        "payFailed": "Pago imposible",
+        "decideFailed": "Decide failed"
+      },
+      "footer": {
+        "title": "💎 Dos fórmulas a elegir",
+        "body": "{subStrong} (Starter €99 / Growth €299 / Pro €749 / Unlimited €1 499 /mes baseline × PPA país comprador) · {ppaStrong} (€149 / €499 / €999 según volumen de transacción × PPA).",
+        "subStrong": "Suscripción",
+        "ppaStrong": "Pay-per-act",
+        "link": "Ver fórmulas →"
+      }
+    },
+    "subscriptions": {
+      "title": "💎 Marketplace — dos fórmulas a elegir",
+      "subtitle": "Suscripción para traders recurrentes · pay-per-act para deals puntuales.",
+      "countryHint": "Precios adaptados al poder adquisitivo de tu país: {country}",
+      "abo": {
+        "sectionTitle": "🔁 Suscripción mensual",
+        "perMonth": "/mes",
+        "baselineLabel": "€{amount} /mes baseline",
+        "savedLabel": "−€{amount} país en desarrollo",
+        "cta": "Elegir {tier}",
+        "redirecting": "Redirigiendo a Stripe…"
+      },
+      "tiers": {
+        "starter": {"label": "Starter", "matches": "3 matches /mes", "bestFor": "Primeros deals, descubrimiento"},
+        "growth": {"label": "Growth", "matches": "10 matches /mes", "bestFor": "Escalado B2B"},
+        "pro": {"label": "Pro", "matches": "25 matches /mes", "bestFor": "Trader activo"},
+        "unlimited": {"label": "Unlimited", "matches": "∞ matches", "bestFor": "Marketplace intensivo"}
+      },
+      "ppa": {
+        "sectionTitle": "💳 Pay-per-act (sin compromiso)",
+        "intro": "Ideal para un deal puntual. Facturado en la aceptación mutua del match. La comisión la paga el {buyerStrong} vía Stripe.",
+        "buyerStrong": "comprador",
+        "tableVolume": "Volumen transacción",
+        "tableFeeYou": "Tarifa (tu país)",
+        "tableBaseline": "Baseline",
+        "footnote": "💡 Umbrales verificados por rango declarado (no se tolera subdeclaración). Fraude detectado → ban + clawback."
+      },
+      "compare": {
+        "title": "🎯 ¿Cuál elegir?",
+        "ppa": "{strong} si prevés 1-2 deals al año → solo pagas cuando coincides.",
+        "ppaStrong": "Pay-per-act",
+        "starter": "{strong} si tienes 2-3 deals /mes → break-even desde el 1er deal Tier 2 (€499).",
+        "starterStrong": "Starter (€99/mes)",
+        "growth": "{strong} si tienes 5-10 deals /mes → break-even desde el 1er deal Tier 3 (€999).",
+        "growthStrong": "Growth (€299/mes)",
+        "pro": "{strong} para traders multi-producto activos.",
+        "proStrong": "Pro (€749/mes)",
+        "unlimited": "{strong} para trading desks / marketplaces internos.",
+        "unlimitedStrong": "Unlimited (€1 499/mes)"
+      },
+      "errors": {
+        "checkoutFailed": "Checkout failed"
+      }
+    }
   }
 }

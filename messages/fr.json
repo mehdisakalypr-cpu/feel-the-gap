@@ -85,5 +85,127 @@
     "save": "Enregistrer",
     "cancel": "Annuler",
     "close": "Fermer"
+  },
+  "marketplace": {
+    "myOffers": {
+      "title": "📬 Mes offres",
+      "description": "Matches entre ton offre (volume de production) et une demande (buyer), ou l'inverse. {strong}Tout reste anonyme{/strong} des deux côtés jusqu'à ce que les 2 parties acceptent {em}et{/em} la commission soit payée.",
+      "legend": {
+        "orange": "🟠 Orange proposé · action requise",
+        "blue": "🔵 Bleu contre-offre en attente",
+        "green": "🟢 Vert confirmé / payé",
+        "red": "🔴 Rouge refusé"
+      },
+      "filter": {
+        "all": "Tous"
+      },
+      "status": {
+        "proposed": "Match proposé",
+        "counter_proposed": "Contre-offre en attente",
+        "accepted_producer": "Producteur a accepté · en attente buyer",
+        "accepted_buyer": "Buyer a accepté · en attente producteur",
+        "confirmed": "Confirmé · paiement en attente",
+        "paid": "✓ Payé · identités révélées",
+        "rejected": "Refusé",
+        "expired": "Expiré"
+      },
+      "matchLine": "Match #{id} · score {score}%",
+      "origin": "origine {country}",
+      "delivery": "livraison {country}",
+      "counterOffer": "Contre-offre ({by})",
+      "commissionDue": "Commission due",
+      "commissionDueSuffix": "({tier}, ajusté PPP pays acheteur)",
+      "receivedOn": "Reçu le {date}",
+      "paidOn": "✓ Commission payée le {date}",
+      "paidHint": "Ouvre le fil de discussion dans {link} pour récupérer les coordonnées de l'autre partie et organiser la transaction.",
+      "paidHintLink": "la fiche du match",
+      "loading": "Chargement…",
+      "empty": "Aucune offre dans cette catégorie pour l'instant.",
+      "actions": {
+        "accept": "✓ Accepter",
+        "refuse": "✕ Refuser",
+        "counter": "⇄ Contre-offre",
+        "sendCounter": "Envoyer contre-offre",
+        "cancel": "Annuler",
+        "payFee": "💳 Payer la commission ({amount})"
+      },
+      "counterForm": {
+        "pricePlaceholder": "Prix €/kg",
+        "quantityPlaceholder": "Quantité kg",
+        "messagePlaceholder": "Message facultatif (motif, conditions…)"
+      },
+      "payFeeHint": "Pris sur ton abo si quota dispo, sinon Stripe one-shot.",
+      "errors": {
+        "payFailed": "Paiement impossible",
+        "decideFailed": "Decide failed"
+      },
+      "footer": {
+        "title": "💎 Deux formules au choix",
+        "body": "{subStrong} (Starter €99 / Growth €299 / Pro €749 / Unlimited €1 499 / mo baseline × PPP pays acheteur) · {ppaStrong} (€149 / €499 / €999 selon volume transaction × PPP).",
+        "subStrong": "Abonnement",
+        "ppaStrong": "Pay-per-act",
+        "link": "Voir les formules →"
+      }
+    },
+    "subscriptions": {
+      "title": "💎 Marketplace — deux formules au choix",
+      "subtitle": "Abonnement pour les traders récurrents · pay-per-act pour les deals ponctuels.",
+      "countryHint": "Prix adaptés au pouvoir d'achat de ton pays : {country}",
+      "abo": {
+        "sectionTitle": "🔁 Abonnement mensuel",
+        "perMonth": "/mo",
+        "baselineLabel": "€{amount} /mo baseline",
+        "savedLabel": "−€{amount} pays en dev",
+        "cta": "Choisir {tier}",
+        "redirecting": "Redirection Stripe…"
+      },
+      "tiers": {
+        "starter": {
+          "label": "Starter",
+          "matches": "3 matches /mo",
+          "bestFor": "Premier deals, découverte"
+        },
+        "growth": {
+          "label": "Growth",
+          "matches": "10 matches /mo",
+          "bestFor": "Scaling B2B"
+        },
+        "pro": {
+          "label": "Pro",
+          "matches": "25 matches /mo",
+          "bestFor": "Trader actif"
+        },
+        "unlimited": {
+          "label": "Unlimited",
+          "matches": "∞ matches",
+          "bestFor": "Marketplace intensif"
+        }
+      },
+      "ppa": {
+        "sectionTitle": "💳 Pay-per-act (sans engagement)",
+        "intro": "Idéal pour un seul deal ponctuel. Facturé à l'acceptation mutuelle du match (les 2 parties confirment). Ensuite la commission est payée par l'{buyerStrong} sur Stripe.",
+        "buyerStrong": "acheteur",
+        "tableVolume": "Volume transaction",
+        "tableFeeYou": "Frais (ton pays)",
+        "tableBaseline": "Baseline",
+        "footnote": "💡 Seuils vérifiés par fourchette déclarée (pas de sous-déclaration tolérée). Si fraude détectée → bannissement + clawback."
+      },
+      "compare": {
+        "title": "🎯 Lequel choisir ?",
+        "ppa": "{strong} si tu prévois 1-2 deals par an → paie seulement quand tu matches.",
+        "ppaStrong": "Pay-per-act",
+        "starter": "{strong} si tu as 2-3 deals /mois → break-even dès le 1er deal Tier 2 (€499).",
+        "starterStrong": "Starter (€99/mo)",
+        "growth": "{strong} si tu as 5-10 deals /mois → break-even dès le 1er deal Tier 3 (€999).",
+        "growthStrong": "Growth (€299/mo)",
+        "pro": "{strong} pour les traders multi-produits actifs.",
+        "proStrong": "Pro (€749/mo)",
+        "unlimited": "{strong} pour les trading desks / marketplaces internes.",
+        "unlimitedStrong": "Unlimited (€1 499/mo)"
+      },
+      "errors": {
+        "checkoutFailed": "Checkout failed"
+      }
+    }
   }
 }

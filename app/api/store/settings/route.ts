@@ -127,6 +127,22 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 })
   }
 
+  if (typeof body.mode_b2b === 'boolean' && typeof body.mode_b2c === 'boolean' && !body.mode_b2b && !body.mode_b2c) {
+    return NextResponse.json({ error: 'mode_required' }, { status: 400 })
+  }
+  if (typeof body.mode_b2b === 'boolean' && body.mode_b2b === false) {
+    const { data: current } = await sb.from('stores').select('mode_b2c').eq('owner_id', user.id).maybeSingle()
+    if (current && !current.mode_b2c && body.mode_b2c !== true) {
+      return NextResponse.json({ error: 'mode_required' }, { status: 400 })
+    }
+  }
+  if (typeof body.mode_b2c === 'boolean' && body.mode_b2c === false) {
+    const { data: current } = await sb.from('stores').select('mode_b2b').eq('owner_id', user.id).maybeSingle()
+    if (current && !current.mode_b2b && body.mode_b2b !== true) {
+      return NextResponse.json({ error: 'mode_required' }, { status: 400 })
+    }
+  }
+
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (typeof body.name === 'string' && body.name.trim()) update.name = body.name.trim()
   if (typeof body.mode_b2b === 'boolean') update.mode_b2b = body.mode_b2b

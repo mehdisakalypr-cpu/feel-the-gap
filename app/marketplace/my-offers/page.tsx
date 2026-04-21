@@ -14,7 +14,9 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { t, getLocale } from '@/lib/i18n/t'
 
 type Match = {
   id: string
@@ -51,20 +53,42 @@ const C = {
   blue: '#60A5FA', amber: '#F59E0B', purple: '#A78BFA',
 }
 
+// Render description template with nested {strong} + {em} tags as React elements
+function renderRichDescription(strongColor: string): React.ReactNode {
+  const raw = t('marketplace.myOffers.description')
+  const re = /\{(strong|em)\}(.*?)\{\/\1\}/g
+  const parts: React.ReactNode[] = []
+  let last = 0
+  let i = 0
+  for (const match of raw.matchAll(re)) {
+    const idx = match.index ?? 0
+    if (idx > last) parts.push(raw.slice(last, idx))
+    if (match[1] === 'strong') parts.push(<strong key={i++} style={{ color: strongColor }}>{match[2]}</strong>)
+    else parts.push(<em key={i++}>{match[2]}</em>)
+    last = idx + match[0].length
+  }
+  if (last < raw.length) parts.push(raw.slice(last))
+  return parts
+}
+
 function statusMeta(s: Match['status']) {
   switch (s) {
-    case 'proposed': return { color: C.amber, label: 'Match proposé', icon: '🟠', blink: true }
-    case 'counter_proposed': return { color: C.blue, label: 'Contre-offre en attente', icon: '🔵', blink: false }
-    case 'accepted_producer': return { color: C.amber, label: 'Producteur a accepté · en attente buyer', icon: '🟠', blink: false }
-    case 'accepted_buyer': return { color: C.amber, label: 'Buyer a accepté · en attente producteur', icon: '🟠', blink: false }
-    case 'confirmed': return { color: C.green, label: 'Confirmé · paiement en attente', icon: '🟢', blink: false }
-    case 'paid': return { color: C.green, label: '✓ Payé · identités révélées', icon: '🟢', blink: false }
-    case 'rejected': return { color: C.red, label: 'Refusé', icon: '🔴', blink: false }
-    case 'expired': return { color: C.dim, label: 'Expiré', icon: '⚪', blink: false }
+    case 'proposed':          return { color: C.amber, label: t('marketplace.myOffers.status.proposed'),          icon: '🟠', blink: true }
+    case 'counter_proposed':  return { color: C.blue,  label: t('marketplace.myOffers.status.counter_proposed'),  icon: '🔵', blink: false }
+    case 'accepted_producer': return { color: C.amber, label: t('marketplace.myOffers.status.accepted_producer'), icon: '🟠', blink: false }
+    case 'accepted_buyer':    return { color: C.amber, label: t('marketplace.myOffers.status.accepted_buyer'),    icon: '🟠', blink: false }
+    case 'confirmed':         return { color: C.green, label: t('marketplace.myOffers.status.confirmed'),         icon: '🟢', blink: false }
+    case 'paid':              return { color: C.green, label: t('marketplace.myOffers.status.paid'),              icon: '🟢', blink: false }
+    case 'rejected':          return { color: C.red,   label: t('marketplace.myOffers.status.rejected'),          icon: '🔴', blink: false }
+    case 'expired':           return { color: C.dim,   label: t('marketplace.myOffers.status.expired'),           icon: '⚪', blink: false }
   }
 }
 
 export default function MyOffersPage() {
+  const localeFmt = (() => {
+    const l = getLocale()
+    return l === 'en' ? 'en-US' : l === 'es' ? 'es-ES' : 'fr-FR'
+  })()
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +119,7 @@ export default function MyOffersPage() {
       const r = await fetch(`/api/marketplace/matches/${id}/pay-fee`, { method: 'POST' })
       const j = await r.json()
       if (r.status === 401 && j.redirect) { window.location.href = j.redirect; return }
-      if (!r.ok) throw new Error(j.error || 'Paiement impossible')
+      if (!r.ok) throw new Error(j.error || t('marketplace.myOffers.errors.payFailed'))
       if (j.url) { window.location.href = j.url; return } // Stripe redirect
       if (j.mode === 'subscription') {
         // Quota consommé, UI rafraîchie pour refléter paid+reveal
@@ -114,7 +138,7 @@ export default function MyOffersPage() {
         body: JSON.stringify({ action, counter }),
       })
       const j = await r.json()
-      if (!r.ok) throw new Error(j.error || 'Decide failed')
+      if (!r.ok) throw new Error(j.error || t('marketplace.myOffers.errors.decideFailed'))
       await load()
       setSelected(null)
       setCounterForm({ price: '', quantity: '', message: '' })
@@ -144,18 +168,18 @@ export default function MyOffersPage() {
       `}</style>
 
       <header style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: C.gold, margin: 0 }}>📬 Mes offres</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: C.gold, margin: 0 }}>{t('marketplace.myOffers.title')}</h1>
         <p style={{ color: C.muted, fontSize: '.88rem', margin: '6px 0 0', lineHeight: 1.5 }}>
-          Matches entre ton offre (volume de production) et une demande (buyer), ou l&apos;inverse. <strong style={{ color: C.gold }}>Tout reste anonyme</strong> des deux côtés jusqu&apos;à ce que les 2 parties acceptent <em>et</em> la commission soit payée.
+          {renderRichDescription(C.gold)}
         </p>
       </header>
 
       {/* Legend 4 colors */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20, fontSize: '.74rem', color: C.muted }}>
-        <span><span style={{ color: C.amber }}>🟠 Orange</span> proposé · action requise</span>
-        <span><span style={{ color: C.blue }}>🔵 Bleu</span> contre-offre en attente</span>
-        <span><span style={{ color: C.green }}>🟢 Vert</span> confirmé / payé</span>
-        <span><span style={{ color: C.red }}>🔴 Rouge</span> refusé</span>
+        <span style={{ color: C.amber }}>{t('marketplace.myOffers.legend.orange')}</span>
+        <span style={{ color: C.blue }}>{t('marketplace.myOffers.legend.blue')}</span>
+        <span style={{ color: C.green }}>{t('marketplace.myOffers.legend.green')}</span>
+        <span style={{ color: C.red }}>{t('marketplace.myOffers.legend.red')}</span>
       </div>
 
       {/* Filter tabs */}
@@ -175,7 +199,7 @@ export default function MyOffersPage() {
                 borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              {f === 'all' ? 'Tous' : f.replace('_', ' ')} ({n})
+              {f === 'all' ? t('marketplace.myOffers.filter.all') : f.replace('_', ' ')} ({n})
             </button>
           )
         })}
@@ -188,10 +212,10 @@ export default function MyOffersPage() {
       )}
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Chargement…</div>
+        <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>{t('marketplace.myOffers.loading')}</div>
       ) : filtered.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: C.muted, fontSize: '.8rem' }}>
-          Aucune offre dans cette catégorie pour l&apos;instant.
+          {t('marketplace.myOffers.empty')}
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 10 }}>
@@ -218,37 +242,37 @@ export default function MyOffersPage() {
                         {meta.icon} {meta.label}
                       </span>
                       <span style={{ fontSize: '.7rem', color: C.dim }}>
-                        Match #{m.id.slice(0, 8)} · score {m.match_score ?? '—'}%
+                        {t('marketplace.myOffers.matchLine', { id: m.id.slice(0, 8), score: m.match_score ?? '—' })}
                       </span>
                     </div>
                     <div style={{ marginTop: 8, fontSize: '.8rem', color: C.text }}>
                       <span style={{ color: C.gold }}>{m.volume_product ?? m.demand_product}</span>
-                      {m.volume_country && <span style={{ color: C.muted }}> · origine {m.volume_country}</span>}
-                      {m.demand_country && <span style={{ color: C.muted }}> · livraison {m.demand_country}</span>}
+                      {m.volume_country && <span style={{ color: C.muted }}> · {t('marketplace.myOffers.origin', { country: m.volume_country })}</span>}
+                      {m.demand_country && <span style={{ color: C.muted }}> · {t('marketplace.myOffers.delivery', { country: m.demand_country })}</span>}
                     </div>
                     <div style={{ marginTop: 4, fontSize: '.78rem', color: C.muted }}>
-                      {Number(m.proposed_quantity_kg ?? 0).toLocaleString('fr-FR')} kg @
+                      {Number(m.proposed_quantity_kg ?? 0).toLocaleString(localeFmt)} kg @
                       {' '}€{Number(m.proposed_price_eur_per_kg ?? 0).toFixed(2)}/kg
-                      {' '}→ <strong style={{ color: C.text }}>€{Number(m.proposed_total_eur ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}</strong>
+                      {' '}→ <strong style={{ color: C.text }}>€{Number(m.proposed_total_eur ?? 0).toLocaleString(localeFmt, { maximumFractionDigits: 0 })}</strong>
                     </div>
                     {m.status === 'counter_proposed' && m.counter_total_eur && (
                       <div style={{ marginTop: 6, padding: 8, background: `${C.blue}15`, border: `1px solid ${C.blue}44`, borderRadius: 4, fontSize: '.76rem' }}>
-                        <strong style={{ color: C.blue }}>Contre-offre ({m.counter_by})</strong> :
-                        {' '}{Number(m.counter_quantity_kg ?? 0).toLocaleString('fr-FR')} kg @
+                        <strong style={{ color: C.blue }}>{t('marketplace.myOffers.counterOffer', { by: m.counter_by ?? '' })}</strong> :
+                        {' '}{Number(m.counter_quantity_kg ?? 0).toLocaleString(localeFmt)} kg @
                         {' '}€{Number(m.counter_price_eur_per_kg ?? 0).toFixed(2)}/kg
-                        {' '}→ €{Number(m.counter_total_eur ?? 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
+                        {' '}→ €{Number(m.counter_total_eur ?? 0).toLocaleString(localeFmt, { maximumFractionDigits: 0 })}
                         {m.counter_message && <div style={{ marginTop: 4, color: C.muted, fontStyle: 'italic' }}>&quot;{m.counter_message}&quot;</div>}
                       </div>
                     )}
                     {m.status === 'confirmed' && m.pricing_tier_fee_eur && (
                       <div style={{ marginTop: 6, padding: 8, background: `${C.green}15`, border: `1px solid ${C.green}44`, borderRadius: 4, fontSize: '.76rem' }}>
-                        <strong style={{ color: C.green }}>Commission due</strong> : €{(m.pricing_tier_fee_eur / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}
-                        {' '}({m.pricing_tier_label}, ajusté PPP pays acheteur)
+                        <strong style={{ color: C.green }}>{t('marketplace.myOffers.commissionDue')}</strong> : €{(m.pricing_tier_fee_eur / 100).toLocaleString(localeFmt, { maximumFractionDigits: 2 })}
+                        {' '}{t('marketplace.myOffers.commissionDueSuffix', { tier: m.pricing_tier_label ?? '' })}
                       </div>
                     )}
                   </div>
                   <div style={{ textAlign: 'right', fontSize: '.68rem', color: C.dim, minWidth: 120 }}>
-                    Reçu le {new Date(m.created_at).toLocaleDateString('fr-FR')}
+                    {t('marketplace.myOffers.receivedOn', { date: new Date(m.created_at).toLocaleDateString(localeFmt) })}
                   </div>
                 </div>
 
@@ -260,35 +284,35 @@ export default function MyOffersPage() {
                         onClick={(e) => { e.stopPropagation(); decide(m.id, 'accept') }}
                         disabled={submitting}
                         style={actionBtn(C.green)}
-                      >✓ Accepter</button>
+                      >{t('marketplace.myOffers.actions.accept')}</button>
                       <button
                         onClick={(e) => { e.stopPropagation(); decide(m.id, 'refuse') }}
                         disabled={submitting}
                         style={actionBtn(C.red)}
-                      >✕ Refuser</button>
+                      >{t('marketplace.myOffers.actions.refuse')}</button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setCounterForm({ price: String(m.proposed_price_eur_per_kg ?? ''), quantity: String(m.proposed_quantity_kg ?? ''), message: '' }) }}
                         style={actionBtn(C.blue)}
-                      >⇄ Contre-offre</button>
+                      >{t('marketplace.myOffers.actions.counter')}</button>
                     </div>
                     {counterForm.price && (
                       <div style={{ marginTop: 10, padding: 10, background: `${C.blue}08`, border: `1px solid ${C.blue}33`, borderRadius: 4 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                           <input
-                            type="number" step="0.01" placeholder="Prix €/kg"
+                            type="number" step="0.01" placeholder={t('marketplace.myOffers.counterForm.pricePlaceholder')}
                             value={counterForm.price}
                             onChange={(e) => setCounterForm(p => ({ ...p, price: e.target.value }))}
                             style={inputStyle}
                           />
                           <input
-                            type="number" placeholder="Quantité kg"
+                            type="number" placeholder={t('marketplace.myOffers.counterForm.quantityPlaceholder')}
                             value={counterForm.quantity}
                             onChange={(e) => setCounterForm(p => ({ ...p, quantity: e.target.value }))}
                             style={inputStyle}
                           />
                         </div>
                         <textarea
-                          placeholder="Message facultatif (motif, conditions…)"
+                          placeholder={t('marketplace.myOffers.counterForm.messagePlaceholder')}
                           value={counterForm.message}
                           onChange={(e) => setCounterForm(p => ({ ...p, message: e.target.value }))}
                           style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }}
@@ -305,11 +329,11 @@ export default function MyOffersPage() {
                             }}
                             disabled={submitting || !counterForm.price}
                             style={actionBtn(C.blue)}
-                          >Envoyer contre-offre</button>
+                          >{t('marketplace.myOffers.actions.sendCounter')}</button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setCounterForm({ price: '', quantity: '', message: '' }) }}
                             style={{ ...actionBtn(C.dim), background: 'transparent' }}
-                          >Annuler</button>
+                          >{t('marketplace.myOffers.actions.cancel')}</button>
                         </div>
                       </div>
                     )}
@@ -323,10 +347,10 @@ export default function MyOffersPage() {
                       disabled={submitting}
                       style={actionBtn(C.gold)}
                     >
-                      💳 Payer la commission ({m.pricing_tier_fee_eur ? `€${(m.pricing_tier_fee_eur / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}` : '—'})
+                      {t('marketplace.myOffers.actions.payFee', { amount: m.pricing_tier_fee_eur ? `€${(m.pricing_tier_fee_eur / 100).toLocaleString(localeFmt, { maximumFractionDigits: 2 })}` : '—' })}
                     </button>
                     <span style={{ marginLeft: 10, fontSize: '.7rem', color: C.muted }}>
-                      Pris sur ton abo si quota dispo, sinon Stripe one-shot.
+                      {t('marketplace.myOffers.payFeeHint')}
                     </span>
                   </div>
                 )}
@@ -334,9 +358,13 @@ export default function MyOffersPage() {
                 {isSel && m.status === 'paid' && (
                   <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.dim}33`, fontSize: '.78rem', color: C.muted }}>
                     <div style={{ color: C.green, fontWeight: 600, marginBottom: 6 }}>
-                      ✓ Commission payée le {m.identities_revealed_at ? new Date(m.identities_revealed_at).toLocaleDateString('fr-FR') : '—'}
+                      {t('marketplace.myOffers.paidOn', { date: m.identities_revealed_at ? new Date(m.identities_revealed_at).toLocaleDateString(localeFmt) : '—' })}
                     </div>
-                    Ouvre le fil de discussion dans <a href={`/marketplace/${m.id}`} style={{ color: C.gold }}>la fiche du match</a> pour récupérer les coordonnées de l&apos;autre partie et organiser la transaction.
+                    {(() => {
+                      const raw = t('marketplace.myOffers.paidHint', { link: '%%LINK%%' })
+                      const [pre, post] = raw.split('%%LINK%%')
+                      return <>{pre}<a href={`/marketplace/${m.id}`} style={{ color: C.gold }}>{t('marketplace.myOffers.paidHintLink')}</a>{post}</>
+                    })()}
                   </div>
                 )}
               </div>
@@ -346,8 +374,23 @@ export default function MyOffersPage() {
       )}
 
       <footer style={{ marginTop: 24, padding: 14, background: C.card, border: `1px dashed ${C.dim}`, borderRadius: 6, fontSize: '.72rem', color: C.muted, lineHeight: 1.6 }}>
-        <div style={{ color: C.gold, fontWeight: 600, marginBottom: 4 }}>💎 Deux formules au choix</div>
-        <strong>Abonnement</strong> (Starter €99 / Growth €299 / Pro €749 / Unlimited €1 499 / mo baseline × PPP pays acheteur) · <strong>Pay-per-act</strong> (€149 / €499 / €999 selon volume transaction × PPP). <a href="/marketplace/subscriptions" style={{ color: C.gold }}>Voir les formules →</a>
+        <div style={{ color: C.gold, fontWeight: 600, marginBottom: 4 }}>{t('marketplace.myOffers.footer.title')}</div>
+        {(() => {
+          const subStrong = t('marketplace.myOffers.footer.subStrong')
+          const ppaStrong = t('marketplace.myOffers.footer.ppaStrong')
+          const raw = t('marketplace.myOffers.footer.body', { subStrong: '%%SUB%%', ppaStrong: '%%PPA%%' })
+          const parts = raw.split(/(%%SUB%%|%%PPA%%)/)
+          return (
+            <>
+              {parts.map((p, i) => {
+                if (p === '%%SUB%%') return <strong key={i}>{subStrong}</strong>
+                if (p === '%%PPA%%') return <strong key={i}>{ppaStrong}</strong>
+                return <span key={i}>{p}</span>
+              })}
+              {' '}<Link href="/marketplace/subscriptions" style={{ color: C.gold }}>{t('marketplace.myOffers.footer.link')}</Link>
+            </>
+          )
+        })()}
       </footer>
     </div>
   )
