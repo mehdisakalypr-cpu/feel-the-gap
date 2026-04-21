@@ -26,6 +26,7 @@ const NAV = [
   { href: '/admin/api-usage',     label: 'API Usage',       icon: '🔑' },
   { href: '/admin/content-generation', label: 'Content Gen',  icon: '🌀' },
   { href: '/admin/eishi-coverage', label: 'Eishi Coverage', icon: '🍴' },
+  { href: '/admin/kaizen',        label: 'Kushina Kaizen',  icon: '🌀' },
   { href: '/admin/fraud-events',  label: 'Fraud',           icon: '🛡️' },
 ]
 
