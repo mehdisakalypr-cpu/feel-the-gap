@@ -83,12 +83,14 @@ export async function auditAndEnqueueForOpp(
     countryIso: string
     lang?: string
     enqueue?: boolean
-    source?: 'payment' | 'premium_visit' | 'manual'
+    priority?: number  // default 100 (paid). Use 50 for free-tier, 30 for anon.
+    source?: 'payment' | 'premium_visit' | 'free_visit' | 'anon_visit' | 'manual'
   },
 ): Promise<EishiAuditResult> {
   const lang = params.lang ?? 'fr'
   const country = params.countryIso.toUpperCase()
   const enqueue = params.enqueue !== false
+  const priority = params.priority ?? 100
 
   // Pull opp to get product_id (needed for shared video cache lookup)
   const { data: opp } = await sb
@@ -164,9 +166,9 @@ export async function auditAndEnqueueForOpp(
         opp_id: params.oppId,
         country_iso: country,
         lang,
-        priority: 100,
+        priority,
         source: params.source ?? 'premium_visit',
-        triggered_by: params.userId,
+        triggered_by: params.userId === 'anon' ? null : params.userId,
       }))
       const { error } = await sb.from('ftg_content_jobs').insert(rows)
       if (error) console.error('[eishi] enqueue error:', error.message)

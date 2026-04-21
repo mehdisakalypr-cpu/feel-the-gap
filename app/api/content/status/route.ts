@@ -34,16 +34,30 @@ export async function GET(req: NextRequest) {
     { auth: { persistSession: false } },
   )
 
-  // Only paid users can trigger enqueue. Read tier from profiles.
+  // Tier-based priority:
+  //   paid (starter+)  → priority 100, source='premium_visit'
+  //   free (authenticated) → priority 50, source='free_visit'
+  //   anonymous         → enqueue skipped (cron covers this via pre-fill)
+  // Dedup via alreadyQueued check prevents abuse: repeating the same request
+  // on the same (opp,country,lang) only creates 1 job.
+  let priority = 100
+  let source: 'premium_visit' | 'free_visit' | 'anon_visit' = 'premium_visit'
   let canEnqueue = false
-  if (userId && wantEnqueue) {
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('tier')
-      .eq('id', userId)
-      .maybeSingle()
-    const tier = profile?.tier
-    canEnqueue = !!tier && tier !== 'explorer' && tier !== 'free'
+
+  if (wantEnqueue) {
+    if (userId) {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('tier')
+        .eq('id', userId)
+        .maybeSingle()
+      const tier = profile?.tier
+      const paid = !!tier && tier !== 'explorer' && tier !== 'free'
+      canEnqueue = true
+      priority = paid ? 100 : 50
+      source = paid ? 'premium_visit' : 'free_visit'
+    }
+    // anonymous: canEnqueue stays false — pre-fill cron handles low-priority warm-up
   }
 
   const result: EishiAuditResult = await auditAndEnqueueForOpp(admin, {
@@ -52,7 +66,8 @@ export async function GET(req: NextRequest) {
     countryIso: country,
     lang,
     enqueue: canEnqueue,
-    source: 'premium_visit',
+    priority,
+    source,
   })
 
   return NextResponse.json(result, {

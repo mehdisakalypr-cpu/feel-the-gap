@@ -2,35 +2,37 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import SectionFillLoader from '@/components/SectionFillLoader'
+import YoutubeLiteEmbed from '@/components/YoutubeLiteEmbed'
 
 export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ iso: string }>; searchParams: Promise<{ q?: string; product?: string }> }
 
-type YoutubeInsight = {
-  id: string
-  video_id: string
+type VideoItem = {
+  videoId: string
   title: string
-  channel_name: string | null
-  thumbnail_url: string | null
-  published_at: string | null
-  view_count: number | null
-  relevance_score: number | null
-  description: string | null
-  country_iso: string | null
-  topics: string[] | null
+  channelTitle: string
+  description?: string
+  publishedAt?: string
+  viewCount?: number
+  likeCount?: number
+  thumbnailUrl?: string
+  hasCaptions?: boolean
+  defaultLanguage?: string
 }
 
-function formatViews(n: number | null): string {
+function formatViews(n?: number): string {
   if (!n) return ''
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M vues`
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k vues`
   return `${n} vues`
 }
 
-export default async function VideosMarchePage({ params, searchParams }: Props) {
-  const { iso } = await params
-  const { q, product } = await searchParams
+// Country-level aggregate: reads ALL ftg_product_country_videos rows where
+// country_iso matches this country, flattens their payloads into one
+// deduplicated video list. Replaces the legacy youtube_insights table
+// which wasn't keyed on product. New cache is fed by Rock Lee v2.
+async function loadCountryVideos(iso: string, productFilter?: string) {
   const db = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -38,35 +40,53 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
   )
 
   let query = db
-    .from('youtube_insights')
-    .select('*')
-    .order('relevance_score', { ascending: false, nullsFirst: false })
-    .order('view_count', { ascending: false })
+    .from('ftg_product_country_videos')
+    .select('product_id, payload, generated_at')
+    .eq('country_iso', iso.toUpperCase())
+    .eq('status', 'ready')
+    .order('generated_at', { ascending: false })
     .limit(60)
-  // Scope to country when present; falls back to global most-relevant.
-  query = query.or(`country_iso.eq.${iso.toUpperCase()},country_iso.is.null`)
-  if (q) query = query.ilike('title', `%${q}%`)
-  // Product chip context — loose title match (the store holds slug-y values
-  // like "cacao" or "arabica-coffee", we strip the dashes for the ilike).
-  if (product) {
-    const productLike = product.replace(/[-_]+/g, ' ')
-    query = query.ilike('title', `%${productLike}%`)
-  }
-  const { data: rawVideos } = await query
-  const videos = (rawVideos ?? []) as YoutubeInsight[]
 
-  // Group by inferred topic for display
-  const topics = new Map<string, YoutubeInsight[]>()
+  if (productFilter) {
+    // Product chip context — match against the product_id slug
+    query = query.ilike('product_id', `%${productFilter.replace(/[-_]+/g, '')}%`)
+  }
+
+  const { data: rows } = await query
+  const seen = new Set<string>()
+  const allVideos: Array<VideoItem & { productId: string }> = []
+  for (const r of rows ?? []) {
+    const videos = ((r.payload as any)?.videos ?? []) as VideoItem[]
+    for (const v of videos) {
+      if (seen.has(v.videoId)) continue
+      seen.add(v.videoId)
+      allVideos.push({ ...v, productId: r.product_id as string })
+    }
+  }
+  return allVideos
+}
+
+export default async function VideosMarchePage({ params, searchParams }: Props) {
+  const { iso } = await params
+  const { q, product } = await searchParams
+
+  let videos = await loadCountryVideos(iso, product)
+  if (q) {
+    const qLow = q.toLowerCase()
+    videos = videos.filter((v) => v.title.toLowerCase().includes(qLow))
+  }
+
+  // Group by product_id for clearer browsing
+  const byProduct = new Map<string, typeof videos>()
   for (const v of videos) {
-    const t = v.topics?.[0] ?? 'Général'
-    if (!topics.has(t)) topics.set(t, [])
-    topics.get(t)!.push(v)
+    const key = v.productId
+    if (!byProduct.has(key)) byProduct.set(key, [])
+    byProduct.get(key)!.push(v)
   }
 
   return (
     <div className="min-h-screen bg-[#07090F] text-white">
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Chips bar — active product context, scroll-sticky. */}
         <JourneyChipsBar className="mb-4" />
         <Link href={`/country/${iso}`} className="text-[#C9A84C] text-sm hover:underline mb-4 inline-block">← Fiche pays</Link>
         <div className="flex items-center gap-3 mb-2">
@@ -74,12 +94,10 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
           <h1 className="text-3xl md:text-4xl font-bold">Vidéos de ce marché — {iso.toUpperCase()}</h1>
         </div>
         <p className="text-gray-400 text-sm mb-8 max-w-2xl">
-          Sélection curée : formation export, insights terrain, témoignages entrepreneurs, reportages filières. Actualisée en continu par nos agents.
+          Sélection curée par filière : formation export, insights terrain, témoignages entrepreneurs, reportages. Sous-titres traduits automatiquement dans votre langue.
         </p>
 
         {videos.length === 0 && (
-          // Anti "section-vide-payée" : on déclenche un fetch on-demand côté
-          // agent au moment où l'user atterrit sur une section vide.
           <SectionFillLoader
             iso={iso}
             section="videos"
@@ -88,36 +106,31 @@ export default async function VideosMarchePage({ params, searchParams }: Props) 
           />
         )}
 
-        {[...topics.entries()].map(([topic, vids]) => (
-          <section key={topic} className="mb-10">
-            <h2 className="text-lg font-semibold text-[#C9A84C] mb-3 uppercase tracking-wide">{topic}</h2>
+        {[...byProduct.entries()].map(([productId, vids]) => (
+          <section key={productId} className="mb-10">
+            <h2 className="text-lg font-semibold text-[#C9A84C] mb-3 uppercase tracking-wide">
+              {productId.replace(/^\d+_/, '').replace(/_/g, ' ')} <span className="text-xs text-gray-500 normal-case">({vids.length})</span>
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {vids.map(v => (
-                <a
-                  key={v.id}
-                  href={`https://www.youtube.com/watch?v=${v.video_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block rounded-xl overflow-hidden border border-white/10 bg-white/5 hover:border-[#C9A84C]/50 transition"
-                >
-                  {v.thumbnail_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.thumbnail_url} alt={v.title} className="w-full aspect-video object-cover" loading="lazy" />
-                  )}
-                  <div className="p-3">
-                    <p className="text-sm font-semibold line-clamp-2 mb-1">{v.title}</p>
-                    <p className="text-xs text-gray-500 flex items-center gap-2">
-                      {v.channel_name && <span>{v.channel_name}</span>}
-                      {v.view_count && <span>·</span>}
-                      {v.view_count && <span>{formatViews(v.view_count)}</span>}
-                    </p>
-                  </div>
-                </a>
+              {vids.slice(0, 12).map((v) => (
+                <YoutubeLiteEmbed
+                  key={v.videoId}
+                  video={{
+                    videoId: v.videoId,
+                    title: v.title,
+                    channelTitle: v.channelTitle,
+                    thumbnailUrl: v.thumbnailUrl ?? '',
+                    publishedAt: v.publishedAt,
+                    viewCount: v.viewCount,
+                    hasCaptions: v.hasCaptions,
+                    defaultLanguage: v.defaultLanguage,
+                  }}
+                  userLang="fr"
+                />
               ))}
             </div>
           </section>
         ))}
-
       </div>
     </div>
   )
