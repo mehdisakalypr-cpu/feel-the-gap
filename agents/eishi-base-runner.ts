@@ -49,7 +49,7 @@ const db = () => createClient(
 async function buildSyntheticOpp(sb: any, productId: string, countryIso: string) {
   const { data: opp } = await sb
     .from('opportunities')
-    .select('product_id, country_iso, gap_value_usd, avg_import_price_usd_tonne, land_availability, labor_cost_index, opportunity_score, product_name')
+    .select('product_id, country_iso, gap_value_usd, avg_import_price_usd_tonne, land_availability, labor_cost_index, opportunity_score')
     .eq('product_id', productId)
     .eq('country_iso', countryIso)
     .order('gap_value_usd', { ascending: false, nullsFirst: false })
