@@ -287,21 +287,79 @@ async function fillMethods(_iso: string, product?: string): Promise<{ added: num
 // ════════════════════════════════════════════════════════════════════════════
 // STUDIES — stub : seed minimal (TODO LLM deep research)
 // ════════════════════════════════════════════════════════════════════════════
-async function fillStudies(iso: string, _product?: string): Promise<{ added: number; source: string }> {
-  // TODO : appeler agent custom_study (Gemini deep research) + insérer
-  // dans `country_studies` avec content_html + tier_required='free'.
+async function fillStudies(iso: string, product?: string): Promise<{ added: number; source: string }> {
+  // Gemini deep research — synthèse 4-6 sections en HTML structuré.
+  // Fallback stub si GEMINI_API_KEY absent ou génération échoue.
   const sb = db()
-  const stubHtml = `
-    <h2>Étude marché ${countryName(iso)}</h2>
-    <p>Synthèse minimale en cours de génération par notre agent recherche.
-    Les données détaillées seront disponibles d'ici 24h.</p>
-  `.trim()
-  const { error } = await sb.from('country_studies').upsert(
-    [{ country_iso: iso.toUpperCase(), part: 1, content_html: stubHtml, tier_required: 'free' }],
-    { onConflict: 'country_iso,part' },
-  )
-  if (error) return { added: 0, source: 'insert_error' }
-  return { added: 1, source: 'stub' }
+  const isoUp = iso.toUpperCase()
+  const name = countryName(iso)
+  const productLabel = product ? product.replace(/[-_]+/g, ' ') : ''
+
+  const hasKey = !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+  if (!hasKey) {
+    const stubHtml = `<h2>Étude marché ${name}</h2><p>Synthèse en cours de génération par notre agent recherche (clé Gemini non configurée).</p>`
+    const { error } = await sb.from('country_studies').upsert(
+      [{ country_iso: isoUp, part: 1, content_html: stubHtml, tier_required: 'free' }],
+      { onConflict: 'country_iso,part' },
+    )
+    return { added: error ? 0 : 1, source: 'stub_no_key' }
+  }
+
+  try {
+    const { google } = await import('@ai-sdk/google')
+    const { generateText } = await import('ai')
+
+    const focus = product
+      ? `Focus sur le produit : ${productLabel}.`
+      : `Synthèse généraliste sur les opportunités import/export.`
+
+    const prompt = `Tu es un analyste de marché senior. Rédige une étude de marché compacte en HTML pour ${name} (ISO ${isoUp}).
+${focus}
+
+Contraintes :
+- 4 à 6 sections, chacune avec un <h2> et 1-2 paragraphes <p> (phrases courtes, faits précis).
+- Si tu cites un chiffre (CA, volumes, marges, tarifs douaniers), arrondis et indique l'ordre de grandeur — n'invente pas.
+- Structure type : (1) Vue d'ensemble économique · (2) Flux import/export clés · (3) Opportunités actionnables · (4) Risques & réglementation · (5) Infrastructure & logistique · (6) Cadre fiscal/social.
+- Utilise du français professionnel. Ton : synthétique, orienté décision.
+- Pas de <html>, <head>, <body>, <script>, <style>. Juste les balises h2/p/ul/li/strong.
+- Maximum 1200 mots au total. Pas de préambule, pas de conclusion générique.
+
+Retourne uniquement le HTML, rien d'autre.`
+
+    const { text } = await generateText({
+      model: google('gemini-2.5-flash'),
+      prompt,
+      maxOutputTokens: 2048,
+      temperature: 0.4,
+    })
+
+    const cleaned = text
+      .replace(/```html?\n?/gi, '')
+      .replace(/```/g, '')
+      .trim()
+
+    if (cleaned.length < 200 || !/<h2/i.test(cleaned)) {
+      throw new Error('generated_too_short_or_malformed')
+    }
+
+    const { error } = await sb.from('country_studies').upsert(
+      [{ country_iso: isoUp, part: 1, content_html: cleaned, tier_required: 'free' }],
+      { onConflict: 'country_iso,part' },
+    )
+    if (error) {
+      console.warn('[section-fill/studies] insert failed:', error.message)
+      return { added: 0, source: 'insert_error' }
+    }
+    return { added: 1, source: 'gemini_2_5_flash' }
+  } catch (err) {
+    console.warn('[section-fill/studies] gemini failed:', err instanceof Error ? err.message : String(err))
+    const stubHtml = `<h2>Étude marché ${name}</h2><p>Synthèse temporairement indisponible. Nouvelle tentative automatique sous 24h.</p>`
+    const { error } = await sb.from('country_studies').upsert(
+      [{ country_iso: isoUp, part: 1, content_html: stubHtml, tier_required: 'free' }],
+      { onConflict: 'country_iso,part' },
+    )
+    return { added: error ? 0 : 1, source: 'stub_gen_error' }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
