@@ -21,24 +21,14 @@ function scoreVideo(v: YouTubeVideoDetails): number {
   return viewScore + likeRatio + recencyScore + durationScore + captionsBonus
 }
 
-// Templates par langue. Chaque langue apporte son propre pool de vidéos.
-// Les queries sont complémentaires (pas redondantes avec la même sémantique traduite).
+// Templates par langue — 1 query large par langue pour optimiser le quota.
+// La query "production/producción/production" couvre cultivation + business
+// car YouTube relevance + filtre videoCaption retournent les vidéos utiles.
+// Coût par paire: 3 searches × 100 + 1 enrichment = 301 units (vs 901 en v2.0).
 const QUERIES_BY_LANG: Record<string, string[]> = {
-  fr: [
-    '{product} production {country}',
-    'comment cultiver {product} {country}',
-    'business {product} {country}',
-  ],
-  en: [
-    '{product} production {country}',
-    'how to grow {product} {country}',
-    '{product} farming business {country}',
-  ],
-  es: [
-    'producción de {product} {country}',
-    'cómo cultivar {product} {country}',
-    'negocio de {product} {country}',
-  ],
+  fr: ['production {product} {country}'],
+  en: ['{product} production {country}'],
+  es: ['producción {product} {country}'],
 }
 
 export async function generateProductCountryVideos(
@@ -60,7 +50,7 @@ export async function generateProductCountryVideos(
       try {
         const results = await searchAndEnrich({
           query,
-          maxResults: 5,
+          maxResults: 10,  // fetch plus par query pour compenser moins de queries
           order: 'relevance',
           relevanceLanguage: lang,
           regionCode: iso2,
