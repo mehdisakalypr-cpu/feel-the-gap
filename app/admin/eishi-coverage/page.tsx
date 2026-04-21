@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
+import CoverageControls from './CoverageControls'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,10 +105,12 @@ export default async function EishiCoveragePage() {
     <main style={{ background: C.bg, color: C.text, minHeight: '100vh', padding: '2rem' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <h1 style={{ fontSize: 32, color: C.accent, marginBottom: '0.5rem' }}>🍴 Eishi Coverage</h1>
-        <p style={{ color: C.muted, marginBottom: '2rem', fontSize: 14 }}>
+        <p style={{ color: C.muted, marginBottom: '1rem', fontSize: 14 }}>
           Hybrid content cache (Layer 1 shared + Layer 2 per-opp + video dedup). Commercial priority ordering active.
           Total unique (product × country) pairs estimated at <strong style={{ color: C.text }}>{totalPairs.toLocaleString()}</strong>.
         </p>
+
+        <CoverageControls />
 
         {/* Priority queue callout */}
         <div style={{
