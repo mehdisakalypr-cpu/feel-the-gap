@@ -58,7 +58,7 @@
 **Never use `feel-the-gap.com` for cold email.** One spam complaint = 6 months of burned reputation, and your main domain serves the product page + transactional emails.
 
 Choose a variant:
-- `getthegap.com`
+- `gapup.io`
 - `feelthegap.io`
 - `thegapio.com`
 - `tradegapfeeler.com`
@@ -103,7 +103,7 @@ Value: ins2._domainkey.instantly.ai
 ```
 Name: _dmarc
 Type: TXT
-Value: v=DMARC1; p=none; rua=mailto:dmarc@getthegap.com; aspf=r; adkim=r; pct=100
+Value: v=DMARC1; p=none; rua=mailto:dmarc@gapup.io; aspf=r; adkim=r; pct=100
 TTL: auto
 ```
 - `p=none` during warmup (monitoring only)
@@ -114,7 +114,7 @@ TTL: auto
 ```
 Name: default._bimi
 Type: TXT
-Value: v=BIMI1; l=https://getthegap.com/logo.svg; a=
+Value: v=BIMI1; l=https://gapup.io/logo.svg; a=
 ```
 Requires VMC cert ($1k+/yr) for Gmail to display — skip v1.
 
@@ -152,9 +152,9 @@ Each persona = 1 Instantly sending account on the dedicated domain:
 
 | Persona | Email | Voice | Best for segment |
 |---------|-------|-------|------------------|
-| `alex@getthegap.com` | Alex Martin | direct, data-first | Trading company, investor |
-| `maria@getthegap.com` | Maria Santos | narrative, empathic | Entrepreneur, founder in reconversion |
-| `thomas@getthegap.com` | Thomas Weber | formal, strategic | Corporate procurement, enterprise |
+| `alex@gapup.io` | Alex Martin | direct, data-first | Trading company, investor |
+| `maria@gapup.io` | Maria Santos | narrative, empathic | Entrepreneur, founder in reconversion |
+| `thomas@gapup.io` | Thomas Weber | formal, strategic | Corporate procurement, enterprise |
 
 Stored in `ftg_outreach_personas` table. Hancock's persona recommendation
 (voice_style + language) auto-routes the lead to the matching sender.
@@ -309,9 +309,9 @@ Until webhooks live, **daily manual check via Instantly dashboard** is OK.
 
 ## 9. Launch checklist — before first 100 sends
 
-- [ ] Dedicated cold domain bought (`getthegap.com` or similar)
+- [ ] Dedicated cold domain bought (`gapup.io` or similar)
 - [ ] 4 DNS records live (MX + SPF + 2×DKIM + DMARC)
-- [ ] DMARC report email inbox set up (dmarc@getthegap.com)
+- [ ] DMARC report email inbox set up (dmarc@gapup.io)
 - [ ] mail-tester.com score ≥ 9/10
 - [ ] 3 sender personas created in Instantly + `ftg_outreach_personas` populated
 - [ ] Each persona has unique First name + Last name + email signature
@@ -322,7 +322,7 @@ Until webhooks live, **daily manual check via Instantly dashboard** is OK.
 - [ ] First sequence defined in `ftg_sequences` (draft)
 - [ ] 10 test enrollments in dry-run mode
 - [ ] Webhooks tested OR manual daily monitoring process documented
-- [ ] Unsubscribe page hosted at `https://getthegap.com/unsubscribe`
+- [ ] Unsubscribe page hosted at `https://gapup.io/unsubscribe`
 - [ ] Privacy policy + terms published
 - [ ] Physical address (LLC Wyoming) in email footer
 
