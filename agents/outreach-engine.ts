@@ -124,6 +124,7 @@ export async function runOutreachEngine(opts: {
   let sentWhatsapp = 0
   let skipped = 0
   let errs = 0
+  const skipReasons: Record<string, number> = {}
 
   for (const d of list) {
     const demoUrl = `${appUrl}/demo/${d.token}`
@@ -146,6 +147,7 @@ export async function runOutreachEngine(opts: {
 
     if (!email && !whatsapp && !phone) {
       skipped++
+      skipReasons.no_contact = (skipReasons.no_contact ?? 0) + 1
       continue
     }
 
@@ -210,13 +212,15 @@ export async function runOutreachEngine(opts: {
     }
   }
 
-  console.log(`[outreach-engine] ✅ emails=${sentEmail} · whatsapp=${sentWhatsapp} · skipped=${skipped} · errors=${errs}`)
+  const skipSummary = Object.entries(skipReasons).map(([k, v]) => `${k}=${v}`).join(' ') || '—'
+  console.log(`[outreach-engine] ✅ emails=${sentEmail} · whatsapp=${sentWhatsapp} · skipped=${skipped} (${skipSummary}) · errors=${errs}`)
 
   return {
     processed: list.length,
     sentEmail,
     sentWhatsapp,
     skipped,
+    skipReasons,
     errors: errs,
     mode: apply ? 'APPLY' : 'DRY-RUN',
   }
