@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { auditAndEnqueueForUser } from '@/lib/eishi-adaptor'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -230,6 +231,13 @@ export async function POST(req: NextRequest) {
           stripe_customer_id:     customerId,
           stripe_subscription_id: subscriptionId,
         }).eq('id', userId)
+
+        // 🍴 Eishi — audit user's shortlisted/recent opps and enqueue priority=100
+        // jobs for any missing or thin premium sections. Fire-and-forget: never
+        // block the webhook on this (secondary effect).
+        auditAndEnqueueForUser(supabaseAdmin, userId, { maxOpps: 20 })
+          .then((r) => r.auditsRun > 0 && console.log(`[eishi] ${userId}: audits=${r.auditsRun} enqueued=${r.totalEnqueued}`))
+          .catch((e) => console.error('[eishi] audit failed for', userId, e))
       }
 
       await trackRevenue({

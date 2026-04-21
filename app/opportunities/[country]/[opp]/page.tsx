@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import YoutubeLiteEmbed from '@/components/YoutubeLiteEmbed'
+import OppPageClient from './OppPageClient'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -79,28 +80,14 @@ export default async function OppPage({ params }: Params) {
   const userLang = 'fr'  // TODO: read from i18n/cookie when multi-lang ships
   const videosData = videosV2 || content?.youtube_videos
 
-  if (!content || content.status !== 'ready') {
-    return (
-      <main style={{ background: C.bg, color: C.text, minHeight: '100vh', padding: '4rem 2rem' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: '1rem' }}>🌀</div>
-          <h1 style={{ fontSize: 28, color: C.accent, marginBottom: '1rem' }}>
-            Contenu en cours de génération
-          </h1>
-          <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6 }}>
-            Nos agents préparent une analyse complète pour <strong>{opp.product_name}</strong> en <strong>{countryName}</strong> :
-            méthodes de production, business plans détaillés, clients potentiels, et vidéos YouTube pertinentes.
-          </p>
-          <p style={{ color: C.muted, fontSize: 14, marginTop: '2rem' }}>
-            Revenez dans quelques heures, ou demandez à l'équipe d'accélérer la génération.
-          </p>
-          <Link href={`/reports/${country.toLowerCase()}`}
-            style={{ display: 'inline-block', marginTop: '2rem', padding: '0.75rem 1.5rem', background: C.accent, color: '#000', borderRadius: 6, textDecoration: 'none', fontWeight: 700 }}>
-            ← Vue pays {countryName}
-          </Link>
-        </div>
-      </main>
-    )
+  // Eishi layered rendering: always show the layout. Each section renders its
+  // content if ready, or <SectionSynthesizing /> which polls + enqueues
+  // priority=100 for paid users. No more all-or-nothing "coming soon" screen.
+  const sectionStates = {
+    production_methods: !!content?.production_methods,
+    business_plans:     !!content?.business_plans,
+    potential_clients:  !!content?.potential_clients,
+    youtube_videos:     !!videosData,
   }
 
   return (
@@ -113,36 +100,34 @@ export default async function OppPage({ params }: Params) {
         <div style={{ display: 'flex', gap: '2rem', color: C.muted, marginBottom: '3rem', flexWrap: 'wrap' }}>
           {opp.gap_value_usd && <span>📊 Gap d'import : <strong style={{ color: C.text }}>${(opp.gap_value_usd / 1e6).toFixed(1)}M/an</strong></span>}
           {opp.opportunity_score && <span>🎯 Score : <strong style={{ color: C.text }}>{opp.opportunity_score}/100</strong></span>}
-          <span style={{ color: C.green }}>✓ Contenu à jour du {new Date(content.generated_at).toLocaleDateString('fr-FR')}</span>
+          {content?.generated_at && (
+            <span style={{ color: C.green }}>✓ Contenu à jour du {new Date(content.generated_at).toLocaleDateString('fr-FR')}</span>
+          )}
         </div>
 
-        {/* 1. Production Methods */}
-        {content.production_methods && (
-          <Section title="🏭 Méthodes de production">
-            <ProductionMethodsView data={content.production_methods} />
-          </Section>
-        )}
+        <Section title="🏭 Méthodes de production">
+          {content?.production_methods
+            ? <ProductionMethodsView data={content.production_methods} />
+            : <OppPageClient oppId={opp.id} country={country} section="production_methods" label="les méthodes de production" icon="🏭" />}
+        </Section>
 
-        {/* 2. Business Plans */}
-        {content.business_plans && (
-          <Section title="📋 Business plans">
-            <BusinessPlansView data={content.business_plans} />
-          </Section>
-        )}
+        <Section title="📋 Business plans">
+          {content?.business_plans
+            ? <BusinessPlansView data={content.business_plans} />
+            : <OppPageClient oppId={opp.id} country={country} section="business_plans" label="votre business plan" icon="📋" />}
+        </Section>
 
-        {/* 3. Potential Clients */}
-        {content.potential_clients && (
-          <Section title="🤝 Clients potentiels">
-            <PotentialClientsView data={content.potential_clients} />
-          </Section>
-        )}
+        <Section title="🤝 Clients potentiels">
+          {content?.potential_clients
+            ? <PotentialClientsView data={content.potential_clients} />
+            : <OppPageClient oppId={opp.id} country={country} section="potential_clients" label="les clients potentiels" icon="🤝" />}
+        </Section>
 
-        {/* 4. YouTube Videos (v2 dedup cache preferred, falls back to legacy per-opp) */}
-        {videosData && (
-          <Section title="🎥 Vidéos YouTube">
-            <YoutubeVideosView data={videosData} userLang={userLang} />
-          </Section>
-        )}
+        <Section title="🎥 Vidéos YouTube">
+          {videosData
+            ? <YoutubeVideosView data={videosData} userLang={userLang} />
+            : <OppPageClient oppId={opp.id} country={country} section="youtube_videos" label="les vidéos terrain" icon="🎥" />}
+        </Section>
       </div>
     </main>
   )
