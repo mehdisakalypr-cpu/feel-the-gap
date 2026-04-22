@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { PLAN_PRICE_EUR, PLAN_MONTHLY_GRANT, TOPUP_PACKS, SUBSCRIPTION_DURATIONS, applyDurationDiscount, type DurationMonths, type PlanTier } from '@/lib/credits/costs'
 import ContractGate, { type ContractGateAgreement } from '@/components/ContractGate'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { useLang } from '@/components/LanguageProvider'
 import { shouldShowUpgradeTo } from '@/lib/credits/tier-helpers'
 
 type GeoInfo = {
@@ -21,6 +22,7 @@ type GeoInfo = {
 }
 
 export default function PricingPage() {
+  const { t } = useLang()
   const [mode, setMode] = useState<'subscriptions' | 'packs'>('subscriptions')
   const [duration, setDuration] = useState<DurationMonths>(1)
   const [geo, setGeo] = useState<GeoInfo | null>(null)
@@ -87,8 +89,8 @@ export default function PricingPage() {
     <div className="min-h-screen bg-[#07090F] text-white">
       <main className="max-w-6xl mx-auto px-4 py-12">
         <header className="text-center mb-10">
-          <div className="text-xs uppercase tracking-[0.3em] text-emerald-400 mb-2">Pricing</div>
-          <h1 className="text-4xl font-semibold mb-3">Débloque les opportunités qui te correspondent</h1>
+          <div className="text-xs uppercase tracking-[0.3em] text-emerald-400 mb-2">{t('nav.pricing')}</div>
+          <h1 className="text-4xl font-semibold mb-3">{t('pricing.hero_title')}</h1>
           <p className="text-white/60 max-w-2xl mx-auto">
             Free : carte monde + demo BP pour toutes les opportunités.
             Starter : accès complet + 60 crédits/mois.
@@ -168,7 +170,7 @@ export default function PricingPage() {
         </section>
 
         <footer className="text-center mt-12 text-sm text-white/50">
-          Besoin d'un plan Enterprise / agency ? <Link href="/contact" className="underline text-white/80">Parle-nous.</Link>
+          {t('pricing.enterprise_note')} <Link href="/contact" className="underline text-white/80">{t('pricing.talk_to_us')}</Link>
         </footer>
       </main>
 

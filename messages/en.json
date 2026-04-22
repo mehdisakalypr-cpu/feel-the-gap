@@ -1,9 +1,16 @@
 {
   "nav": {
+    "home": "Home",
     "map": "Map",
+    "reports": "Reports",
+    "marketplace": "Marketplace",
+    "gemini": "Gemini",
     "pricing": "Pricing",
-    "login": "Log in",
-    "signup": "Get started"
+    "admin": "Admin",
+    "login": "Login",
+    "signup": "Get started",
+    "switch_to": "Switch to",
+    "role_active": "Active role"
   },
   "home": {
     "hero_title": "Find the world's biggest trade gaps",
@@ -58,7 +65,10 @@
     "pro_name": "Pro",
     "enterprise_name": "Enterprise",
     "monthly": "month",
-    "most_popular": "Most popular"
+    "most_popular": "Most popular",
+    "hero_title": "Unlock the opportunities that match you",
+    "enterprise_note": "Need an Enterprise / agency plan?",
+    "talk_to_us": "Talk to us."
   },
   "onboarding": {
     "step_role": "What best describes you?",

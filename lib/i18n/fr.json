@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Offres",
     "signin": "S'inscrire / Se connecter",
-    "map": "Carte"
+    "map": "Carte",
+    "home": "Accueil",
+    "marketplace": "Marketplace",
+    "admin": "Admin",
+    "switch_to": "Basculer vers"
   },
   "auth": {
     "login_title": "Bon retour",
@@ -128,7 +132,10 @@
     "access_inactive": "En cas de non-renouvellement ou de paiement refusé, l'historique des recherches et les fiches opportunités sont masqués — ils se débloquent dès la régularisation du paiement.",
     "access_map": "La carte cesse d'afficher les opportunités et les plans d'action sont inaccessibles sans abonnement actif.",
     "access_reactivate": "Le paiement réactive immédiatement l'ensemble de vos données et fonctionnalités.",
-    "trial_note": "Paiements sécurisés via Stripe. Annulation possible à tout moment."
+    "trial_note": "Paiements sécurisés via Stripe. Annulation possible à tout moment.",
+    "hero_title": "Débloque les opportunités qui te correspondent",
+    "enterprise_note": "Besoin d'un plan Enterprise / agency ?",
+    "talk_to_us": "Parle-nous."
   },
   "account": {
     "title": "Mon compte",

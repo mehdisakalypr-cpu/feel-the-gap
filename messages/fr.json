@@ -1,9 +1,16 @@
 {
   "nav": {
+    "home": "Accueil",
     "map": "Carte",
+    "reports": "Rapports",
+    "marketplace": "Marketplace",
+    "gemini": "Gemini",
     "pricing": "Tarifs",
+    "admin": "Admin",
     "login": "Connexion",
-    "signup": "Commencer"
+    "signup": "Commencer",
+    "switch_to": "Basculer vers",
+    "role_active": "Rôle actif"
   },
   "home": {
     "hero_title": "Trouvez les plus grandes opportunités commerciales mondiales",
@@ -58,7 +65,10 @@
     "pro_name": "Pro",
     "enterprise_name": "Entreprise",
     "monthly": "mois",
-    "most_popular": "Le plus populaire"
+    "most_popular": "Le plus populaire",
+    "hero_title": "Débloque les opportunités qui te correspondent",
+    "enterprise_note": "Besoin d'un plan Enterprise / agency ?",
+    "talk_to_us": "Parle-nous."
   },
   "onboarding": {
     "step_role": "Qui êtes-vous ?",

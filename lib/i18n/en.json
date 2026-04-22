@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Pricing",
     "signin": "Sign up / Sign in",
-    "map": "Map"
+    "map": "Map",
+    "home": "Home",
+    "marketplace": "Marketplace",
+    "admin": "Admin",
+    "switch_to": "Switch to"
   },
   "auth": {
     "login_title": "Welcome back",
@@ -128,7 +132,10 @@
     "access_inactive": "If your subscription lapses or payment fails, search history and opportunity sheets are hidden — they unlock as soon as payment is settled.",
     "access_map": "The map stops showing opportunities and action plans are inaccessible without an active subscription.",
     "access_reactivate": "Payment immediately reactivates all your data and features.",
-    "trial_note": "Secure payments via Stripe. Cancel anytime."
+    "trial_note": "Secure payments via Stripe. Cancel anytime.",
+    "hero_title": "Unlock the opportunities that match you",
+    "enterprise_note": "Need an Enterprise / agency plan?",
+    "talk_to_us": "Talk to us."
   },
   "account": {
     "title": "My Account",

@@ -1,22 +1,24 @@
 import { NextRequest } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getAuthUser } from '@/lib/supabase-server'
+import { getServerLocale } from '@/lib/i18n/locale'
+import { localizeSystemPrompt } from '@/lib/ai/localized-gen'
 
 // Cost tracking: charge ~4× API cost per session
 // Gemini 2.0 Flash input: $0.10/1M tokens, output: $0.40/1M tokens
 // Average session ~4000 tokens → ~$0.002 cost → charge €0.008 internally → session price €15
 
-const SYSTEM_PROMPT = `Tu es un expert en développement business international spécialisé dans les opportunités d'import/export et d'investissement dans les marchés émergents.
+const BASE_SYSTEM_PROMPT = `You are an expert in international business development specialising in import/export opportunities and investments in emerging markets.
 
-Tu analyses des opportunités de "trade gap" — des marchés où la demande locale dépasse la production ou l'offre locale — et tu aides des entrepreneurs, importateurs et investisseurs à saisir ces opportunités.
+You analyse "trade gap" opportunities — markets where local demand exceeds local production or supply — and you help entrepreneurs, importers and investors seize those opportunities.
 
-Pour chaque conseil, tu dois :
-1. Être précis et actionnable (pas de généralités)
-2. Donner des chiffres concrets (investissement requis, marges attendues, délais réalistes)
-3. Identifier les risques spécifiques au pays et au secteur
-4. Proposer des prochaines étapes concrètes
+For every piece of advice you must:
+1. Be precise and actionable (no generalities)
+2. Provide concrete numbers (required investment, expected margins, realistic timelines)
+3. Identify country-specific and sector-specific risks
+4. Suggest concrete next steps
 
-Tu réponds en français sauf si le client écrit dans une autre langue. Sois direct, structuré, professionnel.`
+Be direct, structured, professional.`
 
 function buildContextMessage(context: {
   country: string
@@ -66,6 +68,8 @@ export async function POST(req: NextRequest) {
     }
 
     const contextMsg = buildContextMessage(context)
+    const locale = getServerLocale({ request: req })
+    const systemPrompt = localizeSystemPrompt(BASE_SYSTEM_PROMPT, locale)
 
     // ── Try Gemini first (free tier), fall back to Mistral on failure ──────
     if (geminiKey) {
@@ -73,7 +77,7 @@ export async function POST(req: NextRequest) {
         const genAI = new GoogleGenerativeAI(geminiKey)
         const model = genAI.getGenerativeModel({
           model: 'gemini-2.5-flash',
-          systemInstruction: SYSTEM_PROMPT,
+          systemInstruction: systemPrompt,
         })
 
         const chatMessages = messages.map((m: { role: string; content: string }, i: number) => ({
@@ -124,7 +128,7 @@ export async function POST(req: NextRequest) {
     }
 
     const mistralMessages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
       ...messages.map((m: { role: string; content: string }, i: number) => ({
         role: m.role,
         content: i === 0 ? contextMsg + '\n\n' + m.content : m.content,

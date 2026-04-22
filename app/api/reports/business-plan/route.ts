@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getServerLocale, type Locale } from '@/lib/i18n/locale'
+import { localizeSystemPrompt } from '@/lib/ai/localized-gen'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -32,17 +34,17 @@ const ALL_MODES = ['import_sell', 'produce_locally', 'train_locals'] as const
 
 // ── System prompt ──────────────────────────────────────────────────────────────
 
-const SYSTEM = `Tu es un consultant senior en commerce international et développement des affaires, spécialisé sur l'Afrique subsaharienne et les marchés émergents.
+const SYSTEM_BASE = `You are a senior consultant in international trade and business development, specialising in Sub-Saharan Africa and emerging markets.
 
-Tu génères des business plans de haut niveau, professionnels et actionnables pour des entrepreneurs et investisseurs souhaitant saisir des opportunités d'import/export ou de production dans ces marchés.
+You generate high-level, professional, actionable business plans for entrepreneurs and investors aiming to capture import/export or production opportunities in these markets.
 
-Règles absolues :
-- Sois ultra-précis avec des chiffres réels basés sur ta connaissance du pays et du secteur
-- Donne des fourchettes d'investissement réalistes (pas trop larges)
-- Identifie des types de clients B2B réels avec des noms d'entreprises crédibles pour la région
-- L'action plan doit être séquentiel et opérationnel (pas de vœux pieux)
-- Les projections financières doivent être cohérentes entre elles
-- Réponds UNIQUEMENT en JSON valide, aucun texte avant ou après`
+Absolute rules:
+- Be ultra-precise with real numbers based on your country/sector knowledge
+- Give realistic investment ranges (not too wide)
+- Identify real B2B customer types with company names credible for the region
+- The action plan must be sequential and operational (no wishful thinking)
+- Financial projections must be internally consistent
+- Respond with ONLY valid JSON, no text before or after`
 
 // ── Build prompt (always ALL 3 modes) ─────────────────────────────────────────
 
@@ -169,7 +171,7 @@ function parseJson(text: string) {
   throw new Error('Invalid JSON in response')
 }
 
-async function generateWithGroq(prompt: string): Promise<string> {
+async function generateWithGroq(prompt: string, system: string): Promise<string> {
   const key = process.env.GROQ_API_KEY
   if (!key) throw new Error('GROQ_API_KEY not set')
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -178,7 +180,7 @@ async function generateWithGroq(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: SYSTEM },
+        { role: 'system', content: system },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
@@ -191,20 +193,20 @@ async function generateWithGroq(prompt: string): Promise<string> {
   return data.choices[0].message.content
 }
 
-async function generateWithGemini(prompt: string): Promise<string> {
+async function generateWithGemini(prompt: string, system: string): Promise<string> {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY
   if (!key) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
   const genAI = new GoogleGenerativeAI(key)
   const model = genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     generationConfig: { temperature: 0.7, maxOutputTokens: 16000, responseMimeType: 'application/json' },
-    systemInstruction: SYSTEM,
+    systemInstruction: system,
   })
   const result = await model.generateContent(prompt)
   return result.response.text()
 }
 
-async function generateWithMistral(prompt: string): Promise<string> {
+async function generateWithMistral(prompt: string, system: string): Promise<string> {
   const key = process.env.MISTRAL_API_KEY
   if (!key) throw new Error('MISTRAL_API_KEY not set')
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
@@ -213,7 +215,7 @@ async function generateWithMistral(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: 'mistral-small-latest',
       messages: [
-        { role: 'system', content: SYSTEM },
+        { role: 'system', content: system },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
@@ -330,10 +332,13 @@ export async function POST(req: NextRequest) {
       (userContext ?? {}) as UserContext,
     )
 
+    const locale: Locale = getServerLocale({ request: req })
+    const system = localizeSystemPrompt(SYSTEM_BASE, locale)
+
     const providers: { name: string; fn: () => Promise<string> }[] = [
-      ...(process.env.GROQ_API_KEY ? [{ name: 'Groq', fn: () => generateWithGroq(prompt) }] : []),
-      ...(process.env.GOOGLE_GENERATIVE_AI_API_KEY ? [{ name: 'Gemini', fn: () => generateWithGemini(prompt) }] : []),
-      ...(process.env.MISTRAL_API_KEY ? [{ name: 'Mistral', fn: () => generateWithMistral(prompt) }] : []),
+      ...(process.env.GROQ_API_KEY ? [{ name: 'Groq', fn: () => generateWithGroq(prompt, system) }] : []),
+      ...(process.env.GOOGLE_GENERATIVE_AI_API_KEY ? [{ name: 'Gemini', fn: () => generateWithGemini(prompt, system) }] : []),
+      ...(process.env.MISTRAL_API_KEY ? [{ name: 'Mistral', fn: () => generateWithMistral(prompt, system) }] : []),
     ]
     if (!providers.length) {
       return Response.json({ error: 'Aucune clé API configurée' }, { status: 503 })
@@ -367,6 +372,7 @@ export async function POST(req: NextRequest) {
         opp_ids: sortedIds,
         plan,
         scope_reduction_pct: 0,
+        lang: locale,
       }, { onConflict: 'user_id,country_iso,opp_ids' })
 
     if (upsertError) {

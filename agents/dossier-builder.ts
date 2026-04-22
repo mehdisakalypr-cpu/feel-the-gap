@@ -24,6 +24,8 @@
 
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
+import { localizeUserPrompt } from '@/lib/ai/localized-gen';
+import { parseLocale, type Locale } from '@/lib/i18n/locale';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -80,7 +82,7 @@ export interface BuildDossierInput {
   sector?: string;            // ex: "agroalimentaire", "textile", "énergie"
   stage?: string;             // ex: "idée", "amorçage", "croissance", "scale"
   company_name?: string;      // si déjà connu
-  language?: 'fr' | 'en';
+  language?: Locale | string;
 }
 
 // ─── LLM fallback chain (Gemini → Groq → OpenAI) ───────────────────────────
@@ -272,9 +274,11 @@ Aucun texte hors JSON. Les clés en snake_case ASCII, uniques.`;
 // ─── Builder ───────────────────────────────────────────────────────────────
 
 export async function buildDossierStructure(input: BuildDossierInput): Promise<DossierStructure> {
-  const prompt = input.type === 'financement'
+  const locale = parseLocale(input.language);
+  const rawPrompt = input.type === 'financement'
     ? DOSSIER_FINANCEMENT_PROMPT(input)
     : DOSSIER_INVESTISSEMENT_PROMPT(input);
+  const prompt = localizeUserPrompt(rawPrompt, locale);
 
   const raw = await callLLM(prompt, 10000);
   const cleaned = stripJsonFences(raw);

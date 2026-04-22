@@ -1,9 +1,16 @@
 {
   "nav": {
+    "home": "Inicio",
     "map": "Mapa",
+    "reports": "Informes",
+    "marketplace": "Marketplace",
+    "gemini": "Gemini",
     "pricing": "Precios",
+    "admin": "Admin",
     "login": "Iniciar sesión",
-    "signup": "Comenzar"
+    "signup": "Empezar",
+    "switch_to": "Cambiar a",
+    "role_active": "Rol activo"
   },
   "home": {
     "hero_title": "Encuentra las mayores brechas comerciales del mundo",
@@ -58,7 +65,10 @@
     "pro_name": "Pro",
     "enterprise_name": "Empresa",
     "monthly": "mes",
-    "most_popular": "Más popular"
+    "most_popular": "Más popular",
+    "hero_title": "Desbloquea las oportunidades que te corresponden",
+    "enterprise_note": "¿Necesitas un plan Enterprise / agency?",
+    "talk_to_us": "Habla con nosotros."
   },
   "onboarding": {
     "step_role": "¿Qué te describe mejor?",
@@ -160,10 +170,26 @@
         "redirecting": "Redirigiendo a Stripe…"
       },
       "tiers": {
-        "starter": {"label": "Starter", "matches": "3 matches /mes", "bestFor": "Primeros deals, descubrimiento"},
-        "growth": {"label": "Growth", "matches": "10 matches /mes", "bestFor": "Escalado B2B"},
-        "pro": {"label": "Pro", "matches": "25 matches /mes", "bestFor": "Trader activo"},
-        "unlimited": {"label": "Unlimited", "matches": "∞ matches", "bestFor": "Marketplace intensivo"}
+        "starter": {
+          "label": "Starter",
+          "matches": "3 matches /mes",
+          "bestFor": "Primeros deals, descubrimiento"
+        },
+        "growth": {
+          "label": "Growth",
+          "matches": "10 matches /mes",
+          "bestFor": "Escalado B2B"
+        },
+        "pro": {
+          "label": "Pro",
+          "matches": "25 matches /mes",
+          "bestFor": "Trader activo"
+        },
+        "unlimited": {
+          "label": "Unlimited",
+          "matches": "∞ matches",
+          "bestFor": "Marketplace intensivo"
+        }
       },
       "ppa": {
         "sectionTitle": "💳 Pay-per-act (sin compromiso)",
