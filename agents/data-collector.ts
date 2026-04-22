@@ -13,6 +13,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase'
 import type { Country, TradeFlow } from '@/types/database'
+import { iso2ToFlag } from '@/lib/iso-to-flag'
 
 const WB = process.env.WORLD_BANK_BASE_URL ?? 'https://api.worldbank.org/v2'
 
@@ -287,11 +288,9 @@ export async function runGapAnalyzer(countryCodes?: string[]): Promise<void> {
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 
+// isoToFlag below (kept as a thin wrapper) — single source of truth in lib/iso-to-flag.ts
 function isoToFlag(iso2: string): string {
-  if (!iso2 || iso2.length !== 2) return '🏳'
-  return String.fromCodePoint(
-    ...iso2.toUpperCase().split('').map(c => 0x1F1E0 + c.charCodeAt(0) - 65)
-  )
+  return iso2ToFlag(iso2)
 }
 
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }

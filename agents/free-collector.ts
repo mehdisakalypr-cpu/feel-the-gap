@@ -24,6 +24,7 @@ import { fetchWorldBankCountries, fetchWorldBankIndicators } from './sources/wor
 import { fetchIMFWorldTotals } from './sources/imf'
 import { fetchFAOCountryTrade, FAO_COUNTRY_MAP, FAO_KEY_ITEMS } from './sources/faostat'
 import { fetchCommodityPrices, fetchFactbookCountry, DATAHUB_DATASETS } from './sources/owid'
+import { iso2ToFlag } from '@/lib/iso-to-flag'
 
 // ── Country priority order (most impactful first) ─────────────────────────────
 export const PRIORITY_COUNTRIES = [
@@ -373,9 +374,9 @@ function buildSummary(iso: string, product: string, value: number, qty: number |
   return `${iso}: imports ${v}/yr${q} of product ${product}`
 }
 
+// isoToFlag below (kept as a thin wrapper) — single source of truth in lib/iso-to-flag.ts
 function isoToFlag(iso2: string): string {
-  if (!iso2 || iso2.length !== 2) return '🏳'
-  return String.fromCodePoint(...iso2.toUpperCase().split('').map(c => 0x1F1E0 + c.charCodeAt(0) - 65))
+  return iso2ToFlag(iso2)
 }
 
 function fmtB(v: number | null): string {
