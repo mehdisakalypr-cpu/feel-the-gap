@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Fiyatlar",
     "signin": "Kayıt ol / Giriş yap",
-    "map": "Harita"
+    "map": "Harita",
+    "home": "Anasayfa",
+    "marketplace": "Marketplace",
+    "admin": "Admin",
+    "switch_to": "Değiştir"
   },
   "auth": {
     "login_title": "Tekrar hoş geldiniz",
@@ -128,7 +132,10 @@
     "access_inactive": "Abonelik sona ererse veya ödeme başarısız olursa, arama geçmişi ve fırsat kartları gizlenir — ödeme düzenlendiğinde hemen açılır.",
     "access_map": "Aktif abonelik olmadan harita fırsatları göstermez ve aksiyon planları erişilemez olur.",
     "access_reactivate": "Ödeme tüm verilerinizi ve özelliklerinizi anında yeniden etkinleştirir.",
-    "trial_note": "Stripe ile güvenli ödemeler. İstediğiniz zaman iptal edin."
+    "trial_note": "Stripe ile güvenli ödemeler. İstediğiniz zaman iptal edin.",
+    "hero_title": "Size uygun fırsatların kilidini açın",
+    "enterprise_note": "Enterprise / agency planı mı lazım?",
+    "talk_to_us": "Bize ulaşın."
   },
   "account": {
     "title": "Hesabım",

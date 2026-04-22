@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Preise",
     "signin": "Registrieren / Anmelden",
-    "map": "Karte"
+    "map": "Karte",
+    "home": "Startseite",
+    "marketplace": "Marketplace",
+    "admin": "Admin",
+    "switch_to": "Wechseln zu"
   },
   "auth": {
     "login_title": "Willkommen zurück",
@@ -128,7 +132,10 @@
     "access_inactive": "Bei Ablauf des Abonnements oder fehlgeschlagener Zahlung werden Suchverlauf und Chancen-Karten ausgeblendet — sie werden sofort nach Zahlung wieder freigegeben.",
     "access_map": "Die Karte zeigt ohne aktives Abonnement keine Chancen mehr und Aktionspläne sind nicht zugänglich.",
     "access_reactivate": "Die Zahlung reaktiviert sofort alle Ihre Daten und Funktionen.",
-    "trial_note": "Sichere Zahlungen über Stripe. Jederzeit kündbar."
+    "trial_note": "Sichere Zahlungen über Stripe. Jederzeit kündbar.",
+    "hero_title": "Nutze die Chancen, die zu dir passen",
+    "enterprise_note": "Benötigst du einen Enterprise / Agentur-Plan?",
+    "talk_to_us": "Sprich mit uns."
   },
   "account": {
     "title": "Mein Konto",

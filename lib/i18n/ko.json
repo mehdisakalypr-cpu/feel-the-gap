@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "요금",
     "signin": "가입 / 로그인",
-    "map": "지도"
+    "map": "지도",
+    "home": "홈",
+    "marketplace": "Marketplace",
+    "admin": "관리자",
+    "switch_to": "전환"
   },
   "auth": {
     "login_title": "다시 오신 것을 환영합니다",
@@ -128,7 +132,10 @@
     "access_inactive": "구독이 만료되거나 결제가 실패하면 검색 기록과 기회 카드가 숨겨집니다 — 결제 완료 시 즉시 잠금 해제됩니다.",
     "access_map": "활성 구독 없이는 지도에 기회가 표시되지 않으며 액션 플랜에 접근할 수 없습니다.",
     "access_reactivate": "결제 시 모든 데이터와 기능이 즉시 재활성화됩니다.",
-    "trial_note": "Stripe를 통한 안전한 결제. 언제든 취소 가능."
+    "trial_note": "Stripe를 통한 안전한 결제. 언제든 취소 가능.",
+    "hero_title": "당신에게 맞는 기회를 잠금 해제하세요",
+    "enterprise_note": "Enterprise / agency 플랜이 필요하신가요?",
+    "talk_to_us": "문의하세요."
   },
   "account": {
     "title": "내 계정",

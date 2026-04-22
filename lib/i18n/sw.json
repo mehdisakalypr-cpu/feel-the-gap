@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Bei",
     "signin": "Jisajili / Ingia",
-    "map": "Ramani"
+    "map": "Ramani",
+    "home": "Nyumbani",
+    "marketplace": "Marketplace",
+    "admin": "Msimamizi",
+    "switch_to": "Badilisha"
   },
   "auth": {
     "login_title": "Karibu tena",
@@ -128,7 +132,10 @@
     "access_inactive": "Usajili ukiisha au malipo yakishindwa, historia ya utafutaji na kadi za fursa hufichwa — zinafunguka mara malipo yanapokamilika.",
     "access_map": "Ramani inaacha kuonyesha fursa na mipango ya hatua haipatikani bila usajili unaofanya kazi.",
     "access_reactivate": "Malipo yanarejesha mara moja data na vipengele vyako vyote.",
-    "trial_note": "Malipo salama kupitia Stripe. Ghairi wakati wowote."
+    "trial_note": "Malipo salama kupitia Stripe. Ghairi wakati wowote.",
+    "hero_title": "Fungua fursa zinazokufaa",
+    "enterprise_note": "Unahitaji mpango wa Enterprise / agency?",
+    "talk_to_us": "Zungumza nasi."
   },
   "account": {
     "title": "Akaunti Yangu",

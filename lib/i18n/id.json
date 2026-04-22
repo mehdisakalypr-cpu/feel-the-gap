@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Harga",
     "signin": "Daftar / Masuk",
-    "map": "Peta"
+    "map": "Peta",
+    "home": "Beranda",
+    "marketplace": "Marketplace",
+    "admin": "Admin",
+    "switch_to": "Beralih ke"
   },
   "auth": {
     "login_title": "Selamat datang kembali",
@@ -128,7 +132,10 @@
     "access_inactive": "Jika langganan berakhir atau pembayaran gagal, riwayat pencarian dan kartu peluang disembunyikan — terbuka saat pembayaran diselesaikan.",
     "access_map": "Peta berhenti menampilkan peluang dan rencana aksi tidak dapat diakses tanpa langganan aktif.",
     "access_reactivate": "Pembayaran langsung mengaktifkan kembali semua data dan fitur Anda.",
-    "trial_note": "Pembayaran aman via Stripe. Batalkan kapan saja."
+    "trial_note": "Pembayaran aman via Stripe. Batalkan kapan saja.",
+    "hero_title": "Buka peluang yang sesuai untuk Anda",
+    "enterprise_note": "Butuh paket Enterprise / agency?",
+    "talk_to_us": "Hubungi kami."
   },
   "account": {
     "title": "Akun Saya",

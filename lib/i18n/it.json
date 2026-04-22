@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "Prezzi",
     "signin": "Registrati / Accedi",
-    "map": "Mappa"
+    "map": "Mappa",
+    "home": "Home",
+    "marketplace": "Marketplace",
+    "admin": "Admin",
+    "switch_to": "Passa a"
   },
   "auth": {
     "login_title": "Bentornato",
@@ -128,7 +132,10 @@
     "access_inactive": "Se l'abbonamento scade o il pagamento fallisce, la cronologia delle ricerche e le schede opportunità vengono nascoste — si sbloccano appena il pagamento viene regolarizzato.",
     "access_map": "La mappa smette di mostrare le opportunità e i piani d'azione diventano inaccessibili senza abbonamento attivo.",
     "access_reactivate": "Il pagamento riattiva immediatamente tutti i tuoi dati e funzionalità.",
-    "trial_note": "Pagamenti sicuri tramite Stripe. Annulla quando vuoi."
+    "trial_note": "Pagamenti sicuri tramite Stripe. Annulla quando vuoi.",
+    "hero_title": "Sblocca le opportunità che fanno per te",
+    "enterprise_note": "Ti serve un piano Enterprise / agency?",
+    "talk_to_us": "Parlaci."
   },
   "account": {
     "title": "Il mio account",

@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "定价",
     "signin": "注册 / 登录",
-    "map": "地图"
+    "map": "地图",
+    "home": "首页",
+    "marketplace": "Marketplace",
+    "admin": "管理员",
+    "switch_to": "切换到"
   },
   "auth": {
     "login_title": "欢迎回来",
@@ -128,7 +132,10 @@
     "access_inactive": "订阅过期或付款失败时，搜索历史和机会卡片将被隐藏 — 付款后立即解锁。",
     "access_map": "没有活跃订阅，地图将停止显示机会，行动计划也将无法访问。",
     "access_reactivate": "付款后立即重新激活所有数据和功能。",
-    "trial_note": "通过 Stripe 安全支付。随时取消。"
+    "trial_note": "通过 Stripe 安全支付。随时取消。",
+    "hero_title": "解锁适合您的机会",
+    "enterprise_note": "需要企业/代理计划吗?",
+    "talk_to_us": "联系我们。"
   },
   "account": {
     "title": "我的账户",

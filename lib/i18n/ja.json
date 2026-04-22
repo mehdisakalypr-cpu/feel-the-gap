@@ -5,7 +5,11 @@
     "gemini": "Gemini",
     "pricing": "料金",
     "signin": "新規登録 / ログイン",
-    "map": "マップ"
+    "map": "マップ",
+    "home": "ホーム",
+    "marketplace": "Marketplace",
+    "admin": "管理者",
+    "switch_to": "切り替え"
   },
   "auth": {
     "login_title": "おかえりなさい",
@@ -128,7 +132,10 @@
     "access_inactive": "サブスクリプションが期限切れまたは支払いが失敗した場合、検索履歴と機会カードは非表示になります — 支払い完了後すぐにアンロックされます。",
     "access_map": "アクティブなサブスクリプションがないと、マップに機会が表示されず、アクションプランにアクセスできなくなります。",
     "access_reactivate": "お支払いにより、すべてのデータと機能が即座に再有効化されます。",
-    "trial_note": "Stripeによる安全なお支払い。いつでもキャンセル可能。"
+    "trial_note": "Stripeによる安全なお支払い。いつでもキャンセル可能。",
+    "hero_title": "あなたに合った機会を解き放つ",
+    "enterprise_note": "Enterprise / agency プランが必要ですか?",
+    "talk_to_us": "お問い合わせください。"
   },
   "account": {
     "title": "マイアカウント",
