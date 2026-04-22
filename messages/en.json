@@ -271,5 +271,26 @@
       "rejected": "Rejected",
       "expired": "Expired"
     }
+  },
+  "account_page": {
+    "section_password": "Password",
+    "current_password": "Current password",
+    "new_password": "New password",
+    "confirm_password": "Confirm",
+    "min_chars": "Minimum 12 characters",
+    "no_match": "Does not match",
+    "section_referral": "Referral",
+    "signups": "Signups",
+    "conversions": "Conversions",
+    "credit_total": "Cumulative credit",
+    "section_bank": "Bank account (Marketplace)",
+    "section_subscription": "Subscription",
+    "subscription_intro": "Manage your subscription, view invoices or cancel from the billing portal.",
+    "trial_expired": "Your trial has expired",
+    "demo_active": "Demo mode active",
+    "fill_the_gap_usage": "Fill the Gap usage",
+    "api_tokens": "API tokens",
+    "biometric": "Biometric login",
+    "biometric_desc": "Enable fingerprint or Face ID for instant login."
   }
 }

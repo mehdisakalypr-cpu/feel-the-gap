@@ -20,6 +20,8 @@ import { google } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
 import { createOpenAI } from '@ai-sdk/openai'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 function loadEnv() {
   const p = path.join(process.cwd(), '.env.local')
@@ -90,10 +92,11 @@ async function generateOpportunitiesForCountry(
   countryName: string,
   topImport: string,
   productIds: string[],
+  locale: Locale = 'fr',
 ): Promise<any[]> {
   const productList = productIds.map(id => id.replace(/^\d+_/, '').replace(/_/g, ' ')).join(', ')
 
-  const prompt = `You are a trade intelligence analyst. Score these ${productIds.length} products as trade opportunities for ${countryName} (${countryIso}).
+  const rawPrompt = `You are a trade intelligence analyst. Score these ${productIds.length} products as trade opportunities for ${countryName} (${countryIso}).
 
 Known imports: ${topImport || 'general goods'}
 
@@ -104,6 +107,7 @@ Score each 0-100 based on: market demand, competition, logistics, regulations.
 Return ONLY valid JSON array (one entry per product, same order):
 [{"score":75,"summary":"2-3 sentences about this opportunity in ${countryName}","market_size_usd":5000000}]`
 
+  const prompt = localizeUserPrompt(rawPrompt, locale)
   const raw = await gen(prompt)
   try {
     const cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim()

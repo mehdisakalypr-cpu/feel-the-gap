@@ -13,6 +13,8 @@
  */
 
 import { gen, initProviders } from '../../agents/providers'
+import { localizeUserPrompt } from './localized-gen'
+import { LOCALE_NAMES, type Locale } from '../i18n/locale'
 
 export type AiTier = 'data' | 'basic' | 'standard' | 'strategy' | 'premium' | 'ultimate'
 
@@ -21,7 +23,8 @@ export type CascadeRequest = {
   basePrompt: string
   task: string // titre court pour logs
   maxTokens?: number
-  language?: 'fr' | 'en'
+  /** Target output locale. Defaults to 'fr'. Pass to localize every pass. */
+  language?: Locale
 }
 
 export type CascadeResult = {
@@ -50,11 +53,14 @@ const TIER_CONFIG: Record<AiTier, { passes: number; maxTokens: number; relativeC
  * Passe 3 (polish) — ton final, objections, quantification ROI.
  */
 function draftPrompt(req: CascadeRequest): string {
-  return `${req.basePrompt}\n\n[Instructions de draft]\nRédige une première version complète et structurée.`
+  const locale: Locale = req.language ?? 'fr'
+  const base = `${req.basePrompt}\n\n[Instructions de draft]\nRédige une première version complète et structurée.`
+  return localizeUserPrompt(base, locale)
 }
 
 function refinePrompt(req: CascadeRequest, draft: string): string {
-  return `Tu es un consultant stratégie senior. Voici un draft à raffiner :
+  const locale: Locale = req.language ?? 'fr'
+  const base = `Tu es un consultant stratégie senior. Voici un draft à raffiner :
 
 ${draft}
 
@@ -62,14 +68,16 @@ ${draft}
 - Structure claire (titres numérotés, bullets courts)
 - Chiffres crédibles (marges, CA, ROI) avec unités explicites
 - Élimine jargon, garde le concret
-- ${req.language === 'en' ? 'Write in English' : 'Conserve le français'}
+- Output language: ${LOCALE_NAMES[locale]}
 - Longueur finale : proche du draft, pas plus court de 20%
 
 Renvoie uniquement le texte raffiné, sans préambule.`
+  return localizeUserPrompt(base, locale)
 }
 
 function polishPrompt(req: CascadeRequest, refined: string): string {
-  return `Tu es directeur de cabinet conseil. Voici un document raffiné :
+  const locale: Locale = req.language ?? 'fr'
+  const base = `Tu es directeur de cabinet conseil. Voici un document raffiné :
 
 ${refined}
 
@@ -78,8 +86,10 @@ ${refined}
 - Quantifie le ROI en scénarios (pessimiste / médian / optimiste)
 - Ton confiant, précis, factuel (pas commercial creux)
 - Respecte la structure du document d'entrée
+- Output language: ${LOCALE_NAMES[locale]}
 
 Renvoie uniquement le document final, sans préambule.`
+  return localizeUserPrompt(base, locale)
 }
 
 export async function runCascade(req: CascadeRequest): Promise<CascadeResult> {

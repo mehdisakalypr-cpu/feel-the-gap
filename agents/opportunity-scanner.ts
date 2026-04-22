@@ -11,6 +11,8 @@
 
 import { google } from '@ai-sdk/google'
 import { generateText } from 'ai'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 export interface ScanInput {
   product: string               // nom du produit
@@ -23,6 +25,7 @@ export interface ScanInput {
   geography?: string            // géographie cible
   budget?: string               // budget max disponible
   affiliateLink?: string        // lien affilié (pour module influenceur)
+  locale?: Locale               // user locale — drives output language
 }
 
 export interface GeoOpportunity {
@@ -183,9 +186,10 @@ IMPORTANT:
 `
 
 export async function scanOpportunities(input: ScanInput): Promise<OpportunityScanResult> {
+  const locale: Locale = input.locale ?? 'fr'
   const { text } = await generateText({
     model: google('gemini-2.5-flash'),
-    prompt: SCANNER_PROMPT(input),
+    prompt: localizeUserPrompt(SCANNER_PROMPT(input), locale),
     maxTokens: 4000,
   })
 

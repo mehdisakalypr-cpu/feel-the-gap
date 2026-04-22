@@ -15,6 +15,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import type { Opportunity } from '@/types/database'
 import { runCascadeJson, type AiTier } from '@/lib/ai/cascade'
 import { gen } from './providers'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 /**
  * Tier-aware wrappers — Vague 4 #8 · 2026-04-18
@@ -26,11 +28,13 @@ export async function buildTradePlanTiered(
   productName: string,
   countryName: string,
   tier: AiTier = 'basic',
+  locale: Locale = 'fr',
 ): Promise<unknown> {
   if (tier === 'premium' || tier === 'ultimate') {
     return runCascadeJson({
       tier,
       task: 'trade-plan',
+      language: locale,
       basePrompt: `You are a global trade consultant. Return ONLY valid JSON (no markdown).
 
 Country: ${countryName}
@@ -50,7 +54,7 @@ Structure JSON:
 }`,
     })
   }
-  return buildTradePlan(opp, productName, countryName)
+  return buildTradePlan(opp, productName, countryName, locale)
 }
 
 export async function buildProductionPlanTiered(
@@ -58,11 +62,13 @@ export async function buildProductionPlanTiered(
   productName: string,
   countryName: string,
   tier: AiTier = 'basic',
+  locale: Locale = 'fr',
 ): Promise<unknown> {
   if (tier === 'premium' || tier === 'ultimate') {
     return runCascadeJson({
       tier,
       task: 'production-plan',
+      language: locale,
       basePrompt: `You are an agricultural/industrial investment consultant specializing in emerging markets.
 Return ONLY valid JSON (no markdown).
 
@@ -77,13 +83,13 @@ Labor cost index (1-100): ${opp.labor_cost_index ?? 40}
 Structure JSON complète avec : title, executive_summary, production_setup{land_required_ha, location_recommendation, climate_requirements}, machinery_options[], financial_models{cost_effective, balanced, high_tech} chacun avec capex_usd/opex_year_usd/revenue_year_usd/gross_margin_pct/payback_years/roi_5yr_pct, staffing{total_employees, roles[]}, competitive_advantages[], risks_and_mitigations[], implementation_roadmap[], next_steps[].`,
     })
   }
-  return buildProductionPlan(opp, productName, countryName)
+  return buildProductionPlan(opp, productName, countryName, locale)
 }
 
 // ── Direct Trade Plan ─────────────────────────────────────────────────────────
 
-async function buildTradePlan(opp: Opportunity, productName: string, countryName: string) {
-  const prompt = `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
+async function buildTradePlan(opp: Opportunity, productName: string, countryName: string, locale: Locale = 'fr') {
+  const rawPrompt = `You are a global trade consultant. Generate a detailed direct trade business plan in JSON format.
 
 Country: ${countryName}
 Product: ${productName}
@@ -116,6 +122,7 @@ Return ONLY valid JSON with this structure:
   "risks": ["string"],
   "next_steps": ["string"]
 }`
+  const prompt = localizeUserPrompt(rawPrompt, locale)
   const text = await gen(prompt, 2000)
   try {
     return JSON.parse(text.replace(/```json\n?|\n?```/g, ''))
@@ -126,8 +133,8 @@ Return ONLY valid JSON with this structure:
 
 // ── Local Production Plan ─────────────────────────────────────────────────────
 
-async function buildProductionPlan(opp: Opportunity, productName: string, countryName: string) {
-  const prompt = `You are an agricultural/industrial investment consultant specializing in emerging markets.
+async function buildProductionPlan(opp: Opportunity, productName: string, countryName: string, locale: Locale = 'fr') {
+  const rawPrompt = `You are an agricultural/industrial investment consultant specializing in emerging markets.
 Generate a detailed local production business plan in JSON format.
 
 Country: ${countryName}
@@ -177,6 +184,7 @@ Return ONLY valid JSON:
   "implementation_roadmap": [{ "phase": number, "name": "string", "duration": "string", "key_actions": ["string"] }],
   "next_steps": ["string"]
 }`
+  const prompt = localizeUserPrompt(rawPrompt, locale)
   const text = await gen(prompt, 3000)
   try {
     return JSON.parse(text.replace(/```json\n?|\n?```/g, ''))

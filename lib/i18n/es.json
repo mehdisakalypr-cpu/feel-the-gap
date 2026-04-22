@@ -336,5 +336,26 @@
       "rejected": "Rechazado",
       "expired": "Expirado"
     }
+  },
+  "account_page": {
+    "section_password": "Contraseña",
+    "current_password": "Contraseña actual",
+    "new_password": "Nueva contraseña",
+    "confirm_password": "Confirmar",
+    "min_chars": "Mínimo 12 caracteres",
+    "no_match": "No coincide",
+    "section_referral": "Patrocinio",
+    "signups": "Registros",
+    "conversions": "Conversiones",
+    "credit_total": "Crédito acumulado",
+    "section_bank": "Cuenta bancaria (Marketplace)",
+    "section_subscription": "Suscripción",
+    "subscription_intro": "Administra tu suscripción, consulta tus facturas o cancela desde el portal de facturación.",
+    "trial_expired": "Tu período de prueba ha expirado",
+    "demo_active": "Modo demo activo",
+    "fill_the_gap_usage": "Uso Fill the Gap",
+    "api_tokens": "Tokens API",
+    "biometric": "Inicio biométrico",
+    "biometric_desc": "Activa la huella digital o Face ID para iniciar sesión al instante."
   }
 }

@@ -42,6 +42,7 @@ function EyeToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
 }
 
 function PasswordChangeBlock({ email }: { email: string }) {
+  const { t } = useLang()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -82,7 +83,7 @@ function PasswordChangeBlock({ email }: { email: string }) {
 
   return (
     <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
-      <div className="font-semibold text-white mb-1">Mot de passe</div>
+      <div className="font-semibold text-white mb-1">{t('account_page.section_password')}</div>
       <div className="text-sm text-gray-400 mb-4">
         Changez votre mot de passe. Nous demandons l&apos;actuel pour valider l&apos;opération.
       </div>
@@ -90,7 +91,7 @@ function PasswordChangeBlock({ email }: { email: string }) {
       {err && <div className="mb-3 px-3 py-2 bg-red-500/10 border border-red-500/25 rounded-lg text-red-400 text-sm">{err}</div>}
       <form onSubmit={submit} className="space-y-3 max-w-md">
         <div>
-          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Mot de passe actuel</label>
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('account_page.current_password')}</label>
           <div className="relative">
             <input type={showCurrent ? 'text' : 'password'} value={current} onChange={e => setCurrent(e.target.value)} required autoComplete="current-password"
               className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
@@ -98,10 +99,10 @@ function PasswordChangeBlock({ email }: { email: string }) {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Nouveau mot de passe</label>
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('account_page.new_password')}</label>
           <div className="relative">
             <input type={showNext ? 'text' : 'password'} value={next} onChange={e => setNext(e.target.value)} required autoComplete="new-password"
-              placeholder="Minimum 12 caractères"
+              placeholder={t('account_page.min_chars')}
               className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
             <EyeToggle open={showNext} onClick={() => setShowNext(v => !v)} />
           </div>
@@ -110,14 +111,14 @@ function PasswordChangeBlock({ email }: { email: string }) {
           )}
         </div>
         <div>
-          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Confirmer</label>
+          <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('account_page.confirm_password')}</label>
           <div className="relative">
             <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required autoComplete="new-password"
               className="w-full px-4 py-2.5 pr-10 bg-[#111827] border border-[rgba(201,168,76,.15)] rounded-xl text-white text-sm focus:outline-none focus:border-[#C9A84C]" />
             <EyeToggle open={showConfirm} onClick={() => setShowConfirm(v => !v)} />
           </div>
           {confirm.length > 0 && confirm !== next && (
-            <div className="text-[10px] text-red-400 mt-1">Ne correspond pas</div>
+            <div className="text-[10px] text-red-400 mt-1">{t('account_page.no_match')}</div>
           )}
         </div>
         <div className="flex items-center justify-end">
@@ -132,6 +133,7 @@ function PasswordChangeBlock({ email }: { email: string }) {
 }
 
 function ReferralBlock() {
+  const { t } = useLang()
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -185,7 +187,7 @@ function ReferralBlock() {
   return (
     <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
       <div className="flex items-center justify-between mb-1">
-        <div className="font-semibold text-white">Parrainage</div>
+        <div className="font-semibold text-white">{t('account_page.section_referral')}</div>
         {data?.code && (
           <span className="text-[11px] font-bold tracking-wide text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/20 px-2 py-0.5 rounded">
             {data.code}
@@ -252,16 +254,16 @@ function ReferralBlock() {
             </div>
             <div className="bg-white/5 rounded-xl p-3 text-center">
               <div className="text-lg font-bold text-white">{data.signups}</div>
-              <div className="text-xs text-gray-500">Inscriptions</div>
+              <div className="text-xs text-gray-500">{t('account_page.signups')}</div>
             </div>
             <div className="bg-white/5 rounded-xl p-3 text-center">
               <div className="text-lg font-bold text-[#C9A84C]">{data.conversions}</div>
-              <div className="text-xs text-gray-500">Conversions</div>
+              <div className="text-xs text-gray-500">{t('account_page.conversions')}</div>
             </div>
           </div>
 
           <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-xl px-4 py-3 text-sm">
-            <span className="text-gray-400">Crédit cumulé : </span>
+            <span className="text-gray-400">{t('account_page.credit_total')} : </span>
             <span className="font-semibold text-[#C9A84C]">{data.bonus_months} mois</span>
             <span className="text-gray-500"> + </span>
             <span className="font-semibold text-[#C9A84C]">{(data.recurring_credit_cents / 100).toFixed(2)} €</span>
@@ -274,6 +276,7 @@ function ReferralBlock() {
 }
 
 function StripeConnectBlock() {
+  const { t } = useLang()
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
   const [connect, setConnect] = useState<{
@@ -323,7 +326,7 @@ function StripeConnectBlock() {
     <div id="stripe-connect" className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4 scroll-mt-20">
       <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
         <div>
-          <div className="font-semibold text-white">Compte bancaire (Marketplace)</div>
+          <div className="font-semibold text-white">{t('account_page.section_bank')}</div>
           <div className="text-sm text-gray-400 mt-1">
             Requis pour recevoir les paiements escrow Stripe Connect quand un acheteur valide une commande matchée.
           </div>
@@ -364,6 +367,7 @@ function StripeConnectBlock() {
 }
 
 function ManageSubscriptionBtn() {
+  const { t } = useLang()
   const [loading, setLoading] = useState(false)
   const handlePortal = async () => {
     setLoading(true)
@@ -376,8 +380,8 @@ function ManageSubscriptionBtn() {
   }
   return (
     <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
-      <div className="font-semibold text-white mb-1">Abonnement</div>
-      <div className="text-sm text-gray-400 mb-4">Gérez votre abonnement, consultez vos factures ou résiliez depuis le portail de facturation.</div>
+      <div className="font-semibold text-white mb-1">{t('account_page.section_subscription')}</div>
+      <div className="text-sm text-gray-400 mb-4">{t('account_page.subscription_intro')}</div>
       <button onClick={handlePortal} disabled={loading}
         className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white font-medium rounded-xl hover:bg-white/10 transition-colors text-sm disabled:opacity-50">
         {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '⚙️'}
@@ -490,7 +494,7 @@ export default function AccountPage() {
         {/* Demo expiration warning */}
         {isDemo && demoExpired && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-4">
-            <div className="font-semibold text-red-400 mb-1">Votre période d'essai a expiré</div>
+            <div className="font-semibold text-red-400 mb-1">{t('account_page.trial_expired')}</div>
             <div className="text-sm text-gray-400 mb-4">Votre accès Demo {tierCfg.label} a expiré. Passez à un plan payant pour continuer à profiter de toutes les fonctionnalités.</div>
             <Link href="/pricing" className="inline-block px-5 py-2.5 bg-[#C9A84C] text-[#07090F] font-bold rounded-xl hover:bg-[#E8C97A] transition-colors text-sm">
               Voir les plans
@@ -500,7 +504,7 @@ export default function AccountPage() {
 
         {isDemo && !demoExpired && (
           <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-2xl p-6 mb-4">
-            <div className="font-semibold text-[#C9A84C] mb-1">Mode démo actif</div>
+            <div className="font-semibold text-[#C9A84C] mb-1">{t('account_page.demo_active')}</div>
             <div className="text-sm text-gray-400">Vous bénéficiez d'un accès gratuit au plan {tierCfg.label}. Passez à un plan payant pour un accès permanent.</div>
           </div>
         )}
@@ -526,7 +530,7 @@ export default function AccountPage() {
 
         {/* Usage Fill the Gap */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
-          <div className="font-semibold text-white mb-1">Usage Fill the Gap</div>
+          <div className="font-semibold text-white mb-1">{t('account_page.fill_the_gap_usage')}</div>
           <div className="text-sm text-gray-400 mb-4">
             Consomme tes crédits mensuels (Premium 150/mo · Ultimate 250/mo) et historique détaillé.
           </div>
@@ -540,7 +544,7 @@ export default function AccountPage() {
 
         {/* API tokens */}
         <div className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4">
-          <div className="font-semibold text-white mb-1">Tokens API</div>
+          <div className="font-semibold text-white mb-1">{t('account_page.api_tokens')}</div>
           <div className="text-sm text-gray-400 mb-4">
             Accédez à notre API institutionnelle (938 000+ opportunités · 211 pays · 323 produits). 4 tiers dès €12K/an.
           </div>
@@ -571,8 +575,8 @@ export default function AccountPage() {
 
         {/* Biometric setup */}
         <div id="biometric" className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-2xl p-6 mb-4 scroll-mt-20">
-          <div className="font-semibold text-white mb-1">Connexion biométrique</div>
-          <div className="text-sm text-gray-400 mb-4">Activez l'empreinte digitale ou Face ID pour vous connecter instantanément.</div>
+          <div className="font-semibold text-white mb-1">{t('account_page.biometric')}</div>
+          <div className="text-sm text-gray-400 mb-4">{t('account_page.biometric_desc')}</div>
           <button
             onClick={() => {
               localStorage.removeItem('ftg_biometric_offered')

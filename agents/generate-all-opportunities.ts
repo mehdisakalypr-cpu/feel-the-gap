@@ -33,6 +33,8 @@ import { generateText } from 'ai'
 import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import * as path from 'path'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 // ── Load .env.local ──────────────────────────────────────────────────────────
 function loadEnv() {
@@ -207,7 +209,8 @@ async function main() {
     process.stdout.write(`${progress} ${country.name} (${country.id})... `)
 
     try {
-      const prompt = buildPrompt(country)
+      const locale: Locale = (country.lang as Locale) ?? 'fr'
+      const prompt = localizeUserPrompt(buildPrompt(country), locale)
       // Retry with exponential backoff (rate limits)
       let text = ''
       for (let attempt = 1; attempt <= 4; attempt++) {
