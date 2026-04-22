@@ -59,6 +59,10 @@
     {
       "path": "/api/cron/disputes-evidence",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/warm-network-dispatch",
+      "schedule": "30 10 * * *"
     }
   ]
 }
