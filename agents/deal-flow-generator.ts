@@ -241,6 +241,8 @@ async function main() {
   }
 
   console.log(`\n═══ Generated ${total} deal flows ═══`)
+  console.log(`\n=== deal-flow-generator DONE ===`)
+  console.log(`sectors=${sectors.length} deals_inserted=${total}`)
 }
 
 if (process.argv[1]?.endsWith('deal-flow-generator.ts')) {

@@ -52,20 +52,24 @@ const args = Object.fromEntries(process.argv.slice(2).filter(a => !/^--shards?=/
   const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true']
 }))
 
-const COUNTRY = String(args.country ?? '').toUpperCase()
-const PRODUCT = String(args.product ?? '').toLowerCase()
+const COUNTRY_ARG = String(args.country ?? '').toUpperCase()
+const PRODUCT_ARG = String(args.product ?? '').toLowerCase()
 const { shard: SHARD, shards: SHARDS } = parseShardArgs()
 const MAX_GLOBAL = Number(args.max ?? 20)
 const MAX = Math.max(1, Math.ceil(MAX_GLOBAL / SHARDS))
-const APPLY = args.apply === 'true'
+const APPLY = args.apply === 'true' || (SHARDS > 1 && args.apply !== 'false')
 const ALL_TYPES = (args.types ? String(args.types).split(',') : Object.keys(BUYER_QUERIES))
 const TYPES = (SHARDS > 1 ? ALL_TYPES.filter((_, i) => i % SHARDS === SHARD) : ALL_TYPES)
-if (SHARDS > 1) console.log(`[local-buyers-scout] shard=${SHARD}/${SHARDS} types=${TYPES.length}/${ALL_TYPES.length} max=${MAX}`)
 
-if (!COUNTRY || !PRODUCT) {
-  console.error('usage: tsx local-buyers-scout.ts --country=CI --product=cajou [--max=20] [--apply] [--types=industriel,grossiste]')
-  process.exit(1)
-}
+// Blanket mode when no --country/--product: iterate canonical combos, sharded.
+const DEFAULT_COUNTRIES = ['CI', 'SN', 'MA', 'KE', 'NG', 'GH', 'ET', 'CM', 'TN', 'DZ']
+const DEFAULT_PRODUCTS = ['cajou', 'cacao', 'café', 'coton', 'karité', 'hibiscus', 'sésame', 'mangue', 'ananas', 'huile_palme']
+const COMBOS: Array<{ country: string; product: string }> = (COUNTRY_ARG && PRODUCT_ARG)
+  ? [{ country: COUNTRY_ARG, product: PRODUCT_ARG }]
+  : DEFAULT_COUNTRIES.flatMap(c => DEFAULT_PRODUCTS.map(p => ({ country: c, product: p })))
+      .filter((_, i) => i % SHARDS === SHARD)
+
+console.log(`[local-buyers-scout] shard=${SHARD}/${SHARDS} combos=${COMBOS.length} types=${TYPES.length}/${ALL_TYPES.length} max=${MAX} apply=${APPLY}`)
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } })
 
@@ -98,7 +102,7 @@ async function searchSerper(query: string): Promise<any[]> {
 }
 
 async function extractBuyersFromResults(
-  type: string, query: string, results: any[], country: string,
+  type: string, query: string, results: any[], country: string, product: string,
 ): Promise<BuyerCandidate[]> {
   const out: BuyerCandidate[] = []
   for (const r of results.slice(0, 6)) {
@@ -114,7 +118,7 @@ async function extractBuyersFromResults(
       buyer_type: type,
       country_iso: country,
       website_url: r.link,
-      product_slugs: [PRODUCT],
+      product_slugs: [product],
       source: 'serper:' + query.slice(0, 40),
       confidence_score: 0.35,  // unverified by default
       notes: r.snippet?.slice(0, 200),
@@ -124,47 +128,53 @@ async function extractBuyersFromResults(
 }
 
 ;(async () => {
-  console.log(`[local-buyers-scout] country=${COUNTRY} product=${PRODUCT} max=${MAX} apply=${APPLY} types=${TYPES.join(',')}`)
-  const countryName = await countryNameFromIso(COUNTRY)
-  const candidates: BuyerCandidate[] = []
+  let totalSeen = 0
+  let totalInserted = 0
+  for (const { country, product } of COMBOS) {
+    console.log(`\n── country=${country} product=${product} ──`)
+    const countryName = await countryNameFromIso(country)
+    const candidates: BuyerCandidate[] = []
 
-  for (const type of TYPES) {
-    for (const template of (BUYER_QUERIES[type] ?? [])) {
-      const q = template.replace('{product}', PRODUCT).replace('{country}', countryName)
-      const results = await searchSerper(q)
-      const c = await extractBuyersFromResults(type, q, results, COUNTRY)
-      candidates.push(...c)
+    for (const type of TYPES) {
+      for (const template of (BUYER_QUERIES[type] ?? [])) {
+        const q = template.replace('{product}', product).replace('{country}', countryName)
+        const results = await searchSerper(q)
+        const c = await extractBuyersFromResults(type, q, results, country, product)
+        candidates.push(...c)
+        if (candidates.length >= MAX) break
+      }
       if (candidates.length >= MAX) break
     }
-    if (candidates.length >= MAX) break
-  }
 
-  // Dedup by name + country
-  const seen = new Set<string>()
-  const unique = candidates.filter(c => {
-    const k = `${c.country_iso}|${c.name.toLowerCase()}`
-    if (seen.has(k)) return false; seen.add(k); return true
-  }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX)
+    // Dedup by name + country
+    const seen = new Set<string>()
+    const unique = candidates.filter(c => {
+      const k = `${c.country_iso}|${c.name.toLowerCase()}`
+      if (seen.has(k)) return false; seen.add(k); return true
+    }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX)
 
-  console.log(`found: ${unique.length} unique candidates`)
-  for (const c of unique.slice(0, 20)) console.log(`  · ${c.buyer_type.padEnd(14)} ${c.name.slice(0, 60)}  (${c.website_url?.slice(0, 40) ?? '-'})`)
+    totalSeen += unique.length
+    console.log(`  found: ${unique.length} unique candidates`)
+    for (const c of unique.slice(0, 10)) console.log(`    · ${c.buyer_type.padEnd(14)} ${c.name.slice(0, 60)}  (${c.website_url?.slice(0, 40) ?? '-'})`)
 
-  if (!APPLY) { console.log('\n(dry-run — pass --apply to insert)'); return }
+    if (!APPLY) continue
 
-  // Upsert by (country, name)
-  for (const c of unique) {
-    const { data: existing } = await db.from('local_buyers')
-      .select('id, product_slugs, source')
-      .eq('country_iso', c.country_iso)
-      .ilike('name', c.name)
-      .maybeSingle()
-    if (existing) {
-      const slugs = Array.from(new Set([...(existing as any).product_slugs ?? [], ...c.product_slugs]))
-      await db.from('local_buyers').update({ product_slugs: slugs, website_url: c.website_url, notes: c.notes }).eq('id', (existing as any).id)
-    } else {
-      await db.from('local_buyers').insert(c)
+    // Upsert by (country, name)
+    for (const c of unique) {
+      const { data: existing } = await db.from('local_buyers')
+        .select('id, product_slugs, source')
+        .eq('country_iso', c.country_iso)
+        .ilike('name', c.name)
+        .maybeSingle()
+      if (existing) {
+        const slugs = Array.from(new Set([...(existing as any).product_slugs ?? [], ...c.product_slugs]))
+        await db.from('local_buyers').update({ product_slugs: slugs, website_url: c.website_url, notes: c.notes }).eq('id', (existing as any).id)
+      } else {
+        await db.from('local_buyers').insert(c); totalInserted++
+      }
     }
   }
-  const { count } = await db.from('local_buyers').select('id', { count: 'exact', head: true }).eq('country_iso', COUNTRY).contains('product_slugs', [PRODUCT])
-  console.log(`\n✓ DB: ${count} buyers in ${COUNTRY} for ${PRODUCT}`)
-})().catch(e => { console.error(e); process.exit(1) })
+  console.log(`\n=== local-buyers-scout DONE ===`)
+  console.log(`combos=${COMBOS.length} unique=${totalSeen} inserted=${totalInserted} apply=${APPLY}`)
+  if (!APPLY) console.log('(dry-run — pass --apply to insert)')
+})().catch(e => { console.error('local-buyers-scout FATAL:', e); process.exit(1) })

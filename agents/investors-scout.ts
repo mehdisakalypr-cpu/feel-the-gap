@@ -42,20 +42,28 @@ type Candidate = {
 
 import { parseShardArgs, belongsToShard } from './lib/shard'
 const args = Object.fromEntries(process.argv.slice(2).filter(a => !/^--shards?=/.test(a)).map(a => { const [k, v] = a.replace(/^--/, '').split('='); return [k, v ?? 'true'] }))
-const SECTOR = String(args.sector ?? '')
-const REGION = String(args.region ?? '')
+const SECTOR_ARG = String(args.sector ?? '')
+const REGION_ARG = String(args.region ?? '')
 const { shard: SHARD, shards: SHARDS } = parseShardArgs()
 const ALL_TYPES = (args.types ? String(args.types).split(',') : Object.keys(TYPE_QUERIES)) as InvestorType[]
 const TYPES = (SHARDS > 1 ? ALL_TYPES.filter((_, i) => i % SHARDS === SHARD) : ALL_TYPES)
 const MAX_GLOBAL = Number(args.max ?? 30)
 const MAX = Math.max(1, Math.ceil(MAX_GLOBAL / SHARDS))
-const APPLY = args.apply === 'true'
-if (SHARDS > 1) console.log(`[investors-scout] shard=${SHARD}/${SHARDS} types=${TYPES.length}/${ALL_TYPES.length} max=${MAX}`)
+// Auto-apply under scale-worker (SHARDS > 1) unless explicitly disabled.
+const APPLY = args.apply === 'true' || (SHARDS > 1 && args.apply !== 'false')
 
-if (!SECTOR || !REGION) {
-  console.error('usage: tsx investors-scout.ts --sector=agriculture --region=africa-west [--types=vc_fund,dfi] [--max=30] [--apply]')
-  process.exit(1)
-}
+// Blanket mode — when no --sector/--region is passed, iterate canonical combos.
+// Lets `scale-worker` spawn this agent with just --shard/--shards and have
+// meaningful work instead of exit(1) on usage.
+const DEFAULT_SECTORS = ['agriculture', 'food_processing', 'textile', 'artisan', 'renewable_energy', 'logistics', 'aquaculture', 'technology']
+const DEFAULT_REGIONS = ['africa-west', 'africa-east', 'africa-north', 'CIV', 'SEN', 'MAR', 'KEN', 'NGA']
+
+const COMBOS: Array<{ sector: string; region: string }> = (SECTOR_ARG && REGION_ARG)
+  ? [{ sector: SECTOR_ARG, region: REGION_ARG }]
+  : DEFAULT_SECTORS.flatMap(s => DEFAULT_REGIONS.map(r => ({ sector: s, region: r })))
+      .filter((_, i) => i % SHARDS === SHARD)
+
+console.log(`[investors-scout] shard=${SHARD}/${SHARDS} combos=${COMBOS.length} types=${TYPES.length}/${ALL_TYPES.length} max=${MAX} apply=${APPLY}`)
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } })
 
@@ -75,7 +83,7 @@ async function searchSerper(query: string): Promise<any[]> {
   return []
 }
 
-async function extractFromResults(type: InvestorType, query: string, results: any[]): Promise<Candidate[]> {
+async function extractFromResults(type: InvestorType, query: string, results: any[], sector: string, region: string): Promise<Candidate[]> {
   const out: Candidate[] = []
   for (const r of results.slice(0, 8)) {
     const name = (r.title as string)?.split(/[|·–—-]/)[0]?.trim()
@@ -86,8 +94,8 @@ async function extractFromResults(type: InvestorType, query: string, results: an
     out.push({
       name, investor_type: type,
       website_url: r.link,
-      sectors_of_interest: [SECTOR],
-      regions_of_interest: [REGION],
+      sectors_of_interest: [sector],
+      regions_of_interest: [region],
       source: 'serper:' + query.slice(0, 40),
       confidence_score: 0.3,
       notes: (r.snippet as string | undefined)?.slice(0, 240),
@@ -97,39 +105,47 @@ async function extractFromResults(type: InvestorType, query: string, results: an
 }
 
 ;(async () => {
-  console.log(`[investors-scout] sector=${SECTOR} region=${REGION} types=${TYPES.join(',')} max=${MAX} apply=${APPLY}`)
-  const candidates: Candidate[] = []
-  for (const type of TYPES) {
-    for (const tmpl of (TYPE_QUERIES[type] ?? [])) {
-      const q = tmpl.replace('{sector}', SECTOR).replace('{region}', REGION)
-      const r = await searchSerper(q)
-      candidates.push(...await extractFromResults(type, q, r))
+  let totalInserted = 0
+  let totalSeen = 0
+  for (const { sector, region } of COMBOS) {
+    console.log(`\n── sector=${sector} region=${region} ──`)
+    const candidates: Candidate[] = []
+    for (const type of TYPES) {
+      for (const tmpl of (TYPE_QUERIES[type] ?? [])) {
+        const q = tmpl.replace('{sector}', sector).replace('{region}', region)
+        const r = await searchSerper(q)
+        candidates.push(...await extractFromResults(type, q, r, sector, region))
+        if (candidates.length >= MAX) break
+      }
       if (candidates.length >= MAX) break
     }
-    if (candidates.length >= MAX) break
-  }
 
-  const seen = new Set<string>()
-  const unique = candidates.filter(c => {
-    const k = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
-    if (seen.has(k)) return false; seen.add(k); return true
-  }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX)
+    const seen = new Set<string>()
+    const unique = candidates.filter(c => {
+      const k = c.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      if (seen.has(k)) return false; seen.add(k); return true
+    }).filter((r: any) => belongsToShard(r.name, SHARD, SHARDS)).slice(0, MAX)
 
-  console.log(`found ${unique.length} unique candidates`)
-  for (const c of unique.slice(0, 20)) console.log(`  · ${c.investor_type.padEnd(14)} ${c.name.slice(0, 60)}  ${c.website_url?.slice(0, 40) ?? ''}`)
+    totalSeen += unique.length
+    console.log(`  found ${unique.length} unique candidates`)
+    for (const c of unique.slice(0, 10)) console.log(`    · ${c.investor_type.padEnd(14)} ${c.name.slice(0, 60)}  ${c.website_url?.slice(0, 40) ?? ''}`)
 
-  if (!APPLY) { console.log('\n(dry-run — pass --apply to insert)'); return }
+    if (!APPLY) continue
 
-  for (const c of unique) {
-    const { data: existing } = await db.from('investors_directory').select('id, sectors_of_interest, regions_of_interest').ilike('name', c.name).maybeSingle()
-    if (existing) {
-      const sec = Array.from(new Set([...(existing as any).sectors_of_interest ?? [], ...c.sectors_of_interest]))
-      const reg = Array.from(new Set([...(existing as any).regions_of_interest ?? [], ...c.regions_of_interest]))
-      await db.from('investors_directory').update({ sectors_of_interest: sec, regions_of_interest: reg, website_url: c.website_url, notes: c.notes }).eq('id', (existing as any).id)
-    } else {
-      await db.from('investors_directory').insert(c)
+    for (const c of unique) {
+      const { data: existing } = await db.from('investors_directory').select('id, sectors_of_interest, regions_of_interest').ilike('name', c.name).maybeSingle()
+      if (existing) {
+        const sec = Array.from(new Set([...(existing as any).sectors_of_interest ?? [], ...c.sectors_of_interest]))
+        const reg = Array.from(new Set([...(existing as any).regions_of_interest ?? [], ...c.regions_of_interest]))
+        await db.from('investors_directory').update({ sectors_of_interest: sec, regions_of_interest: reg, website_url: c.website_url, notes: c.notes }).eq('id', (existing as any).id)
+      } else {
+        await db.from('investors_directory').insert(c)
+        totalInserted++
+      }
     }
   }
-  const { count } = await db.from('investors_directory').select('id', { count: 'exact', head: true }).contains('sectors_of_interest', [SECTOR])
-  console.log(`\n✓ DB: ${count} investors tagged with sector=${SECTOR}`)
-})().catch(e => { console.error(e); process.exit(1) })
+
+  console.log(`\n=== investors-scout DONE ===`)
+  console.log(`combos=${COMBOS.length} unique_candidates=${totalSeen} inserted=${totalInserted} apply=${APPLY}`)
+  if (!APPLY) console.log('(dry-run — pass --apply to insert)')
+})().catch(e => { console.error('investors-scout FATAL:', e); process.exit(1) })
