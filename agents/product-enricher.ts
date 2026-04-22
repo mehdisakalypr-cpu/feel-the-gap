@@ -38,6 +38,8 @@ import { google } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
 import { createOpenAI } from '@ai-sdk/openai'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 function loadEnv() {
   const p = path.join(process.cwd(), '.env.local')
@@ -158,11 +160,12 @@ async function generateProductBatch(
   subcategory: string,
   origins: string[],
   count: number,
+  locale: Locale = 'fr',
 ): Promise<any[]> {
   const originNames = origins.map(iso => `${ISO_TO_COUNTRY[iso] ?? iso} (${iso})`).join(', ')
   const labels = LABEL_TYPES.sort(() => Math.random() - 0.5).slice(0, 5).join(', ')
 
-  const prompt = `Tu es expert en produits de commerce international, spécialisé en produits artisanaux, de terroir, coopératives et labels qualité.
+  const rawPrompt = `Tu es expert en produits de commerce international, spécialisé en produits artisanaux, de terroir, coopératives et labels qualité.
 
 Génère EXACTEMENT ${count} produits uniques dans la catégorie "${subcategory}" (catégorie: ${category}).
 Pays d'origine possibles : ${originNames}
@@ -195,6 +198,7 @@ Retourne UNIQUEMENT un JSON valide (pas de markdown, pas de code fences) :
 IMPORTANT : Chaque produit doit avoir un nom UNIQUE et spécifique. Pas de noms génériques.
 Inclure au moins 3 produits de coopératives, 3 artisanaux, 3 avec labels qualité.`
 
+  const prompt = localizeUserPrompt(rawPrompt, locale)
   const raw = await gen(prompt, `products-${category}-${subcategory}`)
 
   try {

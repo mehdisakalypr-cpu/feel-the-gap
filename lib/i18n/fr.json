@@ -135,7 +135,33 @@
     "trial_note": "Paiements sécurisés via Stripe. Annulation possible à tout moment.",
     "hero_title": "Débloque les opportunités qui te correspondent",
     "enterprise_note": "Besoin d'un plan Enterprise / agency ?",
-    "talk_to_us": "Parle-nous."
+    "talk_to_us": "Parle-nous.",
+    "plans": {
+      "free": {
+        "tagline": "Explore avant d'acheter",
+        "cta": "Commencer gratuitement"
+      },
+      "solo_producer": {
+        "tagline": "Cultiver local, vendre local",
+        "cta": "Démarrer à €19.99/mo"
+      },
+      "data": {
+        "tagline": "Tout du parcours",
+        "cta": "Passer Data"
+      },
+      "strategy": {
+        "tagline": "Méthode + 1 supplier + 1 client",
+        "cta": "Passer Strategy"
+      },
+      "premium": {
+        "tagline": "Bench complet + 5/5",
+        "cta": "Passer Premium"
+      },
+      "ultimate": {
+        "tagline": "Tout illimité + AI engine",
+        "cta": "Passer Ultimate"
+      }
+    }
   },
   "account": {
     "title": "Mon compte",
@@ -282,5 +308,33 @@
     "from": "À partir de",
     "contact_us": "Nous contacter",
     "language": "Langue"
+  },
+  "marketplace_page": {
+    "hero_badge": "🌍 Marketplace B2B · Phase 2",
+    "hero_title": "Vends ta production. Trouve ton acheteur. Au prix du marché.",
+    "hero_pitch": "Déclare tes volumes ou publie ta demande — l'IA croise les signaux (qualité, certifications, prix, incoterm, délais) et propose les meilleures paires. Commission plateforme : 2,5 % du GMV matché.",
+    "cta_declare_volume": "🌾 Déclarer un volume",
+    "cta_post_demand": "🛒 Publier une demande",
+    "my_matches": "🎯 Mes matches",
+    "volumes_section": "🌾 Volumes producteurs ouverts",
+    "volumes_empty": "Aucun volume ouvert pour l'instant. Sois le premier à déclarer.",
+    "add_volume": "+ Ajouter un volume",
+    "demands_section": "🛒 Demandes acheteurs ouvertes",
+    "demands_empty": "Aucune demande ouverte pour l'instant.",
+    "post_demand_short": "+ Publier une demande",
+    "deadline": "échéance",
+    "how_it_works": "Comment ça marche",
+    "accept_as_producer": "Accepter (producteur)",
+    "accept_as_buyer": "Accepter (acheteur)",
+    "details": "Détails →",
+    "accept_registered": "✅ Acceptation enregistrée.",
+    "status": {
+      "proposed": "Proposé",
+      "accepted_producer": "Accepté producteur",
+      "accepted_buyer": "Accepté acheteur",
+      "confirmed": "Confirmé 🎉",
+      "rejected": "Rejeté",
+      "expired": "Expiré"
+    }
   }
 }

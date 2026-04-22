@@ -20,6 +20,8 @@
 import { loadEnv } from '../lib/env'
 import { createClient } from '@supabase/supabase-js'
 import { initProviders, gen } from './providers'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import { parseLocale } from '@/lib/i18n/locale'
 
 loadEnv()
 initProviders()
@@ -52,9 +54,7 @@ const db = () =>
 
 // ── Prompt & JSON schema ─────────────────────────────────────────────────
 
-const PROMPT_TEMPLATE = (productName: string, productSlug: string, lang: string) => `Tu es un expert en procédés industriels et agricoles. Pour le produit **"${productName}"** (slug: ${productSlug}), décris de manière détaillée 4-6 méthodes de production distinctes, depuis l'artisanal jusqu'à l'industriel IA.
-
-Langue de sortie : ${lang === 'fr' ? 'FRANÇAIS' : 'ENGLISH'}.
+const PROMPT_TEMPLATE_RAW = (productName: string, productSlug: string) => `Tu es un expert en procédés industriels et agricoles. Pour le produit **"${productName}"** (slug: ${productSlug}), décris de manière détaillée 4-6 méthodes de production distinctes, depuis l'artisanal jusqu'à l'industriel IA.
 
 **Contraintes qualité** :
 - Chaque méthode doit être RÉALISTE et distincte (pas de copies-collées)
@@ -232,10 +232,11 @@ async function upsertMethodsForProduct(sb, product, methods: any[]) {
 
 // ── Main loop ─────────────────────────────────────────────────────────────
 
-async function processProduct(sb, product) {
+async function processProduct(sb, product, lang = 'fr') {
   const name = product.name_fr || product.name
   const slug = productSlug(product)
-  const prompt = PROMPT_TEMPLATE(name, slug, 'fr')
+  const locale = parseLocale(lang)
+  const prompt = localizeUserPrompt(PROMPT_TEMPLATE_RAW(name, slug), locale)
   console.log(`\n🧘 ${slug} (${name})`)
   try {
     const raw = await gen(prompt, 16000)  // large — JSON riche peut atteindre 20k+ tokens

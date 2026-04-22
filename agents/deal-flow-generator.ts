@@ -38,6 +38,8 @@ import { google } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
 import { createOpenAI } from '@ai-sdk/openai'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 function loadEnv() {
   const p = path.join(process.cwd(), '.env.local')
@@ -111,11 +113,11 @@ async function gen(prompt: string): Promise<string> {
   throw new Error('All providers exhausted')
 }
 
-async function generateDealBatch(sector: typeof SECTORS[0], count: number): Promise<any[]> {
+async function generateDealBatch(sector: typeof SECTORS[0], count: number, locale: Locale = 'fr'): Promise<any[]> {
   const stages = STAGES.sort(() => Math.random() - 0.5).slice(0, 3)
   const countries = sector.countries.sort(() => Math.random() - 0.5).slice(0, 4)
 
-  const prompt = `Tu es analyste en private equity spécialisé dans les marchés émergents.
+  const rawPrompt = `Tu es analyste en private equity spécialisé dans les marchés émergents.
 
 Génère EXACTEMENT ${count} deal flows d'investissement RÉALISTES dans le secteur "${sector.label}".
 
@@ -149,6 +151,7 @@ Chaque deal doit être UNIQUE et RÉALISTE. Retourne UNIQUEMENT un JSON valide :
 
 Mélange les profils : startups tech, coopératives industrielles, PME en expansion, projets à impact.`
 
+  const prompt = localizeUserPrompt(rawPrompt, locale)
   const raw = await gen(prompt)
   try {
     const cleaned = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim()

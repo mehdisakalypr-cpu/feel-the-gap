@@ -20,6 +20,8 @@ import * as path from 'path'
 import { createClient } from '@supabase/supabase-js'
 import { generateText } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import type { Locale } from '@/lib/i18n/locale'
 
 function loadEnv() {
   const p = path.join(process.cwd(), '.env.local')
@@ -87,7 +89,8 @@ async function generateDemo(opp: any): Promise<{
   const locked: Record<string, string> = {}
 
   // 2 sections en clair (preview)
-  const previewPrompt = `Tu es un consultant export senior. Rédige 2 sections détaillées (800 mots chacune) d'un business plan pour l'opportunité:
+  const locale: Locale = (opp.lang as Locale) ?? 'fr'
+  const previewPromptRaw = `Tu es un consultant export senior. Rédige 2 sections détaillées (800 mots chacune) d'un business plan pour l'opportunité:
 - Produit: ${product}
 - Pays cible: ${country}
 - Gap import/export: $${gap.toLocaleString()} USD
@@ -97,6 +100,7 @@ Section 1 — RÉSUMÉ EXÉCUTIF (markdown, bullet points, chiffres concrets)
 Section 2 — ANALYSE DE MARCHÉ (taille, croissance, acteurs clés, tendances)
 
 Format: retourne JSON strict {"executive_summary": "...", "market_analysis": "..."}`
+  const previewPrompt = localizeUserPrompt(previewPromptRaw, locale)
 
   try {
     const { text } = await generateText({ model: nextGemini('gemini-2.5-flash'), prompt: previewPrompt, maxTokens: 4000 })

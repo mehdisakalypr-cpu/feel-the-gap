@@ -11,6 +11,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { useLang } from '@/components/LanguageProvider'
 
 type Volume = {
   id: string
@@ -57,13 +58,13 @@ type MyMatch = {
   buyer_id?: string | null
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  proposed: 'Proposé',
-  accepted_producer: 'Accepté producteur',
-  accepted_buyer: 'Accepté acheteur',
-  confirmed: 'Confirmé 🎉',
-  rejected: 'Rejeté',
-  expired: 'Expiré',
+const STATUS_KEY: Record<string, string> = {
+  proposed: 'marketplace_page.status.proposed',
+  accepted_producer: 'marketplace_page.status.accepted_producer',
+  accepted_buyer: 'marketplace_page.status.accepted_buyer',
+  confirmed: 'marketplace_page.status.confirmed',
+  rejected: 'marketplace_page.status.rejected',
+  expired: 'marketplace_page.status.expired',
 }
 const STATUS_COLOR: Record<string, string> = {
   proposed: 'bg-white/5 border-white/10 text-gray-300',
@@ -87,6 +88,7 @@ function fmtKg(v: number | null | undefined): string {
 }
 
 function MarketplaceInner() {
+  const { t } = useLang()
   const [volumes, setVolumes] = useState<Volume[]>([])
   const [demands, setDemands] = useState<Demand[]>([])
   const [myMatches, setMyMatches] = useState<MyMatch[]>([])
@@ -195,27 +197,25 @@ function MarketplaceInner() {
       <div className="max-w-6xl mx-auto px-4 py-10 space-y-10">
         {/* Hero */}
         <div className="space-y-3">
-          <div className="text-xs uppercase tracking-wider text-[#C9A84C]">🌍 Marketplace B2B · Phase 2</div>
+          <div className="text-xs uppercase tracking-wider text-[#C9A84C]">{t('marketplace_page.hero_badge')}</div>
           <h1 className="text-3xl md:text-4xl font-bold">
-            Vends ta production. Trouve ton acheteur. Au prix du marché.
+            {t('marketplace_page.hero_title')}
           </h1>
           <p className="text-sm md:text-base text-gray-400 max-w-2xl">
-            Déclare tes volumes ou publie ta demande — l'IA croise les signaux
-            (qualité, certifications, prix, incoterm, délais) et propose les
-            meilleures paires. Commission plateforme&nbsp;: 2,5&nbsp;% du GMV matché.
+            {t('marketplace_page.hero_pitch')}
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link
               href="/marketplace/new?kind=volume"
               className="inline-flex items-center gap-2 px-5 py-3 bg-[#C9A84C] text-[#07090F] font-bold text-sm rounded-xl hover:bg-[#E8C97A] transition-colors"
             >
-              🌾 Déclarer un volume
+              {t('marketplace_page.cta_declare_volume')}
             </Link>
             <Link
               href="/marketplace/new?kind=demand"
               className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold text-sm rounded-xl hover:bg-emerald-500/25 transition-colors"
             >
-              🛒 Publier une demande
+              {t('marketplace_page.cta_post_demand')}
             </Link>
           </div>
         </div>
@@ -235,7 +235,7 @@ function MarketplaceInner() {
         {!loading && loggedIn && myMatches.length > 0 && (
           <section className="space-y-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
-              <span>🎯</span> Mes matches ({myMatches.length})
+              <span>🎯</span> {t('marketplace_page.my_matches')} ({myMatches.length})
             </h2>
             <div className="space-y-2">
               {myMatches.map((m) => {
@@ -263,7 +263,7 @@ function MarketplaceInner() {
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wider ${STATUS_COLOR[m.status] ?? 'bg-white/5 border-white/10 text-gray-400'}`}>
-                        {STATUS_LABEL[m.status] ?? m.status}
+                        {STATUS_KEY[m.status] ? t(STATUS_KEY[m.status]) : m.status}
                       </span>
                       {canAccept && role && (
                         <button
@@ -275,7 +275,7 @@ function MarketplaceInner() {
                               : 'bg-emerald-500 text-[#07090F] hover:bg-emerald-400'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
-                          {acceptingId === m.id ? '...' : `Accepter (${role === 'producer' ? 'producteur' : 'acheteur'})`}
+                          {acceptingId === m.id ? '...' : t(role === 'producer' ? 'marketplace_page.accept_as_producer' : 'marketplace_page.accept_as_buyer')}
                         </button>
                       )}
                       <span className="text-[11px] text-gray-500 whitespace-nowrap">
@@ -300,15 +300,15 @@ function MarketplaceInner() {
           <section className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <span>🌾</span> Volumes producteurs ouverts ({volumes.length})
+                <span>🌾</span> {t('marketplace_page.volumes_section')} ({volumes.length})
               </h2>
               <Link href="/marketplace/new?kind=volume" className="text-xs text-[#C9A84C] hover:underline">
-                + Ajouter un volume
+                {t('marketplace_page.add_volume')}
               </Link>
             </div>
             {volumes.length === 0 ? (
               <div className="p-8 bg-white/[.02] border border-white/5 rounded-xl text-center">
-                <p className="text-sm text-gray-400">Aucun volume ouvert pour l'instant. Sois le premier à déclarer.</p>
+                <p className="text-sm text-gray-400">{t('marketplace_page.volumes_empty')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -351,15 +351,15 @@ function MarketplaceInner() {
           <section className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <span>🛒</span> Demandes acheteurs ouvertes ({demands.length})
+                <span>🛒</span> {t('marketplace_page.demands_section')} ({demands.length})
               </h2>
               <Link href="/marketplace/new?kind=demand" className="text-xs text-emerald-300 hover:underline">
-                + Publier une demande
+                {t('marketplace_page.post_demand_short')}
               </Link>
             </div>
             {demands.length === 0 ? (
               <div className="p-8 bg-white/[.02] border border-white/5 rounded-xl text-center">
-                <p className="text-sm text-gray-400">Aucune demande ouverte pour l'instant.</p>
+                <p className="text-sm text-gray-400">{t('marketplace_page.demands_empty')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -403,7 +403,7 @@ function MarketplaceInner() {
         )}
 
         <div className="p-5 rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/5">
-          <p className="text-sm text-[#C9A84C] font-semibold mb-1">Comment ça marche</p>
+          <p className="text-sm text-[#C9A84C] font-semibold mb-1">{t('marketplace_page.how_it_works')}</p>
           <p className="text-sm text-gray-300 leading-relaxed">
             1. Producteur déclare son volume (pays, produit, qualité, certifs, prix plancher). 2. Acheteur publie sa demande (qty, qualité, ceiling). 3. L'agent matcher IA scanne toutes les paires, score 0-100, garde les matches pertinents (≥ 65). 4. Les 2 parties acceptent → escrow Stripe Connect → commission 2,5 % retenue → livraison → libération du paiement.
           </p>

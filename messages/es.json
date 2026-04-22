@@ -68,7 +68,33 @@
     "most_popular": "Más popular",
     "hero_title": "Desbloquea las oportunidades que te corresponden",
     "enterprise_note": "¿Necesitas un plan Enterprise / agency?",
-    "talk_to_us": "Habla con nosotros."
+    "talk_to_us": "Habla con nosotros.",
+    "plans": {
+      "free": {
+        "tagline": "Explora antes de comprar",
+        "cta": "Empezar gratis"
+      },
+      "solo_producer": {
+        "tagline": "Cultiva local, vende local",
+        "cta": "Empezar a €19.99/mo"
+      },
+      "data": {
+        "tagline": "Todo del recorrido",
+        "cta": "Pasar a Data"
+      },
+      "strategy": {
+        "tagline": "Método + 1 proveedor + 1 cliente",
+        "cta": "Pasar a Strategy"
+      },
+      "premium": {
+        "tagline": "Benchmark completo + 5/5",
+        "cta": "Pasar a Premium"
+      },
+      "ultimate": {
+        "tagline": "Todo ilimitado + motor IA",
+        "cta": "Pasar a Ultimate"
+      }
+    }
   },
   "onboarding": {
     "step_role": "¿Qué te describe mejor?",
@@ -216,6 +242,34 @@
       "errors": {
         "checkoutFailed": "Checkout failed"
       }
+    }
+  },
+  "marketplace_page": {
+    "hero_badge": "🌍 Marketplace B2B · Fase 2",
+    "hero_title": "Vende tu producción. Encuentra tu comprador. Al precio del mercado.",
+    "hero_pitch": "Declara tus volúmenes o publica tu demanda — la IA cruza las señales (calidad, certificaciones, precio, incoterm, plazos) y propone los mejores pares. Comisión plataforma: 2,5 % del GMV emparejado.",
+    "cta_declare_volume": "🌾 Declarar un volumen",
+    "cta_post_demand": "🛒 Publicar una demanda",
+    "my_matches": "🎯 Mis emparejamientos",
+    "volumes_section": "🌾 Volúmenes productores abiertos",
+    "volumes_empty": "Ningún volumen abierto aún. Sé el primero en declarar.",
+    "add_volume": "+ Añadir un volumen",
+    "demands_section": "🛒 Demandas compradores abiertas",
+    "demands_empty": "Ninguna demanda abierta aún.",
+    "post_demand_short": "+ Publicar una demanda",
+    "deadline": "plazo",
+    "how_it_works": "Cómo funciona",
+    "accept_as_producer": "Aceptar (productor)",
+    "accept_as_buyer": "Aceptar (comprador)",
+    "details": "Detalles →",
+    "accept_registered": "✅ Aceptación registrada.",
+    "status": {
+      "proposed": "Propuesto",
+      "accepted_producer": "Aceptado productor",
+      "accepted_buyer": "Aceptado comprador",
+      "confirmed": "Confirmado 🎉",
+      "rejected": "Rechazado",
+      "expired": "Expirado"
     }
   }
 }

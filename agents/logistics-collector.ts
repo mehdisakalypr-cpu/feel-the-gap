@@ -15,6 +15,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { localizeUserPrompt } from '@/lib/ai/localized-gen';
+import type { Locale } from '@/lib/i18n/locale';
 
 // Load .env.local manually (tsx doesn't auto-load env files).
 // MUST run before any module that captures process.env at load time.
@@ -109,8 +111,10 @@ async function estimateCorridor(args: {
   destination: string;
   mode: string;
   youtubeContext: string;
+  locale?: Locale;
 }): Promise<CorridorEstimate[] | null> {
-  const prompt = `Tu es un expert en logistique internationale et incoterms 2020.
+  const locale: Locale = args.locale ?? 'fr';
+  const rawPrompt = `Tu es un expert en logistique internationale et incoterms 2020.
 
 Estime les couts de fret et delais pour le corridor suivant:
 - Origine: ${args.origin} (code ISO3)
@@ -144,6 +148,7 @@ Schema:
 
 Donne au maximum 5 entrees. Utilise des estimations 2026 realistes. Pour ${args.mode}=sea priorise FOB+CIF; pour air priorise standard cargo; pour road priorise EXW+DAP.
 `;
+  const prompt = localizeUserPrompt(rawPrompt, locale);
 
   // Try Gemini → Groq → OpenAI
   const providers = [

@@ -68,7 +68,33 @@
     "most_popular": "Most popular",
     "hero_title": "Unlock the opportunities that match you",
     "enterprise_note": "Need an Enterprise / agency plan?",
-    "talk_to_us": "Talk to us."
+    "talk_to_us": "Talk to us.",
+    "plans": {
+      "free": {
+        "tagline": "Explore before you buy",
+        "cta": "Start for free"
+      },
+      "solo_producer": {
+        "tagline": "Grow local, sell local",
+        "cta": "Start at €19.99/mo"
+      },
+      "data": {
+        "tagline": "Everything from the journey",
+        "cta": "Go Data"
+      },
+      "strategy": {
+        "tagline": "Method + 1 supplier + 1 client",
+        "cta": "Go Strategy"
+      },
+      "premium": {
+        "tagline": "Full benchmark + 5/5",
+        "cta": "Go Premium"
+      },
+      "ultimate": {
+        "tagline": "Unlimited + AI engine",
+        "cta": "Go Ultimate"
+      }
+    }
   },
   "onboarding": {
     "step_role": "What best describes you?",
@@ -216,6 +242,34 @@
       "errors": {
         "checkoutFailed": "Checkout failed"
       }
+    }
+  },
+  "marketplace_page": {
+    "hero_badge": "🌍 B2B Marketplace · Phase 2",
+    "hero_title": "Sell your production. Find your buyer. At market price.",
+    "hero_pitch": "Declare your volumes or post your demand — AI matches signals (quality, certifications, price, incoterm, lead time) and proposes the best pairs. Platform commission: 2.5% of matched GMV.",
+    "cta_declare_volume": "🌾 Declare a volume",
+    "cta_post_demand": "🛒 Post a demand",
+    "my_matches": "🎯 My matches",
+    "volumes_section": "🌾 Open producer volumes",
+    "volumes_empty": "No open volume yet. Be the first to declare.",
+    "add_volume": "+ Add a volume",
+    "demands_section": "🛒 Open buyer demands",
+    "demands_empty": "No open demand yet.",
+    "post_demand_short": "+ Post a demand",
+    "deadline": "deadline",
+    "how_it_works": "How it works",
+    "accept_as_producer": "Accept (producer)",
+    "accept_as_buyer": "Accept (buyer)",
+    "details": "Details →",
+    "accept_registered": "✅ Acceptance recorded.",
+    "status": {
+      "proposed": "Proposed",
+      "accepted_producer": "Producer accepted",
+      "accepted_buyer": "Buyer accepted",
+      "confirmed": "Confirmed 🎉",
+      "rejected": "Rejected",
+      "expired": "Expired"
     }
   }
 }

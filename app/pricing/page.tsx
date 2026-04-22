@@ -204,6 +204,7 @@ function Subscriptions({
   userTier: PlanTier | null
   authResolved: boolean
 }) {
+  const { t } = useLang()
   // Anonymous (or auth still resolving): show every plan, including Free.
   // Authenticated: hide Free + every tier <= current (no downgrade CTAs).
   const isAnonymous = authResolved && userTier === null
@@ -250,7 +251,7 @@ function Subscriptions({
       {showFree && (
       <PlanCard
         name="Free" price="€0" period="" credits={PLAN_MONTHLY_GRANT.free}
-        tagline="Explore avant d'acheter"
+        tagline={t('pricing.plans.free.tagline')}
         features={[
           { label: 'Map monde + fiche pays', yes: true },
           { label: 'Demo BP pour toutes les opportunités', yes: true },
@@ -258,7 +259,7 @@ function Subscriptions({
           { label: 'Business plan IA', yes: false },
           { label: 'Fill the Gap', yes: false },
         ]}
-        ctaLabel="Commencer gratuitement" ctaHref="/auth/register"
+        ctaLabel={t('pricing.plans.free.cta')} ctaHref="/auth/register"
       />
       )}
       {showPlan('solo_producer') && (
@@ -268,7 +269,7 @@ function Subscriptions({
         period="/mois"
         savings={savingsNote(solo.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.solo_producer}
-        tagline="Cultiver local, vendre local"
+        tagline={t('pricing.plans.solo_producer.tagline')}
         features={[
           { label: 'Map monde + fiche pays', yes: true },
           { label: `${PLAN_MONTHLY_GRANT.solo_producer} crédits IA/mois inclus`, yes: true },
@@ -278,7 +279,7 @@ function Subscriptions({
           { label: 'Boutique intégrée (bientôt)', yes: true },
           { label: 'Fill the Gap', yes: false },
         ]}
-        ctaLabel="Démarrer à €19.99/mo" ctaHref={soloHref}
+        ctaLabel={t('pricing.plans.solo_producer.cta')} ctaHref={soloHref}
         onCtaClick={e => onUpgradeClick(e, 'data', soloHref)}
       />
       )}
@@ -289,7 +290,7 @@ function Subscriptions({
         period="/mois"
         savings={savingsNote(starter.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.starter}
-        tagline="Tout du parcours"
+        tagline={t('pricing.plans.data.tagline')}
         features={[
           { label: 'Tout du Free', yes: true },
           { label: `${PLAN_MONTHLY_GRANT.starter} crédits IA/mois`, yes: true },
@@ -298,7 +299,7 @@ function Subscriptions({
           { label: 'Training YouTube', yes: true },
           { label: 'Fill the Gap', yes: false },
         ]}
-        ctaLabel="Passer Data" ctaHref={starterHref}
+        ctaLabel={t('pricing.plans.data.cta')} ctaHref={starterHref}
         onCtaClick={e => onUpgradeClick(e, 'data', starterHref)}
       />
       )}
@@ -309,7 +310,7 @@ function Subscriptions({
         period="/mois"
         savings={savingsNote(strategy.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.strategy}
-        tagline="Méthode + 1 supplier + 1 client"
+        tagline={t('pricing.plans.strategy.tagline')}
         features={[
           { label: 'Tout du Data', yes: true },
           { label: `${PLAN_MONTHLY_GRANT.strategy} crédits IA/mois`, yes: true },
@@ -318,7 +319,7 @@ function Subscriptions({
           { label: '1 client n°1 du pays', yes: true },
           { label: 'Fill the Gap', yes: false },
         ]}
-        ctaLabel="Passer Strategy" ctaHref={strategyHref}
+        ctaLabel={t('pricing.plans.strategy.cta')} ctaHref={strategyHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', strategyHref)}
       />
       )}
@@ -329,7 +330,7 @@ function Subscriptions({
         period="/mois"
         savings={savingsNote(premium.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.premium} highlight
-        tagline="Bench complet + 5/5"
+        tagline={t('pricing.plans.premium.tagline')}
         features={[
           { label: 'Tout du Strategy', yes: true },
           { label: `${PLAN_MONTHLY_GRANT.premium} crédits IA/mois`, yes: true },
@@ -338,7 +339,7 @@ function Subscriptions({
           { label: '150 opps Fill the Gap/mois', yes: true },
           { label: 'Site e-commerce clé en main', yes: true },
         ]}
-        ctaLabel="Passer Premium" ctaHref={premiumHref}
+        ctaLabel={t('pricing.plans.premium.cta')} ctaHref={premiumHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', premiumHref)}
       />
       )}
@@ -349,7 +350,7 @@ function Subscriptions({
         period="/mois"
         savings={savingsNote(ultimate.savingsVsMonthly)}
         credits={PLAN_MONTHLY_GRANT.ultimate}
-        tagline="Tout illimité + AI engine"
+        tagline={t('pricing.plans.ultimate.tagline')}
         features={[
           { label: 'Tout du Premium', yes: true },
           { label: `${PLAN_MONTHLY_GRANT.ultimate} crédits IA/mois`, yes: true },
@@ -358,7 +359,7 @@ function Subscriptions({
           { label: 'AI engine cascade ×3', yes: true },
           { label: 'Support VIP dédié', yes: true },
         ]}
-        ctaLabel="Passer Ultimate" ctaHref={ultimateHref}
+        ctaLabel={t('pricing.plans.ultimate.cta')} ctaHref={ultimateHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', ultimateHref)}
       />
       )}

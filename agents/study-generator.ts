@@ -24,6 +24,8 @@ import { createGroq } from '@ai-sdk/groq'
 import { createOpenAI } from '@ai-sdk/openai'
 import * as fs from 'fs'
 import * as path from 'path'
+import { localizeUserPrompt } from '@/lib/ai/localized-gen'
+import { parseLocale, type Locale } from '@/lib/i18n/locale'
 
 // Load .env.local manually (no dotenv dependency)
 function loadEnv() {
@@ -357,8 +359,9 @@ Formate avec des tableaux HTML et des sections clairement structurées.`,
 
 // ── Generator ────────────────────────────────────────────────────────────────
 
-async function generateStudyPart(iso: string, part: number, ctx: any): Promise<string> {
-  const prompt = PART_PROMPTS[part](ctx)
+async function generateStudyPart(iso: string, part: number, ctx: any, locale: Locale = 'fr'): Promise<string> {
+  const rawPrompt = PART_PROMPTS[part](ctx)
+  const prompt = localizeUserPrompt(rawPrompt, locale)
 
   const { text } = await withRetry((m) => generateText({
     model: m,
@@ -376,13 +379,14 @@ async function generateStudyPart(iso: string, part: number, ctx: any): Promise<s
   return html
 }
 
-async function saveStudy(iso: string, part: number, html: string) {
+async function saveStudy(iso: string, part: number, html: string, locale: Locale = 'fr') {
   const tierMap: Record<number, string> = { 1: 'free', 2: 'basic', 3: 'standard' }
   await supabase.from('country_studies').upsert({
     country_iso: iso,
     part,
     content_html: html,
     tier_required: tierMap[part],
+    lang: locale,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'country_iso,part' })
 }
