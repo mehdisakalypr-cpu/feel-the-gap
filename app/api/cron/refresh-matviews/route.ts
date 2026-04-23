@@ -6,12 +6,12 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
- * Cron — rafraîchit les materialized views qui sous-tendent la carte mondiale et les stats.
+ * Cron — rafraîchit les materialized views qui sous-tendent la carte mondiale,
+ * les stats, et les queues d'agents (eishi-base + rock-lee-v2).
  *
- * Pour l'instant : `country_opportunity_stats_mv` (agrégats par pays servis à /api/countries).
- * La fonction SQL `refresh_country_opportunity_stats_mv()` fait un REFRESH CONCURRENTLY
- * (pas de blocage lecture) — nécessite l'index unique défini dans la migration
- * 20260418114000_country_opportunity_stats_matview.sql.
+ * Vues rafraîchies (REFRESH CONCURRENTLY, pas de blocage lecture) :
+ *   - country_opportunity_stats_mv    → agrégats par pays (migration 20260418114000)
+ *   - ftg_product_country_pair_agg    → paires (product×country) pour queues agents (migration 20260423070000)
  *
  * Fréquence : 2×/jour (02h UTC et 14h UTC) — suffit pour ~3k nouvelles opps/jour
  * (delta invisible à l'échelle du total 938k).
@@ -25,12 +25,23 @@ export async function GET() {
   const sb = createClient(url, key, { auth: { persistSession: false } })
 
   const t0 = Date.now()
-  const { error } = await sb.rpc('refresh_country_opportunity_stats_mv')
-  const duration_ms = Date.now() - t0
+  const results: Record<string, { ok: boolean; error?: string; ms: number }> = {}
+  const refreshes: Array<[string, string]> = [
+    ['country_opportunity_stats_mv', 'refresh_country_opportunity_stats_mv'],
+    ['ftg_product_country_pair_agg', 'ftg_refresh_pair_agg'],
+  ]
 
-  if (error) {
-    console.error('[cron/refresh-matviews]', error.message)
-    return NextResponse.json({ ok: false, error: error.message, duration_ms }, { status: 500 })
+  for (const [name, fn] of refreshes) {
+    const start = Date.now()
+    const { error } = await sb.rpc(fn)
+    results[name] = error
+      ? { ok: false, error: error.message, ms: Date.now() - start }
+      : { ok: true, ms: Date.now() - start }
   }
-  return NextResponse.json({ ok: true, refreshed: ['country_opportunity_stats_mv'], duration_ms })
+
+  const duration_ms = Date.now() - t0
+  const allOk = Object.values(results).every((r) => r.ok)
+  if (!allOk) console.error('[cron/refresh-matviews]', JSON.stringify(results))
+
+  return NextResponse.json({ ok: allOk, results, duration_ms }, { status: allOk ? 200 : 500 })
 }
