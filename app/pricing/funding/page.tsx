@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   INVESTOR_TIER_QUOTA,
@@ -34,7 +34,7 @@ const ROLE_ACCENT: Record<InvestorRoleKind, { color: string; bg: string; label: 
   investisseur: { color: '#60A5FA', bg: 'rgba(96,165,250,0.1)', label: 'Investisseur (equity)', emoji: '📈' },
 }
 
-export default function FundingPricingPage() {
+function FundingPricingContent() {
   const params = useSearchParams()
   const roleParam = params.get('role') as InvestorRoleKind | null
   const [role, setRole] = useState<InvestorRoleKind>(roleParam === 'financeur' ? 'financeur' : 'investisseur')
@@ -237,5 +237,13 @@ export default function FundingPricingPage() {
         </footer>
       </main>
     </div>
+  )
+}
+
+export default function FundingPricingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#07090F]" />}>
+      <FundingPricingContent />
+    </Suspense>
   )
 }
