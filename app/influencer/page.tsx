@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import CreditCounter from '@/components/CreditCounter'
 import { createBrowserClient } from '@supabase/ssr'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://feel-the-gap.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.gapup.io'
 
 interface Offer {
   id: string

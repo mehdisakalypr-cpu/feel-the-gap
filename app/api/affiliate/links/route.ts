@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://feel-the-gap.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.gapup.io'
   return NextResponse.json({ code, url: `${appUrl}/go/${code}` })
 }
 

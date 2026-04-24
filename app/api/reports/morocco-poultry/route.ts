@@ -214,7 +214,7 @@ export async function GET() {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     doc.setTextColor(MUTED)
-    doc.text(`Feel The Gap · feelthegap.app · Rapport confidentiel`, margin, pageH - 7)
+    doc.text(`Feel The Gap · gapup.io · Rapport confidentiel`, margin, pageH - 7)
     doc.text(`${i} / ${total}`, pageW - margin, pageH - 7, { align: 'right' })
   }
 

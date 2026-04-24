@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const FALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://feel-the-gap.vercel.app'
+const FALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.gapup.io'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

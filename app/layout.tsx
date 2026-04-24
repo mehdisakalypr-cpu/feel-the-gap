@@ -14,7 +14,7 @@ import DemoTour from '@/components/DemoTour'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://feel-the-gap.com'
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.gapup.io'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

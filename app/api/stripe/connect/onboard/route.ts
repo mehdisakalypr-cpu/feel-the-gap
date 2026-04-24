@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => ({}))
-  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://feel-the-gap.vercel.app'
+  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_BASE_URL ?? 'https://www.gapup.io'
   const return_url: string = typeof body?.return_url === 'string' ? body.return_url : `${origin}/seller?connect=success`
   const refresh_url: string = typeof body?.refresh_url === 'string' ? body.refresh_url : `${origin}/seller?connect=retry`
 

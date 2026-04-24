@@ -59,6 +59,7 @@ const PUBLIC_API = new Set([
   '/api/demo/tour',                   // Public tour steps
   '/api/seller/quote-request',        // Public quote request from /seller/[slug]
   '/api/features',                    // Public feature flag lookup (anonymous UI needs it)
+  '/api/health',                      // Readiness probe (DB + env checks) — consumed by uptime monitors
   '/api/parcours-state',              // Public parcours open/closed state
   '/api/geo',                         // Public geo-pricing resolution
 ])

@@ -15,11 +15,11 @@ export async function GET() {
       version: '1.0.0',
       description:
         "API institutionnelle Feel The Gap — accès aux 938 000+ opportunités import/export, 211 pays, 323 produits. 4 tiers : Starter (€12K/an) · Pro (€40K) · Enterprise (€120K) · Sovereign (€300K+).",
-      contact: { email: 'api@feel-the-gap.com', url: 'https://feel-the-gap.com/api-platform' },
-      license: { name: 'Commercial', url: 'https://feel-the-gap.com/terms' },
+      contact: { email: 'api@gapup.io', url: 'https://www.gapup.io/api-platform' },
+      license: { name: 'Commercial', url: 'https://www.gapup.io/terms' },
     },
     servers: [
-      { url: 'https://feel-the-gap.com', description: 'Production' },
+      { url: 'https://www.gapup.io', description: 'Production' },
       { url: 'https://feel-the-gap.vercel.app', description: 'Staging' },
     ],
     components: {

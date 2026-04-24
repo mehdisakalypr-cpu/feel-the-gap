@@ -319,7 +319,7 @@ async function sendOrderEmail(order: OrderRow, invoice: InvoiceRow): Promise<boo
   const slug = String(storeRow?.slug ?? '')
   const storeName = String(storeRow?.name ?? 'Boutique')
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gapup.io'
   const orderUrl = `${appUrl}/store/${slug}/account/orders/${order.id}`
   const total = (order.total_cents / 100).toLocaleString('fr-FR', {
     style: 'currency',

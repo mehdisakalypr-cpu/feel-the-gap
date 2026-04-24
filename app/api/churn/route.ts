@@ -13,9 +13,9 @@ type ChurnAction = 'send_tips' | 'reengagement_email' | 'urgent_outreach_discoun
 
 function renderChurnEmail(action: ChurnAction, tier: string, revenue: number) {
   const brand = 'Feel The Gap'
-  const pricing = 'https://feel-the-gap.com/pricing'
-  const account = 'https://feel-the-gap.com/account'
-  const reports = 'https://feel-the-gap.com/reports'
+  const pricing = 'https://www.gapup.io/pricing'
+  const account = 'https://www.gapup.io/account'
+  const reports = 'https://www.gapup.io/reports'
   if (action === 'urgent_outreach_discount') {
     const subject = `[${brand}] 50 % pendant 3 mois — on vous garde 🔥`
     const html = `<div style="font-family:system-ui;padding:24px;max-width:520px;margin:auto;background:#0b0b0b;color:#fafafa;border-radius:12px;">

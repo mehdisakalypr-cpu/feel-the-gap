@@ -4,7 +4,7 @@ import { Resend } from 'resend'
 import { getAuthUser } from '@/lib/supabase-server'
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'Feel The Gap <outreach@ofaops.xyz>'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gapup.io'
 
 function admin() {
   return createClient(

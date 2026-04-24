@@ -64,7 +64,7 @@ export default async function SellerDealRoomsPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">Feel The Gap · Seller</p>
           <h1 className="mt-1 text-3xl font-semibold" style={{ color: '#C9A84C' }}>Mes deal rooms</h1>
           <p className="mt-1 text-sm text-neutral-400">
-            Chaque deal room est un mini-site hébergé sous <code>feel-the-gap.com/deal/…</code>
+            Chaque deal room est un mini-site hébergé sous <code>gapup.io/deal/…</code>
             — SEO mutualisé, leads routés vers vous par email.
           </p>
         </div>

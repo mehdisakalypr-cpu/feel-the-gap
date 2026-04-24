@@ -125,6 +125,6 @@ function buildSellerEmail({ title, body }: { title: string; body: Body }): strin
 <tr><td style="color:#9CA3AF">Quantité</td><td>${esc(body.qty_requested)}</td></tr>
 </table>
 ${body.message ? `<p style="white-space:pre-wrap;background:#0B1220;padding:12px;border-radius:8px;color:#D1D5DB">${esc(body.message)}</p>` : ''}
-<p style="color:#9CA3AF;font-size:12px;margin-top:24px">Répondez directement à ce lead depuis votre back-office : <a href="https://feel-the-gap.vercel.app/seller/deal-rooms" style="color:#C9A84C">gérer mes deal rooms</a>.</p>
+<p style="color:#9CA3AF;font-size:12px;margin-top:24px">Répondez directement à ce lead depuis votre back-office : <a href="https://www.gapup.io/seller/deal-rooms" style="color:#C9A84C">gérer mes deal rooms</a>.</p>
 </div>`
 }

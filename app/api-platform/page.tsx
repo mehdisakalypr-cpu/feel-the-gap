@@ -170,13 +170,13 @@ export default function ApiPlatformPage() {
               background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20,
               fontSize: 13, overflow: 'auto', color: C.text, fontFamily: 'Menlo, monospace', margin: 0,
             }}>{`curl -H "Authorization: Bearer ftg_live_XXXX" \\
-  "https://feel-the-gap.com/api/v1/opportunities?country=FRA&limit=50"
+  "https://www.gapup.io/api/v1/opportunities?country=FRA&limit=50"
 
 # → { "ok": true, "count": 1843, "items": [ ... ] }
 
 # CSV export (jusqu'à 5000 lignes) :
 curl -H "Authorization: Bearer ftg_live_XXXX" \\
-  "https://feel-the-gap.com/api/v1/opportunities?format=csv" -o opps.csv`}</pre>
+  "https://www.gapup.io/api/v1/opportunities?format=csv" -o opps.csv`}</pre>
           </div>
 
           <div>
@@ -187,7 +187,7 @@ curl -H "Authorization: Bearer ftg_live_XXXX" \\
             }}>{`import requests
 
 TOKEN = "ftg_live_XXXX"
-BASE = "https://feel-the-gap.com/api/v1"
+BASE = "https://www.gapup.io/api/v1"
 
 r = requests.get(
     f"{BASE}/opportunities",
@@ -206,7 +206,7 @@ print(f"{data['count']} opportunities, tier={r.headers['x-ratelimit-tier']}")`}<
               background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 20,
               fontSize: 13, overflow: 'auto', color: C.text, fontFamily: 'Menlo, monospace', margin: 0,
             }}>{`const TOKEN = process.env.FTG_API_TOKEN!
-const BASE = "https://feel-the-gap.com/api/v1"
+const BASE = "https://www.gapup.io/api/v1"
 
 const res = await fetch(\`\${BASE}/countries?region=Africa&limit=50\`, {
   headers: { Authorization: \`Bearer \${TOKEN}\` },

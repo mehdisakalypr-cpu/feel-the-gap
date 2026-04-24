@@ -51,7 +51,7 @@ function emailBase(content: string) {
   </div>
   ${content}
   <div style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.3)">
-    Feel The Gap · <a href="https://feel-the-gap.vercel.app" style="color:#3B82F6;text-decoration:none">feel-the-gap.vercel.app</a>
+    Feel The Gap · <a href="https://www.gapup.io" style="color:#3B82F6;text-decoration:none">gapup.io</a>
   </div>
 </div>`
 }
@@ -345,7 +345,7 @@ export async function POST(req: NextRequest) {
       const { data: purchase } = await supabaseAdmin.from('lead_purchases')
         .select('id').eq('stripe_session_id', sessionId).maybeSingle()
       if (purchase) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gapup.io'
         // Trigger fulfill
         fetch(`${appUrl}/api/leads/fulfill`, {
           method: 'POST',

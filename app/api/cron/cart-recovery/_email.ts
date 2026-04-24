@@ -20,7 +20,7 @@ import { Resend } from 'resend'
 import type { AbandonedCart } from './_scheduler'
 
 const FROM = process.env.EMAIL_FROM || 'Feel The Gap <outreach@ofaops.xyz>'
-const APPURL = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+const APPURL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gapup.io'
 const POSTAL = process.env.EMAIL_POSTAL_ADDRESS || 'Feel The Gap · Paris, France'
 
 function recoveryUrl(cart: AbandonedCart): string {

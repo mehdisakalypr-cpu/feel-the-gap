@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     if (!pack) return NextResponse.json({ error: 'pack not found' }, { status: 404 })
     const p = pack as LeadPack
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gapup.io'
     const successUrl = `${appUrl}/account/purchases?success=1&session_id={CHECKOUT_SESSION_ID}`
     const cancelUrl  = `${appUrl}/data/leads/${slug}?canceled=1`
 
