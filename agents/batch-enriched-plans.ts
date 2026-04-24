@@ -35,7 +35,7 @@ loadEnv();
 
 // Dynamic imports inside main — run AFTER loadEnv() so lib/supabase captures
 // the real env values instead of placeholder fallbacks.
-type BuildEnrichedPlanFn = (opts: { countryIso: string; productSlug: string; productName: string }) => Promise<any>;
+type BuildEnrichedPlanFn = (opts: { countryIso: string; productSlug: string; productName: string; lang?: 'fr' | 'en' }) => Promise<any>;
 let buildEnrichedPlan: BuildEnrichedPlanFn;
 let supabaseAdmin: any;
 
@@ -46,9 +46,17 @@ function getArg(flag: string): string | undefined {
 }
 const argIso = getArg('--iso')?.split(',');
 const argProduct = getArg('--product');
+const argLang = (getArg('--lang') ?? 'fr') as 'fr' | 'en';
+const throttleMs = Number(getArg('--throttle-ms') ?? 0);
 const force = args.includes('--force');
 
-const PILOT_COUNTRIES = ['CIV', 'SEN', 'MAR', 'VNM', 'COL', 'GIN'];
+// Phase A scope — 30 producer pilots × 20 products × (fr, en) for the 15/05 launch.
+const PILOT_COUNTRIES = [
+  'CIV', 'SEN', 'MAR', 'VNM', 'COL', 'GIN',
+  'GHA', 'NGA', 'ETH', 'TZA', 'MOZ', 'BFA', 'BEN', 'EGY',
+  'IDN', 'IND', 'CHN', 'BGD', 'PAK', 'KHM', 'PHL', 'THA', 'MYS', 'TUR',
+  'BRA', 'ECU', 'PER', 'MEX', 'HND', 'GTM',
+];
 const PILOT_PRODUCTS = [
   { slug: 'cacao', name: 'Cacao' },
   { slug: 'cafe', name: 'Café' },
@@ -56,6 +64,20 @@ const PILOT_PRODUCTS = [
   { slug: 'anacarde', name: 'Anacarde (noix de cajou)' },
   { slug: 'huile_palme', name: 'Huile de palme' },
   { slug: 'mangue', name: 'Mangue' },
+  { slug: 'riz', name: 'Riz' },
+  { slug: 'mais', name: 'Maïs' },
+  { slug: 'ble', name: 'Blé' },
+  { slug: 'sucre', name: 'Sucre (canne)' },
+  { slug: 'manioc', name: 'Manioc' },
+  { slug: 'the', name: 'Thé' },
+  { slug: 'vanille', name: 'Vanille' },
+  { slug: 'gingembre', name: 'Gingembre' },
+  { slug: 'poivre', name: 'Poivre' },
+  { slug: 'karite', name: 'Beurre de karité' },
+  { slug: 'caoutchouc', name: 'Caoutchouc naturel' },
+  { slug: 'ananas', name: 'Ananas' },
+  { slug: 'banane', name: 'Banane' },
+  { slug: 'avocat', name: 'Avocat' },
 ];
 
 async function main() {
@@ -72,7 +94,7 @@ async function main() {
   const pairs: Array<{ iso: string; product: typeof PILOT_PRODUCTS[number] }> = [];
   for (const iso of isoList) for (const p of products) pairs.push({ iso, product: p });
 
-  console.log(`[batch-enriched-plans] ${pairs.length} pairs to process`);
+  console.log(`[batch-enriched-plans] ${pairs.length} pairs to process · lang=${argLang} · throttle=${throttleMs}ms`);
 
   const runRow = await admin
     .from('research_runs')
@@ -81,7 +103,7 @@ async function main() {
       country_iso: isoList.join(','),
       product: argProduct ?? 'all',
       status: 'running',
-      stats: { pairs: pairs.length },
+      stats: { pairs: pairs.length, lang: argLang, throttle_ms: throttleMs },
     })
     .select()
     .single();
@@ -92,8 +114,9 @@ async function main() {
   const startedAt = Date.now();
 
   for (const { iso, product } of pairs) {
-    const title = `${product.name} — ${iso}`;
-    console.log(`\n━━━ ${iso} / ${product.slug} ━━━`);
+    // Title carries the language so fr and en rows coexist in business_plans.
+    const title = `${product.name} — ${iso} · ${argLang}`;
+    console.log(`\n━━━ ${iso} / ${product.slug} / ${argLang} ━━━`);
 
     if (!force) {
       const { data: existing } = await admin
@@ -114,6 +137,7 @@ async function main() {
         countryIso: iso,
         productSlug: product.slug,
         productName: product.name,
+        lang: argLang,
       });
 
       const { error } = await admin.from('business_plans').insert({
@@ -135,6 +159,10 @@ async function main() {
     } catch (err) {
       console.error(`  ✗ ${(err as Error).message}`);
       errors++;
+    }
+
+    if (throttleMs > 0) {
+      await new Promise((r) => setTimeout(r, throttleMs));
     }
   }
 
