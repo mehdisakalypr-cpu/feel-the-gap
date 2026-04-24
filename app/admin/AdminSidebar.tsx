@@ -30,6 +30,7 @@ const NAV = [
   { href: '/admin/kaizen',        label: 'Kushina Kaizen',  icon: '🌀' },
   { href: '/admin/merlin',        label: 'Merlin',          icon: '🧙' },
   { href: '/admin/lead-approval', label: 'Lead Approval',   icon: '✅' },
+  { href: '/admin/outreach-enrichment', label: 'Outreach Enrich', icon: '📬' },
   { href: '/admin/fraud-events',  label: 'Fraud',           icon: '🛡️' },
 ]
 
