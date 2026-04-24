@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 interface Props {
-  role: 'financeur' | 'investisseur'
+  role: 'financeur' | 'investisseur' | 'influenceur'
   accentColor: string
   defaultEmail?: string
 }
@@ -93,7 +93,12 @@ export default function WaitlistForm({ role, accentColor, defaultEmail = '' }: P
     )
   }
 
-  const labelRole = role === 'financeur' ? 'Financeur (banque, crédit, family office dette)' : 'Investisseur (angel, VC, family office equity)'
+  const labelRole =
+    role === 'financeur'
+      ? 'Financeur (banque, crédit, family office dette)'
+      : role === 'investisseur'
+        ? 'Investisseur (angel, VC, family office equity)'
+        : 'Influenceur / créateur (affiliation, contenu, audience qualifiée)'
 
   return (
     <form onSubmit={submit} className="rounded-3xl p-6 md:p-8 max-w-2xl mx-auto"

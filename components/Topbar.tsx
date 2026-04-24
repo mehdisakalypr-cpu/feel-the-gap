@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
 import { LANG_FLAGS, LANG_LABELS, SUPPORTED_LANGS, type Lang } from '@/lib/i18n'
+import { getOpenRoles, type AppRole } from '@/lib/open-roles'
 
 // Covers both the legacy tier keys (free/basic/standard) and the current DB
 // tier keys (explorer/data/strategy). Premium/enterprise are unchanged.
@@ -32,6 +33,14 @@ const ROLE_CONFIG: Record<UserRole, { label: string; icon: string; color: string
 }
 
 const ALL_ROLES: UserRole[] = ['entrepreneur', 'financeur', 'investisseur', 'influenceur']
+
+// Roles currently open to switching. Closed roles never appear in the switcher,
+// even if the profile already lists them — the env flag is authoritative.
+function filterOpenRoles(userRoles: UserRole[]): UserRole[] {
+  const open = getOpenRoles() as Set<AppRole>
+  const filtered = userRoles.filter(r => open.has(r as AppRole))
+  return filtered.length ? filtered : ['entrepreneur']
+}
 
 function ProfileMenu({ userInitial, fr, isAdminUser }: { userInitial: string; fr: boolean; isAdminUser: boolean }) {
   const router = useRouter()
@@ -203,9 +212,11 @@ export default function Topbar() {
         const { data: profile } = await sb.from('profiles').select('tier, is_admin, is_delegate_admin, roles, active_role').eq('id', data.user!.id).single()
         setTier(profile?.tier ?? 'free')
         if (profile?.is_admin || profile?.is_delegate_admin) setIsAdminUser(true)
-        const userRoles = ((profile?.roles ?? ['entrepreneur']) as string[]).filter((r): r is UserRole => ALL_ROLES.includes(r as UserRole))
-        setRoles(userRoles.length ? userRoles : ['entrepreneur'])
-        const active = (profile?.active_role as UserRole | null) ?? userRoles[0] ?? 'entrepreneur'
+        const rawRoles = ((profile?.roles ?? ['entrepreneur']) as string[]).filter((r): r is UserRole => ALL_ROLES.includes(r as UserRole))
+        const userRoles = filterOpenRoles(rawRoles)
+        setRoles(userRoles)
+        const rawActive = (profile?.active_role as UserRole | null) ?? userRoles[0] ?? 'entrepreneur'
+        const active: UserRole = userRoles.includes(rawActive) ? rawActive : userRoles[0]
         setActiveRole(active)
       }
     })
@@ -425,6 +436,7 @@ export default function Topbar() {
                         {ALL_ROLES
                           .filter((r) => !roles.includes(r))
                           .filter((r) => parcoursEnabled[r])
+                          .filter((r) => getOpenRoles().has(r as AppRole))
                           .map((role) => {
                             const cfg = ROLE_CONFIG[role]
                             return (

@@ -70,7 +70,7 @@ export default function OnboardingPage() {
   const ROLES = [
     { value: 'importer',    label: '🚢 Importer / Trader',      desc: 'I source products from abroad' },
     { value: 'exporter',    label: '📦 Exporter / Producer',     desc: 'I sell products internationally' },
-    { value: 'investor',    label: '💼 Investor / VC',           desc: 'I fund cross-border ventures' },
+    { value: 'investor',    label: '💼 Investor / VC',           desc: 'I fund cross-border ventures', comingSoon: true },
     { value: 'consultant',  label: '🧠 Consultant / Advisor',    desc: 'I advise on market entry' },
     { value: 'other',       label: '🌐 Other',                   desc: 'Something else' },
   ]
@@ -102,21 +102,36 @@ export default function OnboardingPage() {
             <h1 className="text-xl font-bold text-white mb-1">What best describes you?</h1>
             <p className="text-sm text-gray-500 mb-5">We'll personalise your experience</p>
             <div className="space-y-2">
-              {ROLES.map(r => (
-                <button key={r.value} onClick={() => setForm(f => ({ ...f, role: r.value }))}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors"
-                  style={{
-                    borderColor: form.role === r.value ? '#C9A84C' : 'rgba(255,255,255,.07)',
-                    background: form.role === r.value ? 'rgba(201,168,76,.08)' : 'transparent',
-                  }}>
-                  <span className="text-xl">{r.label.split(' ')[0]}</span>
-                  <div>
-                    <p className="text-sm text-white font-medium">{r.label.split(' ').slice(1).join(' ')}</p>
-                    <p className="text-xs text-gray-500">{r.desc}</p>
-                  </div>
-                  {form.role === r.value && <span className="ml-auto text-[#C9A84C]">✓</span>}
-                </button>
-              ))}
+              {ROLES.map(r => {
+                const disabled = (r as { comingSoon?: boolean }).comingSoon === true
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => { if (!disabled) setForm(f => ({ ...f, role: r.value })) }}
+                    disabled={disabled}
+                    aria-disabled={disabled}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-colors disabled:cursor-not-allowed"
+                    style={{
+                      borderColor: form.role === r.value ? '#C9A84C' : 'rgba(255,255,255,.07)',
+                      background: form.role === r.value ? 'rgba(201,168,76,.08)' : 'transparent',
+                      opacity: disabled ? 0.45 : 1,
+                    }}
+                  >
+                    <span className="text-xl">{r.label.split(' ')[0]}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm text-white font-medium">{r.label.split(' ').slice(1).join(' ')}</p>
+                      <p className="text-xs text-gray-500">{r.desc}</p>
+                    </div>
+                    {disabled && (
+                      <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full border border-white/10 text-gray-400">
+                        Coming soon
+                      </span>
+                    )}
+                    {!disabled && form.role === r.value && <span className="ml-auto text-[#C9A84C]">✓</span>}
+                  </button>
+                )
+              })}
             </div>
             <button onClick={() => setStep('focus')} disabled={!form.role}
               className="mt-5 w-full py-3 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-30"

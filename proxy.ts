@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { redirectPathForClosedRole } from '@/lib/open-roles'
 
 // ── Public pages — no auth required ──────────────────────────────────────────
 const PUBLIC_PAGES = new Set([
@@ -94,6 +95,16 @@ export async function proxy(request: NextRequest) {
 
   // Static assets — always pass through
   if (isStaticAsset(pathname)) return NextResponse.next()
+
+  // Closed role gating — redirect /finance, /invest, /influencer (or any subpath) to their
+  // respective waitlist page when the role isn't listed in NEXT_PUBLIC_OPEN_ROLES.
+  // The waitlist routes themselves always stay reachable. APIs aren't redirected here.
+  if (!pathname.startsWith('/api/')) {
+    const closedRedirect = redirectPathForClosedRole(pathname)
+    if (closedRedirect && closedRedirect !== pathname) {
+      return NextResponse.redirect(new URL(closedRedirect, request.url))
+    }
+  }
 
   // Country detection (used by PaymentBadges + checkout localization)
   const detectedCountry =
