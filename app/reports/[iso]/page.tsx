@@ -7,6 +7,7 @@ import JourneySidebar from '@/components/JourneySidebar'
 import JourneyChipsBar from '@/components/JourneyChipsBar'
 import FillTheGapCreditModal from '@/components/FillTheGapCreditModal'
 import FlashOfferModal from '@/components/FlashOfferModal'
+import BpAccessGateModal from '@/components/BpAccessGateModal'
 // Auth-v2 met la session Supabase dans les cookies via @supabase/ssr ;
 // le client `supabase` (createClient vanilla) ne lit que localStorage et
 // retourne toujours null → le tier restait figé à 'free' et le bouton
@@ -224,6 +225,8 @@ export default function ReportPage() {
   const [ftgPeriodEnd, setFtgPeriodEnd] = useState<string | null>(null)
   const [showBpModal, setShowBpModal] = useState(false)
   const [bpSubmitting, setBpSubmitting] = useState(false)
+  const [showBpAccessGate, setShowBpAccessGate] = useState(false)
+  const [bpAccessMode, setBpAccessMode] = useState<'direct' | 'credits' | null>(null)
   const [flash, setFlash] = useState<{ kind: 'success' | 'error' | 'info'; msg: string } | null>(null)
 
   // ── Quota gating cumulatif (sur le check d'opp) ────────────────────────────
@@ -236,13 +239,12 @@ export default function ReportPage() {
 
   // Tier gating :
   //  - canSelectOpps : TOUJOURS actif (free + anonymes inclus) — les cases à
-  //    cocher ne doivent jamais disparaître, sinon les démos prospect sont
-  //    cassées. L'upsell se fait au clic sur "Générer les BP" (bouton devient
-  //    "🔒 Passer Premium" pour les non-premium) — voir ligne ~1124.
-  //  - canBulkBp : seuls Premium et Ultimate ont le quota Fill-the-Gap requis
-  //    → le bouton "Générer" devient "Passer Premium" pour les autres.
+  //    cocher ne doivent jamais disparaître.
+  //  - canBulkBp : Premium / Strategy / Ultimate passent direct; les autres
+  //    ont le bouton vert aussi mais la modale d'accès (BpAccessGateModal)
+  //    propose crédits-or-subscribe-or-topup selon le solde.
   const canSelectOpps = true
-  const canBulkBp = userTier === 'premium' || userTier === 'ultimate'
+  const canBulkBp = userTier === 'premium' || userTier === 'strategy' || userTier === 'ultimate'
 
   // Journey store — when user ticks opportunities, mirror the unique product
   // slugs into the store so every downstream step (plan, clients, videos,
@@ -465,10 +467,16 @@ export default function ReportPage() {
     if (ids.length === 0) return
     setBpSubmitting(true)
     try {
-      const res = await fetch('/api/credits/fillthegap/debit-bulk', {
+      const endpoint = bpAccessMode === 'credits'
+        ? '/api/credits/fillthegap/debit-bulk-credits'
+        : '/api/credits/fillthegap/debit-bulk'
+      const payload = bpAccessMode === 'credits'
+        ? { opportunity_ids: ids }
+        : { action: 'fillthegap_bp_bulk', opportunity_ids: ids }
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fillthegap_bp_bulk', opportunity_ids: ids }),
+        body: JSON.stringify(payload),
       })
       const j = (await res.json().catch(() => ({}))) as {
         ok?: boolean; balance?: number; queued?: number; error?: string; needed?: number
@@ -1160,25 +1168,16 @@ export default function ReportPage() {
                 >
                   Effacer
                 </button>
-                {canBulkBp ? (
+                {selectedOpps.size > 0 ? (
                   <button
-                    onClick={() => setShowBpModal(true)}
+                    onClick={() => { setBpAccessMode(null); setShowBpAccessGate(true) }}
                     disabled={bpSubmitting || selectedOpps.size === 0}
                     className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ background: 'linear-gradient(135deg,#34D399,#10B981)', color: '#07090F' }}
-                    title={`Générer ${selectedOpps.size} business plan(s) — 1 crédit par opportunité`}
+                    title={`Générer ${selectedOpps.size} business plan(s)`}
                   >
                     ⚡ Générer les business plans ({selectedOpps.size})
                   </button>
-                ) : canSelectOpps && selectedOpps.size > 0 ? (
-                  <a
-                    href="/pricing"
-                    className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
-                    style={{ background: 'linear-gradient(135deg,#C9A84C,#E8C97A)', color: '#07090F' }}
-                    title="Le bulk BP nécessite Premium (150 cr/mo) ou Ultimate (250 cr/mo)"
-                  >
-                    🔒 Passer Premium pour générer les {selectedOpps.size} BP
-                  </a>
                 ) : null}
                 <button
                   onClick={() => setShowModelPanel(true)}
@@ -1276,17 +1275,34 @@ export default function ReportPage() {
         </div>
       )}
 
-      {/* ── Bulk BP confirmation modal (Premium / Ultimate) ── */}
-      {canBulkBp && (
+      {/* ── Access gate modal (tier check + credits/upsell routing) ── */}
+      <BpAccessGateModal
+        open={showBpAccessGate}
+        oppsCount={selectedOpps.size}
+        onClose={() => setShowBpAccessGate(false)}
+        onProceedDirect={() => {
+          setShowBpAccessGate(false)
+          setBpAccessMode('direct')
+          setShowBpModal(true)
+        }}
+        onProceedWithCredits={() => {
+          setShowBpAccessGate(false)
+          setBpAccessMode('credits')
+          setShowBpModal(true)
+        }}
+      />
+
+      {/* ── Bulk BP confirmation modal (after access gate passed) ── */}
+      {(bpAccessMode === 'direct' || bpAccessMode === 'credits') && (
         <FillTheGapCreditModal
           open={showBpModal}
           action="bp_bulk"
           quantity={selectedOpps.size}
-          balance={ftgBalance ?? 0}
-          monthlyGrant={ftgGrant}
-          periodEnd={ftgPeriodEnd}
+          balance={bpAccessMode === 'direct' ? (ftgBalance ?? 0) : 0}
+          monthlyGrant={bpAccessMode === 'direct' ? ftgGrant : 0}
+          periodEnd={bpAccessMode === 'direct' ? ftgPeriodEnd : null}
           tier={userTier === 'ultimate' ? 'ultimate' : 'premium'}
-          onClose={() => { if (!bpSubmitting) setShowBpModal(false) }}
+          onClose={() => { if (!bpSubmitting) { setShowBpModal(false); setBpAccessMode(null) } }}
           onConfirm={submitBulkBp}
         />
       )}
