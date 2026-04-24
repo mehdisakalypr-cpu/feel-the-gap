@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "Monatliche Abonnements",
+    "tab_packs": "Credit-Pakete (einmalig)",
+    "duration_monthly": "Monatlich",
+    "duration_12m_off": "12 Monate (-10%)",
+    "duration_24m_off": "24 Monate (-20%)",
+    "duration_36m_off": "36 Monate (-30%)",
+    "most_popular_badge": "Am beliebtesten",
+    "current_plan_badge": "Ihr aktueller Plan",
+    "current_plan_cta": "Aktiv"
   },
   "account": {
     "title": "Mein Konto",
@@ -198,7 +207,15 @@
     "col_imports": "Importe",
     "col_balance": "Bilanz",
     "n_opportunities": "{{count}} Chancen identifiziert",
-    "all_regions": "Alle"
+    "all_regions": "Alle",
+    "breadcrumb_reports": "Berichte",
+    "see_n_opportunities": "Die {{count}} Chancen ansehen",
+    "jump_to_opportunity": "Zu einer Chance springen…",
+    "min_score": "Mindestpunktzahl:",
+    "all_scores": "Alle ({{count}})",
+    "main_imports": "Hauptimporte:",
+    "key_exports": "Wichtige Exporte:",
+    "products_identified": "Identifizierte Produkte ({{count}}):"
   },
   "influencer": {
     "title": "Influencer-Bereich",
@@ -296,7 +313,16 @@
     "already_member": "Bereits Mitglied?",
     "signin_link": "Anmelden",
     "footer_pricing": "Preise",
-    "footer_contact": "Kontakt"
+    "footer_contact": "Kontakt",
+    "step1_title": "Analysieren Sie die Welt",
+    "step1_desc": "Importe · Exporte · Lücken",
+    "step2_title": "Finden Sie Ihre Chancen",
+    "step2_desc": "Profitable Marktlücken",
+    "step3_title": "Alle Schlüssel zur Hand",
+    "step3_desc": "Pläne · Schulungen · Käufer",
+    "step4_title": "Erfolg",
+    "step4_desc": "Umsatz · Branche · Wirkung",
+    "hero_cta_map": "Karte starten zum Ausprobieren"
   },
   "common": {
     "loading": "Wird geladen…",

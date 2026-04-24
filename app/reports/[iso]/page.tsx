@@ -17,6 +17,7 @@ import { createSupabaseBrowser } from '@/lib/supabase'
 import { useJourneyContext } from '@/lib/journey/context'
 import { FILLTHEGAP_QUOTA_BY_TIER, type PlanTier } from '@/lib/credits/costs'
 import DOMPurify from 'dompurify'
+import { useLang } from '@/components/LanguageProvider'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -206,6 +207,9 @@ export default function ReportPage() {
   const iso = (params?.iso as string ?? '').toUpperCase()
   // SSR-aware browser client (lit la session auth-v2 depuis les cookies).
   const supabase = useMemo(() => createSupabaseBrowser(), [])
+  const { t, lang } = useLang()
+  const countryLabel = (c: Pick<Country, 'name' | 'name_fr'> | null) =>
+    c ? (lang === 'fr' ? c.name_fr : (c.name || c.name_fr)) : ''
 
   const [country, setCountry] = useState<Country | null>(null)
   const [opps, setOpps] = useState<Opportunity[]>([])
@@ -566,9 +570,9 @@ export default function ReportPage() {
 
         {/* ── Breadcrumb ── */}
         <div className="flex items-center gap-2 text-xs text-gray-500">
-          <Link href="/reports" className="hover:text-gray-300 transition-colors">Rapports</Link>
+          <Link href="/reports" className="hover:text-gray-300 transition-colors">{t('reports.breadcrumb_reports')}</Link>
           <span>/</span>
-          <span className="text-gray-300">{country.flag} {country.name_fr}</span>
+          <span className="text-gray-300">{country.flag} {countryLabel(country)}</span>
         </div>
 
         {/* ── CTA "Voir les opportunités" + jump dropdown + score filter ── */}
@@ -580,7 +584,7 @@ export default function ReportPage() {
                 className="group px-6 py-3 bg-gradient-to-r from-[#34D399] to-[#10B981] text-[#07090F] font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
               >
                 <span className="text-lg">💡</span>
-                <span>Voir les {filteredOpps.length} opportunité{filteredOpps.length > 1 ? 's' : ''}{minScore > 0 ? ` (≥ ${minScore}%)` : ''}</span>
+                <span>{t('reports.see_n_opportunities', { count: String(filteredOpps.length) })}{minScore > 0 ? ` (≥ ${minScore}%)` : ''}</span>
                 <span className="group-hover:translate-y-0.5 transition-transform">↓</span>
               </button>
               <select
@@ -593,7 +597,7 @@ export default function ReportPage() {
                 aria-label="Aller à une opportunité"
                 className="px-3 py-3 rounded-xl bg-[#0D1117] border border-[#C9A84C]/30 text-sm text-gray-200 hover:border-[#C9A84C]/60 transition-colors max-w-[260px] truncate cursor-pointer"
               >
-                <option value="">🎯 Aller à une opportunité…</option>
+                <option value="">🎯 {t('reports.jump_to_opportunity')}</option>
                 {filteredOpps.map((o, i) => (
                   <option key={o.id} value={o.id}>
                     #{i + 1} · {o.products?.name ?? 'Produit'} — {o.opportunity_score}/100
@@ -602,7 +606,7 @@ export default function ReportPage() {
               </select>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-400">
-              <label htmlFor="min-score-filter" className="text-gray-500">Score minimum :</label>
+              <label htmlFor="min-score-filter" className="text-gray-500">{t('reports.min_score')}</label>
               <select
                 id="min-score-filter"
                 value={minScore}
@@ -610,7 +614,7 @@ export default function ReportPage() {
                 aria-label="Filtrer par score minimum"
                 className="px-3 py-2 rounded-lg bg-[#0D1117] border border-[#C9A84C]/20 text-xs text-gray-200 hover:border-[#C9A84C]/50 transition-colors cursor-pointer"
               >
-                <option value={0}>Toutes ({opps.length})</option>
+                <option value={0}>{t('reports.all_scores', { count: String(opps.length) })}</option>
                 {Array.from({ length: 20 }, (_, i) => 100 - i * 5).map((s) => {
                   const count = opps.filter(o => (o.opportunity_score ?? 0) >= s).length
                   return (
@@ -638,7 +642,7 @@ export default function ReportPage() {
           <div className="text-7xl md:text-8xl shrink-0 leading-none">{country.flag}</div>
           <div className="flex-1 min-w-0">
             <h1 className="text-4xl md:text-6xl font-bold text-white break-words leading-tight tracking-tight">
-              {country.name_fr}
+              {countryLabel(country)}
             </h1>
             <div className="flex items-center gap-3 flex-wrap mt-2">
               <span className="px-2 py-0.5 bg-white/5 rounded-full text-xs text-gray-400">{country.sub_region}</span>
@@ -653,17 +657,17 @@ export default function ReportPage() {
             {(country.top_import_text || country.top_export_text) && (
               <div className="mt-4 text-sm text-gray-300 leading-relaxed max-w-3xl space-y-1.5">
                 {country.top_import_text && (
-                  <p><span className="text-gray-500">Principales importations :</span> <span className="text-white">{country.top_import_text}</span></p>
+                  <p><span className="text-gray-500">{t('reports.main_imports')}</span> <span className="text-white">{country.top_import_text}</span></p>
                 )}
                 {country.top_export_text && (
-                  <p><span className="text-gray-500">Exportations clés :</span> <span className="text-white">{country.top_export_text}</span></p>
+                  <p><span className="text-gray-500">{t('reports.key_exports')}</span> <span className="text-white">{country.top_export_text}</span></p>
                 )}
               </div>
             )}
             {/* Produits listés — chips des opps sous le contexte */}
             {opps.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5 max-w-3xl">
-                <span className="text-xs text-gray-500 py-1 mr-1">Produits identifiés ({opps.length}) :</span>
+                <span className="text-xs text-gray-500 py-1 mr-1">{t('reports.products_identified', { count: String(opps.length) })}</span>
                 {opps.slice(0, 18).map(o => (
                   <button
                     key={o.id}

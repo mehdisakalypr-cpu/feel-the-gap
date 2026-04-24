@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "月度订阅",
+    "tab_packs": "积分包（一次性）",
+    "duration_monthly": "月",
+    "duration_12m_off": "12 个月（-10%）",
+    "duration_24m_off": "24 个月（-20%）",
+    "duration_36m_off": "36 个月（-30%）",
+    "most_popular_badge": "最受欢迎",
+    "current_plan_badge": "您当前的套餐",
+    "current_plan_cta": "已激活"
   },
   "account": {
     "title": "我的账户",
@@ -198,7 +207,15 @@
     "col_imports": "进口",
     "col_balance": "差额",
     "n_opportunities": "已识别 {{count}} 个机会",
-    "all_regions": "全部"
+    "all_regions": "全部",
+    "breadcrumb_reports": "报告",
+    "see_n_opportunities": "查看 {{count}} 个机会",
+    "jump_to_opportunity": "跳转到机会…",
+    "min_score": "最低分数：",
+    "all_scores": "全部（{{count}}）",
+    "main_imports": "主要进口：",
+    "key_exports": "主要出口：",
+    "products_identified": "已识别产品（{{count}}）："
   },
   "influencer": {
     "title": "网红空间",
@@ -296,7 +313,16 @@
     "already_member": "已是会员？",
     "signin_link": "登录",
     "footer_pricing": "定价",
-    "footer_contact": "联系我们"
+    "footer_contact": "联系我们",
+    "step1_title": "分析全球",
+    "step1_desc": "进口 · 出口 · 缺口",
+    "step2_title": "寻找机会",
+    "step2_desc": "有利可图的市场缺口",
+    "step3_title": "所有钥匙在手",
+    "step3_desc": "计划 · 培训 · 买家",
+    "step4_title": "成功",
+    "step4_desc": "收入 · 产业 · 影响",
+    "hero_cta_map": "打开地图试用"
   },
   "common": {
     "loading": "加载中…",

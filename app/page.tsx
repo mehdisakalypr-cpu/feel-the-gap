@@ -110,10 +110,10 @@ export default function HomePage() {
               (les stats live pays/produits/opps sont affichées au-dessous, pas de duplication ici) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5 max-w-5xl mx-auto">
             {[
-              { n: 1, icon: '🌍', title: 'Analysez le monde', desc: 'Imports · exports · gaps', color: '#60A5FA' },
-              { n: 2, icon: '🎯', title: 'Trouvez vos opportunités', desc: 'Gaps de marché rentables', color: '#A78BFA' },
-              { n: 3, icon: '🔑', title: 'Toutes les clés en main', desc: 'Plans · formations · acheteurs', color: '#C9A84C' },
-              { n: 4, icon: '💰', title: 'Succès', desc: 'Revenus · filière · impact', color: '#34D399', final: true },
+              { n: 1, icon: '🌍', title: t('home.step1_title'), desc: t('home.step1_desc'), color: '#60A5FA' },
+              { n: 2, icon: '🎯', title: t('home.step2_title'), desc: t('home.step2_desc'), color: '#A78BFA' },
+              { n: 3, icon: '🔑', title: t('home.step3_title'), desc: t('home.step3_desc'), color: '#C9A84C' },
+              { n: 4, icon: '💰', title: t('home.step4_title'), desc: t('home.step4_desc'), color: '#34D399', final: true },
             ].map((s) => (
               <div
                 key={s.n}
@@ -143,7 +143,7 @@ export default function HomePage() {
               className="group relative inline-flex items-center gap-3 px-9 py-4 md:px-12 md:py-5 bg-[#C9A84C] text-[#07090F] font-bold rounded-2xl text-base md:text-lg hover:scale-[1.04] hover:bg-[#E8C97A] transition-all animate-[oppPulse_1.8s_ease-in-out_infinite]"
             >
               <span className="relative text-2xl">🌍</span>
-              <span className="relative">Lancez la carte pour tester</span>
+              <span className="relative">{t('home.hero_cta_map')}</span>
               <span className="relative text-xl group-hover:translate-x-1 transition-transform">→</span>
             </Link>
 

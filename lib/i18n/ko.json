@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "월간 구독",
+    "tab_packs": "크레딧 팩 (일회성)",
+    "duration_monthly": "월간",
+    "duration_12m_off": "12개월 (-10%)",
+    "duration_24m_off": "24개월 (-20%)",
+    "duration_36m_off": "36개월 (-30%)",
+    "most_popular_badge": "가장 인기",
+    "current_plan_badge": "현재 플랜",
+    "current_plan_cta": "활성"
   },
   "account": {
     "title": "내 계정",
@@ -198,7 +207,15 @@
     "col_imports": "수입",
     "col_balance": "수지",
     "n_opportunities": "{{count}}개의 기회 확인",
-    "all_regions": "전체"
+    "all_regions": "전체",
+    "breadcrumb_reports": "보고서",
+    "see_n_opportunities": "{{count}}개 기회 보기",
+    "jump_to_opportunity": "기회로 이동…",
+    "min_score": "최소 점수:",
+    "all_scores": "전체 ({{count}})",
+    "main_imports": "주요 수입:",
+    "key_exports": "주요 수출:",
+    "products_identified": "식별된 제품 ({{count}}):"
   },
   "influencer": {
     "title": "인플루언서 공간",
@@ -296,7 +313,16 @@
     "already_member": "이미 회원이신가요?",
     "signin_link": "로그인",
     "footer_pricing": "요금",
-    "footer_contact": "문의"
+    "footer_contact": "문의",
+    "step1_title": "세계를 분석",
+    "step1_desc": "수입 · 수출 · 격차",
+    "step2_title": "기회 찾기",
+    "step2_desc": "수익성 있는 시장 격차",
+    "step3_title": "모든 열쇠를 손에",
+    "step3_desc": "계획 · 교육 · 구매자",
+    "step4_title": "성공",
+    "step4_desc": "수익 · 산업 · 영향",
+    "hero_cta_map": "지도를 실행하여 체험"
   },
   "common": {
     "loading": "로딩 중…",

@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "Месячные подписки",
+    "tab_packs": "Пакеты кредитов (разовые)",
+    "duration_monthly": "Месяц",
+    "duration_12m_off": "12 месяцев (-10%)",
+    "duration_24m_off": "24 месяца (-20%)",
+    "duration_36m_off": "36 месяцев (-30%)",
+    "most_popular_badge": "Самый популярный",
+    "current_plan_badge": "Ваш текущий план",
+    "current_plan_cta": "Активен"
   },
   "account": {
     "title": "Мой аккаунт",
@@ -198,7 +207,15 @@
     "col_imports": "Импорт",
     "col_balance": "Баланс",
     "n_opportunities": "{{count}} выявленных возможностей",
-    "all_regions": "Все"
+    "all_regions": "Все",
+    "breadcrumb_reports": "Отчёты",
+    "see_n_opportunities": "Смотреть {{count}} возможностей",
+    "jump_to_opportunity": "Перейти к возможности…",
+    "min_score": "Мин. балл:",
+    "all_scores": "Все ({{count}})",
+    "main_imports": "Основной импорт:",
+    "key_exports": "Ключевой экспорт:",
+    "products_identified": "Идентифицированные продукты ({{count}}):"
   },
   "influencer": {
     "title": "Пространство инфлюенсера",
@@ -296,7 +313,16 @@
     "already_member": "Уже участник?",
     "signin_link": "Войти",
     "footer_pricing": "Цены",
-    "footer_contact": "Контакты"
+    "footer_contact": "Контакты",
+    "step1_title": "Анализируйте мир",
+    "step1_desc": "Импорт · экспорт · разрывы",
+    "step2_title": "Найдите свои возможности",
+    "step2_desc": "Прибыльные рыночные разрывы",
+    "step3_title": "Все ключи в руках",
+    "step3_desc": "Планы · обучение · покупатели",
+    "step4_title": "Успех",
+    "step4_desc": "Доход · отрасль · воздействие",
+    "hero_cta_map": "Открыть карту для теста"
   },
   "common": {
     "loading": "Загрузка…",

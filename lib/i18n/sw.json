@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "Usajili wa kila mwezi",
+    "tab_packs": "Vifurushi vya mikopo (mara moja)",
+    "duration_monthly": "Kila mwezi",
+    "duration_12m_off": "Miezi 12 (-10%)",
+    "duration_24m_off": "Miezi 24 (-20%)",
+    "duration_36m_off": "Miezi 36 (-30%)",
+    "most_popular_badge": "Maarufu zaidi",
+    "current_plan_badge": "Mpango wako wa sasa",
+    "current_plan_cta": "Imewashwa"
   },
   "account": {
     "title": "Akaunti Yangu",
@@ -198,7 +207,15 @@
     "col_imports": "Uagizaji",
     "col_balance": "Mizani",
     "n_opportunities": "Fursa {{count}} zimetambuliwa",
-    "all_regions": "Zote"
+    "all_regions": "Zote",
+    "breadcrumb_reports": "Ripoti",
+    "see_n_opportunities": "Tazama fursa {{count}}",
+    "jump_to_opportunity": "Ruka kwenye fursa…",
+    "min_score": "Kiwango cha chini:",
+    "all_scores": "Zote ({{count}})",
+    "main_imports": "Uagizaji kuu:",
+    "key_exports": "Mauzo muhimu:",
+    "products_identified": "Bidhaa zilizotambuliwa ({{count}}):"
   },
   "influencer": {
     "title": "Nafasi ya Mshawishi",
@@ -296,7 +313,16 @@
     "already_member": "Tayari ni mwanachama?",
     "signin_link": "Ingia",
     "footer_pricing": "Bei",
-    "footer_contact": "Wasiliana"
+    "footer_contact": "Wasiliana",
+    "step1_title": "Changanua dunia",
+    "step1_desc": "Uagizaji · mauzo · mapengo",
+    "step2_title": "Pata fursa zako",
+    "step2_desc": "Mapengo ya soko yenye faida",
+    "step3_title": "Funguo zote mikononi",
+    "step3_desc": "Mipango · mafunzo · wanunuzi",
+    "step4_title": "Mafanikio",
+    "step4_desc": "Mapato · tasnia · athari",
+    "hero_cta_map": "Zindua ramani ili kujaribu"
   },
   "common": {
     "loading": "Inapakia…",

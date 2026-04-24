@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "月額プラン",
+    "tab_packs": "クレジットパック（一回）",
+    "duration_monthly": "月額",
+    "duration_12m_off": "12ヶ月 (-10%)",
+    "duration_24m_off": "24ヶ月 (-20%)",
+    "duration_36m_off": "36ヶ月 (-30%)",
+    "most_popular_badge": "一番人気",
+    "current_plan_badge": "現在のプラン",
+    "current_plan_cta": "有効"
   },
   "account": {
     "title": "マイアカウント",
@@ -198,7 +207,15 @@
     "col_imports": "輸入",
     "col_balance": "収支",
     "n_opportunities": "{{count}}件の機会を特定",
-    "all_regions": "すべて"
+    "all_regions": "すべて",
+    "breadcrumb_reports": "レポート",
+    "see_n_opportunities": "{{count}}件の機会を見る",
+    "jump_to_opportunity": "機会に移動…",
+    "min_score": "最低スコア：",
+    "all_scores": "すべて ({{count}})",
+    "main_imports": "主要輸入：",
+    "key_exports": "主要輸出：",
+    "products_identified": "特定された商品 ({{count}})："
   },
   "influencer": {
     "title": "インフルエンサースペース",
@@ -296,7 +313,16 @@
     "already_member": "すでにメンバーですか？",
     "signin_link": "ログイン",
     "footer_pricing": "料金",
-    "footer_contact": "お問い合わせ"
+    "footer_contact": "お問い合わせ",
+    "step1_title": "世界を分析",
+    "step1_desc": "輸入 · 輸出 · ギャップ",
+    "step2_title": "機会を見つける",
+    "step2_desc": "収益性の高い市場ギャップ",
+    "step3_title": "すべての鍵を手に",
+    "step3_desc": "プラン · 研修 · バイヤー",
+    "step4_title": "成功",
+    "step4_desc": "収益 · 業界 · 影響",
+    "hero_cta_map": "マップを起動して試す"
   },
   "common": {
     "loading": "読み込み中…",

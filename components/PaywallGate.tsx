@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createSupabaseBrowser } from '@/lib/supabase'
 import { TIER_RANK, compareTiers } from '@/lib/credits/tier-helpers'
 import type { PlanTier } from '@/lib/credits/costs'
+import { useLang } from '@/components/LanguageProvider'
 
 // PaywallGate accepts both legacy aliases (basic/standard) and the current DB
 // tier keys. Everything is normalized to PlanTier before comparing through the
@@ -72,6 +73,7 @@ interface PaywallGateProps {
 }
 
 export default function PaywallGate({ requiredTier, children, featureName }: PaywallGateProps) {
+  const { t } = useLang()
   const [userTier, setUserTier] = useState<LegacyOrPlanTier | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -145,16 +147,13 @@ export default function PaywallGate({ requiredTier, children, featureName }: Pay
           </div>
 
           <h3 className="text-white font-bold text-lg mb-1">
-            Fonctionnalité réservée
+            {t('common.locked_feature')}
           </h3>
           <p className="text-gray-400 text-sm mb-2">
-            {featureName} requiert le plan{' '}
-            <span style={{ color: '#C9A84C' }} className="font-semibold">
-              {TIER_LABELS[requiredTier]}
-            </span>
+            {t('common.locked_desc', { feature: featureName, plan: TIER_LABELS[requiredTier] })}
           </p>
           <p className="text-gray-500 text-xs mb-6">
-            À partir de{' '}
+            {t('common.from')}{' '}
             <span className="text-white font-semibold">{TIER_PRICES[requiredTier]}</span>
           </p>
 
@@ -165,7 +164,7 @@ export default function PaywallGate({ requiredTier, children, featureName }: Pay
             onMouseEnter={e => (e.currentTarget.style.background = '#E8C97A')}
             onMouseLeave={e => (e.currentTarget.style.background = '#C9A84C')}
           >
-            Upgrader mon plan →
+            {t('common.upgrade')}
           </Link>
         </div>
       </div>

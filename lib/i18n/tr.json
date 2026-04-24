@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "Aylık abonelikler",
+    "tab_packs": "Kredi paketleri (tek seferlik)",
+    "duration_monthly": "Aylık",
+    "duration_12m_off": "12 ay (-10%)",
+    "duration_24m_off": "24 ay (-20%)",
+    "duration_36m_off": "36 ay (-30%)",
+    "most_popular_badge": "En popüler",
+    "current_plan_badge": "Mevcut planınız",
+    "current_plan_cta": "Aktif"
   },
   "account": {
     "title": "Hesabım",
@@ -198,7 +207,15 @@
     "col_imports": "İthalat",
     "col_balance": "Denge",
     "n_opportunities": "{{count}} fırsat belirlendi",
-    "all_regions": "Tümü"
+    "all_regions": "Tümü",
+    "breadcrumb_reports": "Raporlar",
+    "see_n_opportunities": "{{count}} fırsatı gör",
+    "jump_to_opportunity": "Bir fırsata git…",
+    "min_score": "Minimum skor:",
+    "all_scores": "Tümü ({{count}})",
+    "main_imports": "Başlıca ithalat:",
+    "key_exports": "Ana ihracat:",
+    "products_identified": "Belirlenen ürünler ({{count}}):"
   },
   "influencer": {
     "title": "Influencer Alanı",
@@ -296,7 +313,16 @@
     "already_member": "Zaten üye misiniz?",
     "signin_link": "Giriş yap",
     "footer_pricing": "Fiyatlar",
-    "footer_contact": "İletişim"
+    "footer_contact": "İletişim",
+    "step1_title": "Dünyayı analiz edin",
+    "step1_desc": "İthalat · ihracat · açıklar",
+    "step2_title": "Fırsatlarınızı bulun",
+    "step2_desc": "Kârlı pazar açıkları",
+    "step3_title": "Tüm anahtarlar elinizde",
+    "step3_desc": "Planlar · eğitimler · alıcılar",
+    "step4_title": "Başarı",
+    "step4_desc": "Gelir · sektör · etki",
+    "hero_cta_map": "Denemek için haritayı başlatın"
   },
   "common": {
     "loading": "Yükleniyor…",

@@ -106,7 +106,7 @@ export default function PricingPage() {
                 mode === 'subscriptions' ? 'bg-emerald-500 text-black' : 'text-white/70'
               }`}
             >
-              Abonnements mensuels
+              {t('pricing.tab_subscription')}
             </button>
             <button
               onClick={() => setMode('packs')}
@@ -114,7 +114,7 @@ export default function PricingPage() {
                 mode === 'packs' ? 'bg-emerald-500 text-black' : 'text-white/70'
               }`}
             >
-              Packs crédits (one-shot)
+              {t('pricing.tab_packs')}
             </button>
           </div>
         </div>
@@ -132,15 +132,22 @@ export default function PricingPage() {
         {mode === 'subscriptions' && (
           <div className="flex justify-center mb-8">
             <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-1 flex-wrap">
-              {SUBSCRIPTION_DURATIONS.map(d => (
-                <button
-                  key={d.months}
-                  onClick={() => setDuration(d.months as DurationMonths)}
-                  className={`px-4 py-2 rounded-full text-xs font-medium transition ${
-                    duration === d.months ? 'bg-[#C9A84C] text-black' : 'text-white/70 hover:text-white'
-                  }`}
-                >{d.label}</button>
-              ))}
+              {SUBSCRIPTION_DURATIONS.map(d => {
+                const labelKey =
+                  d.months === 1 ? 'pricing.duration_monthly' :
+                  d.months === 12 ? 'pricing.duration_12m_off' :
+                  d.months === 24 ? 'pricing.duration_24m_off' :
+                  'pricing.duration_36m_off'
+                return (
+                  <button
+                    key={d.months}
+                    onClick={() => setDuration(d.months as DurationMonths)}
+                    className={`px-4 py-2 rounded-full text-xs font-medium transition ${
+                      duration === d.months ? 'bg-[#C9A84C] text-black' : 'text-white/70 hover:text-white'
+                    }`}
+                  >{t(labelKey)}</button>
+                )
+              })}
             </div>
           </div>
         )}
@@ -205,12 +212,13 @@ function Subscriptions({
   authResolved: boolean
 }) {
   const { t } = useLang()
-  // Anonymous (or auth still resolving): show every plan, including Free.
-  // Authenticated: hide Free + every tier <= current (no downgrade CTAs).
-  const isAnonymous = authResolved && userTier === null
-  const showFree = !authResolved || isAnonymous
-  const showPlan = (target: PlanTier) =>
-    !authResolved || isAnonymous || (userTier !== null && shouldShowUpgradeTo(userTier, target))
+  // Always render every plan. A logged-in user sees a "current plan" badge on
+  // their tier and a disabled CTA on that card — they still see the others
+  // (downgrade and upgrade alike) so the full ladder is transparent.
+  // `shouldShowUpgradeTo` stays imported — callers still use it elsewhere,
+  // but is intentionally not used to filter cards anymore.
+  void shouldShowUpgradeTo
+  const isCurrent = (target: PlanTier) => authResolved && userTier === target
   const soloMonthly     = geo?.plans.solo_producer?.price ?? PLAN_PRICE_EUR.solo_producer
   const starterMonthly  = geo?.plans.starter.price  ?? PLAN_PRICE_EUR.starter
   const strategyMonthly = geo?.plans.strategy?.price ?? PLAN_PRICE_EUR.strategy
@@ -248,7 +256,6 @@ function Subscriptions({
     : `Économie ${savings.toFixed(0)}€ sur ${duration} mois`
   return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-      {showFree && (
       <PlanCard
         name="Free" price="€0" period="" credits={PLAN_MONTHLY_GRANT.free}
         tagline={t('pricing.plans.free.tagline')}
@@ -260,9 +267,8 @@ function Subscriptions({
           { label: 'Fill the Gap', yes: false },
         ]}
         ctaLabel={t('pricing.plans.free.cta')} ctaHref="/auth/register"
+        isCurrent={isCurrent('free')}
       />
-      )}
-      {showPlan('solo_producer') && (
       <PlanCard
         name="Solo Producer" price={`€${soloPrice}`}
         basePrice={duration > 1 ? `€${soloBase}` : (soloPrice !== soloBase ? `€${soloBase}` : undefined)}
@@ -281,9 +287,8 @@ function Subscriptions({
         ]}
         ctaLabel={t('pricing.plans.solo_producer.cta')} ctaHref={soloHref}
         onCtaClick={e => onUpgradeClick(e, 'data', soloHref)}
+        isCurrent={isCurrent('solo_producer')}
       />
-      )}
-      {showPlan('starter') && (
       <PlanCard
         name="Data" price={`€${starterPrice}`}
         basePrice={duration > 1 ? `€${starterBase}` : (starterPrice !== starterBase ? `€${starterBase}` : undefined)}
@@ -301,9 +306,8 @@ function Subscriptions({
         ]}
         ctaLabel={t('pricing.plans.data.cta')} ctaHref={starterHref}
         onCtaClick={e => onUpgradeClick(e, 'data', starterHref)}
+        isCurrent={isCurrent('starter')}
       />
-      )}
-      {showPlan('strategy') && (
       <PlanCard
         name="Strategy" price={`€${strategyPrice}`}
         basePrice={duration > 1 ? `€${strategyBase}` : (strategyPrice !== strategyBase ? `€${strategyBase}` : undefined)}
@@ -321,9 +325,8 @@ function Subscriptions({
         ]}
         ctaLabel={t('pricing.plans.strategy.cta')} ctaHref={strategyHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', strategyHref)}
+        isCurrent={isCurrent('strategy')}
       />
-      )}
-      {showPlan('premium') && (
       <PlanCard
         name="Premium" price={`€${premiumPrice}`}
         basePrice={duration > 1 ? `€${premiumBase}` : (premiumPrice !== premiumBase ? `€${premiumBase}` : undefined)}
@@ -341,9 +344,8 @@ function Subscriptions({
         ]}
         ctaLabel={t('pricing.plans.premium.cta')} ctaHref={premiumHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', premiumHref)}
+        isCurrent={isCurrent('premium')}
       />
-      )}
-      {showPlan('ultimate') && (
       <PlanCard
         name="Ultimate" price={`€${ultimatePrice}`}
         basePrice={duration > 1 ? `€${ultimateBase}` : (ultimatePrice !== ultimateBase ? `€${ultimateBase}` : undefined)}
@@ -361,8 +363,8 @@ function Subscriptions({
         ]}
         ctaLabel={t('pricing.plans.ultimate.cta')} ctaHref={ultimateHref}
         onCtaClick={e => onUpgradeClick(e, 'premium', ultimateHref)}
+        isCurrent={isCurrent('ultimate')}
       />
-      )}
     </div>
   )
 }
@@ -400,21 +402,30 @@ function Packs() {
 }
 
 function PlanCard({
-  name, price, basePrice, period, credits, tagline, features, ctaLabel, ctaHref, highlight, onCtaClick, savings,
+  name, price, basePrice, period, credits, tagline, features, ctaLabel, ctaHref, highlight, onCtaClick, savings, isCurrent,
 }: {
   name: string; price: string; basePrice?: string; period: string; credits: number; tagline: string
   features: { label: string; yes: boolean }[]
   ctaLabel: string; ctaHref: string; highlight?: boolean
   savings?: string | null
   onCtaClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void
+  isCurrent?: boolean
 }) {
+  const { t } = useLang()
+  const currentBorder = 'border-[#C9A84C]/70 bg-[#C9A84C]/5 shadow-lg shadow-[#C9A84C]/10'
   return (
     <div className={`relative rounded-xl border p-6 flex flex-col ${
+      isCurrent ? currentBorder :
       highlight ? 'border-emerald-500/50 bg-emerald-500/5 shadow-lg shadow-emerald-500/10' : 'border-white/10 bg-white/3'
     }`}>
-      {highlight && (
+      {isCurrent && (
+        <span className="absolute -top-3 left-6 text-[10px] px-2 py-1 rounded-full bg-[#C9A84C] text-black font-semibold uppercase tracking-wider">
+          {t('pricing.current_plan_badge')}
+        </span>
+      )}
+      {!isCurrent && highlight && (
         <span className="absolute -top-3 left-6 text-[10px] px-2 py-1 rounded-full bg-emerald-500 text-black font-semibold uppercase tracking-wider">
-          Le plus choisi
+          {t('pricing.most_popular_badge')}
         </span>
       )}
       <div className="text-sm uppercase tracking-widest text-white/50 mb-1">{name}</div>
@@ -435,13 +446,22 @@ function PlanCard({
           </li>
         ))}
       </ul>
-      <a href={ctaHref}
-        onClick={onCtaClick}
-        className={`block w-full text-center py-3 rounded font-medium transition ${
-          highlight ? 'bg-emerald-500 hover:bg-emerald-400 text-black' : 'border border-white/20 hover:bg-white/5 text-white'
-        }`}>
-        {ctaLabel}
-      </a>
+      {isCurrent ? (
+        <div
+          aria-disabled
+          className="block w-full text-center py-3 rounded font-medium bg-white/5 border border-[#C9A84C]/40 text-[#C9A84C] cursor-default select-none"
+        >
+          {t('pricing.current_plan_cta')}
+        </div>
+      ) : (
+        <a href={ctaHref}
+          onClick={onCtaClick}
+          className={`block w-full text-center py-3 rounded font-medium transition ${
+            highlight ? 'bg-emerald-500 hover:bg-emerald-400 text-black' : 'border border-white/20 hover:bg-white/5 text-white'
+          }`}>
+          {ctaLabel}
+        </a>
+      )}
     </div>
   )
 }

@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "मासिक सदस्यताएँ",
+    "tab_packs": "क्रेडिट पैक (एक-बार)",
+    "duration_monthly": "मासिक",
+    "duration_12m_off": "12 महीने (-10%)",
+    "duration_24m_off": "24 महीने (-20%)",
+    "duration_36m_off": "36 महीने (-30%)",
+    "most_popular_badge": "सबसे लोकप्रिय",
+    "current_plan_badge": "आपकी वर्तमान योजना",
+    "current_plan_cta": "सक्रिय"
   },
   "account": {
     "title": "मेरा खाता",
@@ -198,7 +207,15 @@
     "col_imports": "आयात",
     "col_balance": "संतुलन",
     "n_opportunities": "{{count}} अवसर पहचाने गए",
-    "all_regions": "सभी"
+    "all_regions": "सभी",
+    "breadcrumb_reports": "रिपोर्ट्स",
+    "see_n_opportunities": "{{count}} अवसर देखें",
+    "jump_to_opportunity": "किसी अवसर पर जाएँ…",
+    "min_score": "न्यूनतम स्कोर:",
+    "all_scores": "सभी ({{count}})",
+    "main_imports": "मुख्य आयात:",
+    "key_exports": "मुख्य निर्यात:",
+    "products_identified": "पहचानी गई उत्पाद ({{count}}):"
   },
   "influencer": {
     "title": "इन्फ्लुएंसर स्पेस",
@@ -296,7 +313,16 @@
     "already_member": "पहले से सदस्य हैं?",
     "signin_link": "लॉगिन",
     "footer_pricing": "मूल्य",
-    "footer_contact": "संपर्क"
+    "footer_contact": "संपर्क",
+    "step1_title": "दुनिया का विश्लेषण करें",
+    "step1_desc": "आयात · निर्यात · अंतराल",
+    "step2_title": "अपने अवसर खोजें",
+    "step2_desc": "लाभदायक बाज़ार अंतराल",
+    "step3_title": "सभी चाबियाँ हाथ में",
+    "step3_desc": "योजनाएँ · प्रशिक्षण · खरीदार",
+    "step4_title": "सफलता",
+    "step4_desc": "आय · उद्योग · प्रभाव",
+    "hero_cta_map": "आज़माने के लिए मानचित्र खोलें"
   },
   "common": {
     "loading": "लोड हो रहा है…",

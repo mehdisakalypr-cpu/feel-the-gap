@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "Langganan bulanan",
+    "tab_packs": "Paket kredit (sekali pakai)",
+    "duration_monthly": "Bulanan",
+    "duration_12m_off": "12 bulan (-10%)",
+    "duration_24m_off": "24 bulan (-20%)",
+    "duration_36m_off": "36 bulan (-30%)",
+    "most_popular_badge": "Paling populer",
+    "current_plan_badge": "Paket Anda saat ini",
+    "current_plan_cta": "Aktif"
   },
   "account": {
     "title": "Akun Saya",
@@ -198,7 +207,15 @@
     "col_imports": "Impor",
     "col_balance": "Neraca",
     "n_opportunities": "{{count}} peluang teridentifikasi",
-    "all_regions": "Semua"
+    "all_regions": "Semua",
+    "breadcrumb_reports": "Laporan",
+    "see_n_opportunities": "Lihat {{count}} peluang",
+    "jump_to_opportunity": "Lompat ke peluang…",
+    "min_score": "Skor minimum:",
+    "all_scores": "Semua ({{count}})",
+    "main_imports": "Impor utama:",
+    "key_exports": "Ekspor utama:",
+    "products_identified": "Produk teridentifikasi ({{count}}):"
   },
   "influencer": {
     "title": "Ruang Influencer",
@@ -296,7 +313,16 @@
     "already_member": "Sudah anggota?",
     "signin_link": "Masuk",
     "footer_pricing": "Harga",
-    "footer_contact": "Kontak"
+    "footer_contact": "Kontak",
+    "step1_title": "Analisis dunia",
+    "step1_desc": "Impor · ekspor · celah",
+    "step2_title": "Temukan peluang Anda",
+    "step2_desc": "Celah pasar yang menguntungkan",
+    "step3_title": "Semua kunci di tangan",
+    "step3_desc": "Rencana · pelatihan · pembeli",
+    "step4_title": "Sukses",
+    "step4_desc": "Pendapatan · industri · dampak",
+    "hero_cta_map": "Luncurkan peta untuk mencoba"
   },
   "common": {
     "loading": "Memuat…",

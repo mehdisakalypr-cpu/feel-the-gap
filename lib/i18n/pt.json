@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "Assinaturas mensais",
+    "tab_packs": "Pacotes de créditos (one-shot)",
+    "duration_monthly": "Mensal",
+    "duration_12m_off": "12 meses (-10%)",
+    "duration_24m_off": "24 meses (-20%)",
+    "duration_36m_off": "36 meses (-30%)",
+    "most_popular_badge": "Mais popular",
+    "current_plan_badge": "Seu plano atual",
+    "current_plan_cta": "Ativo"
   },
   "account": {
     "title": "Minha conta",
@@ -198,7 +207,15 @@
     "col_imports": "Importações",
     "col_balance": "Balança",
     "n_opportunities": "{{count}} oportunidades identificadas",
-    "all_regions": "Todas"
+    "all_regions": "Todas",
+    "breadcrumb_reports": "Relatórios",
+    "see_n_opportunities": "Ver as {{count}} oportunidades",
+    "jump_to_opportunity": "Ir a uma oportunidade…",
+    "min_score": "Pontuação mínima:",
+    "all_scores": "Todas ({{count}})",
+    "main_imports": "Principais importações:",
+    "key_exports": "Exportações chave:",
+    "products_identified": "Produtos identificados ({{count}}):"
   },
   "influencer": {
     "title": "Espaço Influenciador",
@@ -296,7 +313,16 @@
     "already_member": "Já é membro?",
     "signin_link": "Entrar",
     "footer_pricing": "Preços",
-    "footer_contact": "Contato"
+    "footer_contact": "Contato",
+    "step1_title": "Analise o mundo",
+    "step1_desc": "Importações · exportações · gaps",
+    "step2_title": "Encontre suas oportunidades",
+    "step2_desc": "Gaps de mercado lucrativos",
+    "step3_title": "Todas as chaves em mãos",
+    "step3_desc": "Planos · formações · compradores",
+    "step4_title": "Sucesso",
+    "step4_desc": "Receitas · setor · impacto",
+    "hero_cta_map": "Abrir o mapa para testar"
   },
   "common": {
     "loading": "Carregando…",

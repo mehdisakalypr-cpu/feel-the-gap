@@ -161,7 +161,16 @@
         "tagline": "Unlimited + AI engine",
         "cta": "Go Ultimate"
       }
-    }
+    },
+    "tab_subscription": "اشتراكات شهرية",
+    "tab_packs": "حزم الرصيد (لمرة واحدة)",
+    "duration_monthly": "شهري",
+    "duration_12m_off": "12 شهرًا (-10٪)",
+    "duration_24m_off": "24 شهرًا (-20٪)",
+    "duration_36m_off": "36 شهرًا (-30٪)",
+    "most_popular_badge": "الأكثر شيوعًا",
+    "current_plan_badge": "خطتك الحالية",
+    "current_plan_cta": "نشط"
   },
   "account": {
     "title": "حسابي",
@@ -198,7 +207,15 @@
     "col_imports": "الواردات",
     "col_balance": "الميزان",
     "n_opportunities": "{{count}} فرصة محددة",
-    "all_regions": "الكل"
+    "all_regions": "الكل",
+    "breadcrumb_reports": "التقارير",
+    "see_n_opportunities": "عرض {{count}} فرصة",
+    "jump_to_opportunity": "الانتقال إلى فرصة…",
+    "min_score": "الحد الأدنى للدرجة:",
+    "all_scores": "الكل ({{count}})",
+    "main_imports": "الواردات الرئيسية:",
+    "key_exports": "الصادرات الرئيسية:",
+    "products_identified": "المنتجات المحددة ({{count}}):"
   },
   "influencer": {
     "title": "مساحة المؤثرين",
@@ -296,7 +313,16 @@
     "already_member": "عضو بالفعل؟",
     "signin_link": "تسجيل الدخول",
     "footer_pricing": "الأسعار",
-    "footer_contact": "اتصل بنا"
+    "footer_contact": "اتصل بنا",
+    "step1_title": "حلّل العالم",
+    "step1_desc": "واردات · صادرات · فجوات",
+    "step2_title": "ابحث عن فرصك",
+    "step2_desc": "فجوات سوقية مربحة",
+    "step3_title": "كل المفاتيح في يدك",
+    "step3_desc": "خطط · تدريبات · مشترون",
+    "step4_title": "نجاح",
+    "step4_desc": "إيرادات · قطاع · تأثير",
+    "hero_cta_map": "افتح الخريطة للتجربة"
   },
   "common": {
     "loading": "جاري التحميل…",
