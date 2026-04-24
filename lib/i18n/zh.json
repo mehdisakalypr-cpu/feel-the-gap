@@ -9,7 +9,8 @@
     "home": "首页",
     "marketplace": "Marketplace",
     "admin": "管理员",
-    "switch_to": "切换到"
+    "switch_to": "切换到",
+    "dashboard": "Dashboard"
   },
   "auth": {
     "login_title": "欢迎回来",
@@ -383,5 +384,40 @@
     "api_tokens": "API tokens",
     "biometric": "Biometric login",
     "biometric_desc": "Enable fingerprint or Face ID for instant login."
+  },
+  "dashboard": {
+    "kicker": "My workspace",
+    "title": "Dashboard",
+    "intro": "Track your selected opportunities, product sheets, and funding or investment dossiers in one place.",
+    "count_opps": "Selected opportunities",
+    "count_products": "Product sheets",
+    "count_funding": "Financing dossiers",
+    "count_investment": "Investment dossiers",
+    "block_opps_title": "My selected opportunities",
+    "block_opps_hint": "Quick access to each opportunity's full synthesis.",
+    "block_opps_cta": "Browse all reports",
+    "empty_opps_title": "No opportunity selected yet",
+    "empty_opps_desc": "Pick opportunities on a country report to see them here with one-click access to their synthesis.",
+    "empty_opps_cta": "Open the reports",
+    "open_synthesis": "Open the synthesis",
+    "block_products_title": "My product sheets",
+    "block_products_hint": "Complete your product sheets to unlock matching and outreach.",
+    "block_products_cta": "New product sheet",
+    "empty_products_title": "No product sheet yet",
+    "empty_products_desc": "Create one product sheet per product you plan to sell, so buyers and matching can surface them.",
+    "empty_products_cta": "Create a product sheet",
+    "block_funding_title": "My financing dossiers",
+    "block_funding_hint": "Credit, loans, guarantees — dossiers shown to financiers once complete.",
+    "block_funding_cta": "Open financing workspace",
+    "empty_funding_title": "No financing dossier yet",
+    "empty_funding_desc": "Start a financing dossier to request credit from banks, crowdlenders or debt family offices.",
+    "empty_funding_cta": "Start a financing dossier",
+    "block_investment_title": "My investment dossiers",
+    "block_investment_hint": "Equity, business angels, VC — opened to investors when the dossier is complete.",
+    "block_investment_cta": "Open investment workspace",
+    "empty_investment_title": "No investment dossier yet",
+    "empty_investment_desc": "Start an investment dossier to attract equity capital — it's shown to investors once complete.",
+    "empty_investment_cta": "Start an investment dossier",
+    "to_complete": "To complete"
   }
 }

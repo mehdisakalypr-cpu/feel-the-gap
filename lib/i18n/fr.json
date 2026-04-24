@@ -9,7 +9,8 @@
     "home": "Accueil",
     "marketplace": "Marketplace",
     "admin": "Admin",
-    "switch_to": "Basculer vers"
+    "switch_to": "Basculer vers",
+    "dashboard": "Tableau de bord"
   },
   "auth": {
     "login_title": "Bon retour",
@@ -383,5 +384,40 @@
     "api_tokens": "Tokens API",
     "biometric": "Connexion biométrique",
     "biometric_desc": "Activez l'empreinte digitale ou Face ID pour vous connecter instantanément."
+  },
+  "dashboard": {
+    "kicker": "Mon espace",
+    "title": "Tableau de bord",
+    "intro": "Suivez ici vos opportunités sélectionnées, vos fiches produit et vos dossiers de financement ou d'investissement.",
+    "count_opps": "Opportunités sélectionnées",
+    "count_products": "Fiches produit",
+    "count_funding": "Dossiers financement",
+    "count_investment": "Dossiers investissement",
+    "block_opps_title": "Mes opportunités sélectionnées",
+    "block_opps_hint": "Accès rapide à la synthèse complète de chaque opportunité.",
+    "block_opps_cta": "Parcourir tous les rapports",
+    "empty_opps_title": "Aucune opportunité sélectionnée",
+    "empty_opps_desc": "Sélectionnez des opportunités depuis un rapport pays pour les retrouver ici avec un accès direct à leur synthèse.",
+    "empty_opps_cta": "Ouvrir les rapports",
+    "open_synthesis": "Ouvrir la synthèse",
+    "block_products_title": "Mes fiches produit",
+    "block_products_hint": "Complétez vos fiches produit pour débloquer matching et outreach.",
+    "block_products_cta": "Nouvelle fiche produit",
+    "empty_products_title": "Aucune fiche produit",
+    "empty_products_desc": "Créez une fiche par produit que vous comptez vendre : cela alimente le matching et l'exposition aux acheteurs.",
+    "empty_products_cta": "Créer une fiche produit",
+    "block_funding_title": "Mes dossiers de financement",
+    "block_funding_hint": "Crédit, prêts, garanties — dossiers présentés aux financeurs une fois complets.",
+    "block_funding_cta": "Ouvrir l'espace financement",
+    "empty_funding_title": "Aucun dossier de financement",
+    "empty_funding_desc": "Lancez un dossier de financement pour solliciter banques, crowdlenders ou family offices dette.",
+    "empty_funding_cta": "Démarrer un dossier",
+    "block_investment_title": "Mes dossiers d'investissement",
+    "block_investment_hint": "Equity, business angels, VC — ouvert aux investisseurs quand le dossier est complet.",
+    "block_investment_cta": "Ouvrir l'espace investissement",
+    "empty_investment_title": "Aucun dossier d'investissement",
+    "empty_investment_desc": "Lancez un dossier d'investissement pour lever du capital — présenté aux investisseurs une fois complet.",
+    "empty_investment_cta": "Démarrer un dossier",
+    "to_complete": "À compléter"
   }
 }

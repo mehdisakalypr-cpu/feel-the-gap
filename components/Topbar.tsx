@@ -359,6 +359,12 @@ export default function Topbar() {
           <Link href="/reports" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors whitespace-nowrap shrink-0">
             {t('nav.reports')}
           </Link>
+          {/* Dashboard — entrepreneur hub, only visible to logged-in users. */}
+          {userEmail && (
+            <Link href="/dashboard" className="px-2.5 py-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/5 transition-colors whitespace-nowrap shrink-0">
+              {t('nav.dashboard')}
+            </Link>
+          )}
           <Link href="/marketplace" className="px-2.5 py-1.5 text-[#C9A84C] hover:text-white rounded-md hover:bg-[#C9A84C]/10 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 font-semibold">
             <span aria-hidden>🌍</span>
             <span>{t('nav.marketplace')}</span>
