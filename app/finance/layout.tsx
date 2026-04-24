@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { isParcoursEnabled } from '@/lib/feature-flags'
 import { createSupabaseServer } from '@/lib/supabase-server'
 
@@ -16,6 +17,12 @@ export const metadata: Metadata = {
 }
 
 export default async function FinanceLayout({ children }: { children: React.ReactNode }) {
+  // The waitlist is the gate target — always render it as-is so anonymous
+  // visitors can actually subscribe when the parcours is disabled.
+  const hdrs = await headers()
+  const pathname = hdrs.get('x-pathname') ?? ''
+  if (pathname.startsWith('/finance/waitlist')) return <>{children}</>
+
   const enabled = await isParcoursEnabled('financeur')
   if (enabled) return <>{children}</>
 

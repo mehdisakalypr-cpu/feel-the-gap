@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { isParcoursEnabled } from '@/lib/feature-flags'
 import { createSupabaseServer } from '@/lib/supabase-server'
 
@@ -16,6 +17,11 @@ export const metadata: Metadata = {
 }
 
 export default async function InvestLayout({ children }: { children: React.ReactNode }) {
+  // Waitlist stays reachable even when the parcours is gated.
+  const hdrs = await headers()
+  const pathname = hdrs.get('x-pathname') ?? ''
+  if (pathname.startsWith('/invest/waitlist')) return <>{children}</>
+
   const enabled = await isParcoursEnabled('investisseur')
   if (enabled) return <>{children}</>
 

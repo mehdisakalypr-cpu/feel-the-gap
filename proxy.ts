@@ -116,6 +116,12 @@ export async function proxy(request: NextRequest) {
     request.cookies.get('country')?.value ??
     'FR'
 
+  // Expose the current pathname to Server Components / layouts. Next.js does
+  // not provide usePathname() on the server; layouts that need to branch on
+  // the path (eg. bypassing a gate for /waitlist) read this header.
+  const forwardHeaders = new Headers(request.headers)
+  forwardHeaders.set('x-pathname', pathname)
+
   const withCountry = (res: NextResponse) => {
     res.headers.set('x-country', detectedCountry)
     if (!request.cookies.get('country')) {
@@ -127,22 +133,22 @@ export async function proxy(request: NextRequest) {
   }
 
   // Public pages — no auth needed
-  if (isPublicPage(pathname)) return withCountry(NextResponse.next())
+  if (isPublicPage(pathname)) return withCountry(NextResponse.next({ request: { headers: forwardHeaders } }))
 
   // Public APIs — no auth needed
-  if (pathname.startsWith('/api/') && isPublicApi(pathname)) return withCountry(NextResponse.next())
+  if (pathname.startsWith('/api/') && isPublicApi(pathname)) return withCountry(NextResponse.next({ request: { headers: forwardHeaders } }))
 
   // ── Auth check for all other routes ────────────────────────────────────────
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  let response = NextResponse.next({ request })
+  let response = NextResponse.next({ request: { headers: forwardHeaders } })
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() { return request.cookies.getAll() },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        response = NextResponse.next({ request })
+        response = NextResponse.next({ request: { headers: forwardHeaders } })
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
       },
     },

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { isFeatureEnabled, isParcoursEnabled } from '@/lib/feature-flags'
 
@@ -15,8 +16,13 @@ export const metadata: Metadata = {
 }
 
 export default async function InfluencerLayout({ children }: { children: React.ReactNode }) {
-  // Gate on both legacy feature flag AND the new parcours_state — a parcours can be
-  // disabled even if the legacy feature flag is on.
+  // The waitlist is the gate target — it must always render regardless of the
+  // parcours/feature flag state. Everything else is gated on both the legacy
+  // feature flag AND the parcours_state row.
+  const hdrs = await headers()
+  const pathname = hdrs.get('x-pathname') ?? ''
+  if (pathname.startsWith('/influencer/waitlist')) return <>{children}</>
+
   const [legacy, parcours] = await Promise.all([
     isFeatureEnabled('influencer'),
     isParcoursEnabled('influenceur'),
