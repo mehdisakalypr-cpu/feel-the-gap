@@ -23,6 +23,13 @@ async function getCRM() {
     { data: dealRoomLeads },
     { data: warmContacts },
     { data: warmReady },
+    dirCnt,
+    demosCnt,
+    demosSentCnt,
+    demosViewedCnt,
+    scoutQueueRows,
+    dirByCountry,
+    dirRecent,
   ] = await Promise.all([
     admin.from('profiles').select('id, email, tier, company, country, is_billed, is_admin, demo_expires_at, created_at').order('created_at', { ascending: false }).limit(100),
     admin.from('user_sessions').select('id, converted, last_seen_at').order('last_seen_at', { ascending: false }).limit(200),
@@ -34,9 +41,27 @@ async function getCRM() {
     admin.from('deal_room_leads').select('id, deal_room_id, email, created_at').order('created_at', { ascending: false }).limit(200),
     admin.from('personal_network_contacts').select('id, owner_profile_id, full_name, company, headline, assigned_persona, outreach_status, excluded, last_contact_at, created_at').order('created_at', { ascending: false }).limit(500),
     admin.from('v_warm_network_ready').select('id').limit(10_000),
+    admin.from('entrepreneurs_directory').select('*', { count: 'exact', head: true }),
+    admin.from('entrepreneur_demos').select('*', { count: 'exact', head: true }),
+    admin.from('entrepreneur_demos').select('*', { count: 'exact', head: true }).not('outreach_sent_at', 'is', null),
+    admin.from('entrepreneur_demos').select('*', { count: 'exact', head: true }).eq('status', 'viewed'),
+    admin.from('scout_queue').select('status').limit(20000),
+    admin.from('entrepreneurs_directory').select('country_iso').limit(20000),
+    admin.from('entrepreneurs_directory').select('id, name, country_iso, sector, city, created_at, source').order('created_at', { ascending: false }).limit(15),
   ])
 
   const upgradeSet = new Set(((upgradeClicks ?? []) as AnyRow[]).map(e => String(e.session_id)))
+
+  const sq = (scoutQueueRows.data ?? []) as AnyRow[]
+  const scoutByStatus: Record<string, number> = { pending: 0, running: 0, done: 0, failed: 0 }
+  for (const r of sq) scoutByStatus[String(r.status)] = (scoutByStatus[String(r.status)] ?? 0) + 1
+
+  const byCountry: Record<string, number> = {}
+  for (const r of (dirByCountry.data ?? []) as AnyRow[]) {
+    const iso = String(r.country_iso ?? '??')
+    byCountry[iso] = (byCountry[iso] ?? 0) + 1
+  }
+  const topCountries = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 10)
 
   return {
     users: users ?? [],
@@ -49,6 +74,15 @@ async function getCRM() {
     dealRoomLeads: dealRoomLeads ?? [],
     warmContacts: warmContacts ?? [],
     warmReadyCount: (warmReady ?? []).length,
+    prospects: {
+      directoryTotal: dirCnt.count ?? 0,
+      demosTotal: demosCnt.count ?? 0,
+      demosSent: demosSentCnt.count ?? 0,
+      demosViewed: demosViewedCnt.count ?? 0,
+      scoutByStatus,
+      topCountries,
+      recent: (dirRecent.data ?? []) as AnyRow[],
+    },
   }
 }
 
@@ -116,7 +150,20 @@ export default async function CRMPage() {
     marketplaceMatches, marketplaceSubscriptions,
     dealRooms, dealRoomLeads,
     warmContacts, warmReadyCount,
+    prospects,
   } = data
+
+  const TARGET_PROSPECTS = 500_000
+  const pipelineTotal = prospects.directoryTotal + prospects.demosTotal
+  const pctToTarget = Math.min(100, (pipelineTotal / TARGET_PROSPECTS) * 100)
+  const funnelStages = [
+    { label: '🎯 Scoutés DB', value: pipelineTotal, color: '#C9A84C' },
+    { label: '📧 Avec contact', value: prospects.demosTotal, color: '#60A5FA' },
+    { label: '✉️ Contactés', value: prospects.demosSent, color: '#A78BFA' },
+    { label: '👁️ Démo vue', value: prospects.demosViewed, color: '#10B981' },
+    { label: '✅ Signups', value: users.length, color: '#F59E0B' },
+    { label: '💰 Marketplace', value: (marketplaceMatches as AnyRow[]).length, color: '#EF4444' },
+  ]
 
   const totalSessions = sessions.length
   const convertedSessions = sessions.filter((s: AnyRow) => s.converted).length
@@ -163,6 +210,95 @@ export default async function CRMPage() {
         <Kpi label="Commissions payées" value={`€${(feePaidCents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}`} color="#10B981" hint={`${(marketplaceMatches as AnyRow[]).filter(m => m.status === 'paid').length} matches fee collectés`} />
         <Kpi label="MRR abos marketplace" value={`€${(mrrCents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 0 })}`} color="#A78BFA" hint={`${activeSubs.length} abos actifs`} />
       </div>
+
+      {/* ── Prospects Funnel ──────────────────────────────────────── */}
+      <Section
+        title={`🎯 Prospects Pipeline — ${pipelineTotal.toLocaleString('fr-FR')} / 500 000 (${pctToTarget.toFixed(2)}%)`}
+        subtitle="Funnel E2E auto : scout LLM cascade → enrichment → outreach → démo → signup → match. PM2 ftg-scout-loop + ftg-scout-loop-2 drainent 24/7."
+        action={
+          <div className="flex gap-2 text-[11px]">
+            <Link href="/admin/outreach-enrichment" className="text-[#C9A84C] hover:underline">Enrich →</Link>
+            <Link href="/admin/prospection" className="text-[#C9A84C] hover:underline">Prospection →</Link>
+          </div>
+        }
+      >
+        <div className="mb-4">
+          <div className="h-3 rounded-full bg-[#111827] overflow-hidden">
+            <div className="h-full rounded-full transition-all" style={{ width: `${pctToTarget}%`, background: 'linear-gradient(90deg,#C9A84C,#F59E0B)' }} />
+          </div>
+          <div className="flex justify-between mt-1 text-[10px] text-gray-500">
+            <span>0</span>
+            <span>250 000 (milestone MRR ~€165k)</span>
+            <span>500 000 target</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+          {funnelStages.map((s, i) => (
+            <div key={s.label} className="rounded-lg border border-white/5 bg-[#111827] px-3 py-2 text-center">
+              <div className="text-[10px] text-gray-500">{s.label}</div>
+              <div className="text-lg font-bold" style={{ color: s.color }}>{s.value.toLocaleString('fr-FR')}</div>
+              {i > 0 && funnelStages[i - 1].value > 0 && (
+                <div className="text-[9px] text-gray-600">
+                  {((s.value / funnelStages[i - 1].value) * 100).toFixed(1)}%
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3">
+            <div className="text-[11px] text-gray-500 uppercase mb-2">Scout queue — état auto-drain</div>
+            <div className="grid grid-cols-4 gap-2 text-center">
+              <div><div className="text-[10px] text-gray-500">Pending</div><div className="text-lg font-bold text-[#F59E0B]">{prospects.scoutByStatus.pending}</div></div>
+              <div><div className="text-[10px] text-gray-500">Running</div><div className="text-lg font-bold text-[#60A5FA]">{prospects.scoutByStatus.running}</div></div>
+              <div><div className="text-[10px] text-gray-500">Done</div><div className="text-lg font-bold text-[#10B981]">{prospects.scoutByStatus.done}</div></div>
+              <div><div className="text-[10px] text-gray-500">Failed</div><div className="text-lg font-bold text-[#EF4444]">{prospects.scoutByStatus.failed}</div></div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3">
+            <div className="text-[11px] text-gray-500 uppercase mb-2">Top 10 pays couverture directory</div>
+            <div className="flex flex-wrap gap-1">
+              {prospects.topCountries.map(([iso, n]) => (
+                <span key={iso} className="text-[10px] px-2 py-0.5 rounded-full bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20">
+                  {iso} <strong>{n}</strong>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {prospects.recent.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <div className="text-[11px] text-gray-500 uppercase mb-2">15 derniers prospects scoutés</div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-white/5 text-gray-500 text-left">
+                  <th className="pb-2 pr-4 font-medium">Nom</th>
+                  <th className="pb-2 pr-4 font-medium">Pays</th>
+                  <th className="pb-2 pr-4 font-medium">Secteur</th>
+                  <th className="pb-2 pr-4 font-medium">Ville</th>
+                  <th className="pb-2 pr-4 font-medium">Source</th>
+                  <th className="pb-2 font-medium">Scouté</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {prospects.recent.map(r => (
+                  <tr key={String(r.id)} className="hover:bg-white/5">
+                    <td className="py-1.5 pr-4 text-gray-300 truncate max-w-[200px]">{String(r.name ?? '—')}</td>
+                    <td className="py-1.5 pr-4 text-gray-400">{String(r.country_iso ?? '—')}</td>
+                    <td className="py-1.5 pr-4 text-gray-400">{String(r.sector ?? '—')}</td>
+                    <td className="py-1.5 pr-4 text-gray-400">{String(r.city ?? '—')}</td>
+                    <td className="py-1.5 pr-4 text-gray-500 font-mono text-[10px]">{String(r.source ?? '—').slice(0, 20)}</td>
+                    <td className="py-1.5 text-gray-500">{r.created_at ? new Date(String(r.created_at)).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
 
       {/* ── Marketplace pipeline ──────────────────────────────────── */}
       <Section
