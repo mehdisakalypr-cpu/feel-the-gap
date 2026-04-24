@@ -6,7 +6,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com https://api.openai.com https://*.vercel.app https://vercel.live wss://ws-us3.pusher.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.resend.com https://api.openai.com https://*.vercel.app https://vercel.live wss://ws-us3.pusher.com https://cdn.jsdelivr.net",
   "frame-src https://js.stripe.com https://challenges.cloudflare.com https://vercel.live",
   "object-src 'none'",
   "base-uri 'self'",

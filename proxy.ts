@@ -58,7 +58,14 @@ const PUBLIC_API = new Set([
   '/api/demo/request',                // Public demo request (create + check status)
   '/api/demo/tour',                   // Public tour steps
   '/api/seller/quote-request',        // Public quote request from /seller/[slug]
+  '/api/features',                    // Public feature flag lookup (anonymous UI needs it)
+  '/api/parcours-state',              // Public parcours open/closed state
+  '/api/geo',                         // Public geo-pricing resolution
 ])
+
+const PUBLIC_API_READONLY_PREFIXES = [
+  '/api/_metrics/',                   // Public web-vitals + client telemetry (POST allowed anonymously)
+]
 
 const PUBLIC_API_PREFIXES = [
   '/api/auth/callback',
@@ -82,6 +89,7 @@ function isPublicPage(pathname: string): boolean {
 
 function isPublicApi(pathname: string): boolean {
   if (PUBLIC_API.has(pathname)) return true
+  if (PUBLIC_API_READONLY_PREFIXES.some(p => pathname.startsWith(p))) return true
   return PUBLIC_API_PREFIXES.some(p => pathname.startsWith(p))
 }
 
