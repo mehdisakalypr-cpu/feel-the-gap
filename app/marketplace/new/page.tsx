@@ -31,6 +31,8 @@ function NewInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialKind = (searchParams.get('kind') === 'demand' ? 'demand' : 'volume') as 'volume' | 'demand'
+  // Prefill from Market Pulse strip: ?country=<ISO3>
+  const initialCountry = (searchParams.get('country') ?? '').trim().toUpperCase().slice(0, 3)
 
   const [kind, setKind] = useState<'volume' | 'demand'>(initialKind)
   const [userId, setUserId] = useState<string | null>(null)
@@ -39,7 +41,7 @@ function NewInner() {
   const [error, setError] = useState<string | null>(null)
 
   // Fields — unified, branch on kind server-side
-  const [countryIso, setCountryIso] = useState('')
+  const [countryIso, setCountryIso] = useState(initialKind === 'volume' ? initialCountry : '')
   const [productSlug, setProductSlug] = useState(PRODUCT_PRESETS[0].slug)
   const [productLabel, setProductLabel] = useState(PRODUCT_PRESETS[0].label)
   const [quantityKg, setQuantityKg] = useState<string>('')
@@ -52,7 +54,7 @@ function NewInner() {
   const [availableFrom, setAvailableFrom] = useState<string>('')
   const [availableUntil, setAvailableUntil] = useState<string>('')
   const [deadline, setDeadline] = useState<string>('')
-  const [deliveryCountry, setDeliveryCountry] = useState<string>('')
+  const [deliveryCountry, setDeliveryCountry] = useState<string>(initialKind === 'demand' ? initialCountry : '')
   const [originWhitelist, setOriginWhitelist] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
 

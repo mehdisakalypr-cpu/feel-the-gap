@@ -121,14 +121,14 @@ export function MarketPulseStrip({ limit = 12 }: { limit?: number }) {
               </span>
               <div className="flex items-center gap-2">
                 <Link
-                  href={`/marketplace/new?kind=volume&product=${encodeURIComponent(it.product_id)}&country=${it.country_iso}`}
+                  href={`/marketplace/new?kind=volume&country=${it.country_iso}`}
                   className="text-[11px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2 whitespace-nowrap"
                   title="I produce this — list a volume"
                 >
                   Sell →
                 </Link>
                 <Link
-                  href={`/marketplace/new?kind=demand&product=${encodeURIComponent(it.product_id)}&country=${it.country_iso}`}
+                  href={`/marketplace/new?kind=demand&country=${it.country_iso}`}
                   className="text-[11px] text-[#C9A84C] hover:text-[#E8C97A] underline underline-offset-2 whitespace-nowrap"
                   title="I need this — post a buyer demand"
                 >
