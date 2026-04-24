@@ -15,10 +15,13 @@ const PUBLIC_PAGES = new Set([
   '/influencer/welcome',  // Influencer landing "vendre du rêve" (public)
   '/influencer/catalog',  // Product catalog Apple-style (public browse, save needs auth)
   '/influencer/map',      // Public view of product countries
+  '/influencer/waitlist',  // Public waitlist (closed-role gate target)
   '/finance',          // Financeur landing page (public)
   '/finance/signup',   // Financeur signup (public — auth check inside page)
+  '/finance/waitlist', // Public waitlist (closed-role gate target)
   '/invest',           // Investisseur landing page (public)
   '/invest/signup',    // Investisseur signup (public — auth check inside page)
+  '/invest/waitlist',  // Public waitlist (closed-role gate target)
 ])
 
 const PUBLIC_PAGE_PREFIXES = [
