@@ -622,7 +622,8 @@ function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChan
   // hasTier normalise les tiers legacy (enterprise→ultimate, etc.) et couvre
   // premium ET ultimate d'un seul check — remplace l'ancien hardcode
   // ['premium', 'enterprise'] qui manquait ultimate.
-  const isPremium = hasTier(userTier, 'premium')
+  // Clients potentiels déverrouillés à partir de Strategy (cf JourneySidebar tier='strategy').
+  const isPremium = hasTier(userTier, 'strategy')
 
   // Deduplicate b2b_targets if empty
   const b2bTargets = plan.b2b_targets?.length ? plan.b2b_targets : []
@@ -1035,16 +1036,17 @@ function PlanDisplay({ plan, opps, country, iso, userTier, userBudgetEur, onChan
               </p>
             </div>
             {isPremium ? (
-              <Link href={`/country/${iso}/plan`}
+              <Link href={`/country/${iso}/clients`}
                 className="shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm"
                 style={{ background: '#C9A84C', color: '#07090F' }}>
-                Accéder →
+                Trouver des clients potentiels →
               </Link>
             ) : (
-              <Link href="/pricing"
+              <Link href={`/country/${iso}/clients`}
                 className="shrink-0 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors whitespace-nowrap"
-                style={{ background: '#C9A84C', color: '#07090F' }}>
-                Passer Premium →
+                style={{ background: '#C9A84C', color: '#07090F' }}
+                title="Accès tier Strategy/Premium/Ultimate ou révélation à 5 crédits/contact">
+                Trouver des clients potentiels →
               </Link>
             )}
           </div>
