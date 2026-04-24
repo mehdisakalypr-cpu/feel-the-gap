@@ -59,16 +59,34 @@ async function load() {
       .not('email', 'is', null),
   ])
 
+  // Last 7 snapshots for trend strip
+  const { data: snapshots } = await db
+    .from('outreach_health_snapshots')
+    .select('captured_at, demos_blocked_email, demos_sent_total, demos_sent_24h, demos_with_email, marketplace_matches_total, marketplace_matches_24h')
+    .order('captured_at', { ascending: false })
+    .limit(7)
+
   return {
     demos: enrichedDemos,
     totalBlocked: totalBlocked ?? 0,
     totalSent: totalSent ?? 0,
     directoryContacts: directoryContacts ?? 0,
+    snapshots: (snapshots ?? []).reverse(),
   }
 }
 
+type Snapshot = {
+  captured_at: string
+  demos_blocked_email: number
+  demos_sent_total: number
+  demos_sent_24h: number
+  demos_with_email: number
+  marketplace_matches_total: number
+  marketplace_matches_24h: number
+}
+
 export default async function OutreachEnrichmentPage() {
-  const { demos, totalBlocked, totalSent, directoryContacts } = await load()
+  const { demos, totalBlocked, totalSent, directoryContacts, snapshots } = await load()
 
   return (
     <main style={{ background: C.bg, color: C.text, minHeight: '100vh', padding: '2rem' }}>
@@ -88,6 +106,8 @@ export default async function OutreachEnrichmentPage() {
           <Stat label="Directory contacts email" value={directoryContacts} color={C.accent} />
         </div>
 
+        {snapshots.length > 0 && <TrendStrip snapshots={snapshots as Snapshot[]} />}
+
         <OutreachEnrichmentClient initialDemos={demos} />
       </div>
     </main>
@@ -99,6 +119,32 @@ function Stat({ label, value, color }: { label: string; value: number; color: st
     <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: '0.75rem 1.25rem', borderRadius: 8, flex: '1 1 200px', minWidth: 200 }}>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 700, color }}>{value.toLocaleString()}</div>
+    </div>
+  )
+}
+
+function TrendStrip({ snapshots }: { snapshots: Snapshot[] }) {
+  if (snapshots.length === 0) return null
+  const last = snapshots[snapshots.length - 1]
+  const prev = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null
+  const delta = (a: number, b: number | undefined) => {
+    if (b == null) return ''
+    const d = a - b
+    if (d === 0) return ' ·  0'
+    return ` · ${d > 0 ? '+' : ''}${d.toLocaleString()}`
+  }
+  return (
+    <div style={{ marginBottom: '2rem', background: C.card, border: `1px solid ${C.border}`, padding: '1rem 1.25rem', borderRadius: 10 }}>
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>
+        📊 Trend 7 jours · dernier snapshot {new Date(last.captured_at).toLocaleString('fr-FR')}
+      </div>
+      <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, color: C.text }}>
+        <span>Bloqués: <b style={{ color: '#EF4444' }}>{last.demos_blocked_email.toLocaleString()}</b><span style={{ color: C.muted }}>{delta(last.demos_blocked_email, prev?.demos_blocked_email)}</span></span>
+        <span>Sent total: <b style={{ color: '#10B981' }}>{last.demos_sent_total.toLocaleString()}</b><span style={{ color: C.muted }}>{delta(last.demos_sent_total, prev?.demos_sent_total)}</span></span>
+        <span>Sent 24h: <b style={{ color: C.accent }}>{last.demos_sent_24h.toLocaleString()}</b></span>
+        <span>Enrichis: <b>{last.demos_with_email.toLocaleString()}</b><span style={{ color: C.muted }}>{delta(last.demos_with_email, prev?.demos_with_email)}</span></span>
+        <span>Matches: <b>{last.marketplace_matches_total.toLocaleString()}</b> <span style={{ color: C.muted }}>(+{last.marketplace_matches_24h} /24h)</span></span>
+      </div>
     </div>
   )
 }

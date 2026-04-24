@@ -21,13 +21,19 @@ type Body = {
 function normEmail(v: string | null | undefined): string | null {
   if (!v) return null
   const t = v.trim().toLowerCase()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return null
+  if (t.length > 254) return null
+  // RFC-aligned : local-part 1-64, domain 1-255, at least one dot, no leading/trailing
+  // dot, no consecutive dots, basic character classes. Good enough for admin input.
+  const re = /^(?=.{1,64}@)[a-z0-9](?:[a-z0-9._+-]*[a-z0-9])?@[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.[a-z]{2,24}$/
+  if (!re.test(t) || t.includes('..')) return null
   return t
 }
 
 function normPhone(v: string | null | undefined): string | null {
   if (!v) return null
-  const t = v.trim().replace(/[^\d+]/g, '')
+  // Strip separators first, then keep only a single leading + and 7-15 digits (E.164).
+  const stripped = v.trim().replace(/[\s().\-]/g, '')
+  const t = stripped.replace(/^\++/, '+').replace(/(?!^)\+/g, '')
   if (!/^\+?\d{7,15}$/.test(t)) return null
   return t
 }
