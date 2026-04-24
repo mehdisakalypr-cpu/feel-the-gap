@@ -13,7 +13,7 @@ async function checkDb(): Promise<CheckResult> {
   const t0 = Date.now()
   try {
     const sb = createClient(url, key, { auth: { persistSession: false } })
-    const { error } = await sb.from('countries').select('iso').limit(1).maybeSingle()
+    const { error } = await sb.from('countries').select('iso2').limit(1).maybeSingle()
     if (error) return { ok: false, error: error.message, latency_ms: Date.now() - t0 }
     return { ok: true, latency_ms: Date.now() - t0 }
   } catch (e) {
