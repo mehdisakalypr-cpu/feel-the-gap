@@ -25,6 +25,30 @@ async function load() {
     .order('roi_monthly_eur', { ascending: false, nullsFirst: false })
     .limit(50)
 
+  // Enrichment hints: directory rows matching by (name, country_iso) — 2116/2833
+  // rows have website_url, 717 have linkedin_url. Saves the user one lookup step.
+  const directoryHints: Record<string, { website_url: string | null; linkedin_url: string | null; phone: string | null; whatsapp: string | null }> = {}
+  const names = (demos ?? []).map((d) => d.full_name).filter(Boolean) as string[]
+  if (names.length > 0) {
+    const { data: hints } = await db
+      .from('entrepreneurs_directory')
+      .select('name, country_iso, website_url, linkedin_url, phone, whatsapp')
+      .in('name', names)
+    for (const h of hints ?? []) {
+      if (!h.name || !h.country_iso) continue
+      directoryHints[`${h.name.toLowerCase()}|${h.country_iso}`] = {
+        website_url: h.website_url,
+        linkedin_url: h.linkedin_url,
+        phone: h.phone,
+        whatsapp: h.whatsapp,
+      }
+    }
+  }
+  const enrichedDemos = (demos ?? []).map((d) => ({
+    ...d,
+    directory_hint: d.full_name && d.country_iso ? directoryHints[`${d.full_name.toLowerCase()}|${d.country_iso}`] ?? null : null,
+  }))
+
   // Global counters for context strip.
   const [{ count: totalBlocked }, { count: totalSent }, { count: directoryContacts }] = await Promise.all([
     db.from('entrepreneur_demos').select('*', { count: 'exact', head: true })
@@ -36,7 +60,7 @@ async function load() {
   ])
 
   return {
-    demos: demos ?? [],
+    demos: enrichedDemos,
     totalBlocked: totalBlocked ?? 0,
     totalSent: totalSent ?? 0,
     directoryContacts: directoryContacts ?? 0,

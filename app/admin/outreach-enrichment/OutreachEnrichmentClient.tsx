@@ -6,6 +6,13 @@ const C = {
   text: '#E2E8F0', muted: '#94A3B8', green: '#10B981', red: '#EF4444', blue: '#3B82F6',
 }
 
+type DirectoryHint = {
+  website_url: string | null
+  linkedin_url: string | null
+  phone: string | null
+  whatsapp: string | null
+}
+
 type Demo = {
   id: string
   full_name: string | null
@@ -20,6 +27,31 @@ type Demo = {
   linkedin_url: string | null
   email: string | null
   created_at: string
+  directory_hint?: DirectoryHint | null
+}
+
+function domainFromUrl(url: string | null): string | null {
+  if (!url) return null
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`)
+    return u.hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
+function guessEmails(fullName: string | null, domain: string | null): string[] {
+  if (!fullName || !domain) return []
+  const parts = fullName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return [`contact@${domain}`, `info@${domain}`]
+  const [first, ...rest] = parts
+  const last = rest[rest.length - 1]
+  return [
+    `${first}.${last}@${domain}`,
+    `${first[0]}${last}@${domain}`,
+    `${first}@${domain}`,
+    `contact@${domain}`,
+  ]
 }
 
 type LineState = {
@@ -138,6 +170,40 @@ export default function OutreachEnrichmentClient({ initialDemos }: { initialDemo
                   <a href={`/demo/${d.token}`} target="_blank" rel="noopener noreferrer" style={{ color: C.accent, textDecoration: 'underline' }}>Voir demo ↗</a>
                 )}
               </div>
+              {d.directory_hint && (d.directory_hint.website_url || d.directory_hint.linkedin_url || d.directory_hint.phone || d.directory_hint.whatsapp) && (
+                <div style={{ marginTop: 6, padding: '6px 8px', background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 6, fontSize: 11 }}>
+                  <div style={{ color: C.accent, fontWeight: 600, marginBottom: 3 }}>Directory match</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {d.directory_hint.website_url && (
+                      <a href={d.directory_hint.website_url} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: 'underline' }}>
+                        🌐 {domainFromUrl(d.directory_hint.website_url)}
+                      </a>
+                    )}
+                    {d.directory_hint.linkedin_url && (
+                      <a href={d.directory_hint.linkedin_url} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: 'underline' }}>
+                        💼 LinkedIn
+                      </a>
+                    )}
+                    {d.directory_hint.phone && <span style={{ color: C.muted }}>📞 {d.directory_hint.phone}</span>}
+                    {d.directory_hint.whatsapp && <span style={{ color: C.muted }}>💬 {d.directory_hint.whatsapp}</span>}
+                  </div>
+                  {domainFromUrl(d.directory_hint.website_url) && (
+                    <div style={{ marginTop: 4, color: C.muted, fontSize: 10 }}>
+                      Email guesses:{' '}
+                      {guessEmails(d.full_name, domainFromUrl(d.directory_hint.website_url)).map((g, i) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => upd(d.id, { email: g, error: null })}
+                          style={{ marginRight: 6, marginTop: 2, padding: '1px 6px', background: '#0F172A', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 4, color: C.text, fontSize: 10, cursor: 'pointer' }}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Right: inputs */}
