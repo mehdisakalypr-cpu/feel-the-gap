@@ -208,21 +208,38 @@ function extractDomainCity(hit: SerperHit): { name: string; website?: string } {
   return { name: title || (hit.link ?? 'Acheteur identifié').split('/')[2] || 'Acheteur', website: hit.link }
 }
 
+type BuyerCandidate = {
+  name: string
+  buyer_type: string
+  country_iso: string
+  website_url: string | null
+  product_slugs: string[]
+  confidence_score: number
+  source: string
+  notes: string
+  scope: 'local' | 'international'
+  buyer_source_country?: string | null
+}
+
+const INTERNATIONAL_BUYER_QUERIES: Array<{ type: string; query: string; source_country: string }> = [
+  { type: 'industriel',     query: 'top {p} importer Germany manufacturer',      source_country: 'DE' },
+  { type: 'distributeur',   query: '{p} wholesale importer United States',       source_country: 'US' },
+  { type: 'industriel',     query: '{p} industrial buyer France processor',      source_country: 'FR' },
+  { type: 'grossiste',      query: '{p} wholesaler Netherlands Rotterdam',       source_country: 'NL' },
+  { type: 'distributeur',   query: '{p} importer United Kingdom distributor',    source_country: 'GB' },
+  { type: 'industriel',     query: '{p} processor Italy food industry',          source_country: 'IT' },
+  { type: 'distributeur',   query: '{p} trading company Spain importer',         source_country: 'ES' },
+  { type: 'grossiste',      query: '{p} wholesale Belgium Antwerp',              source_country: 'BE' },
+  { type: 'export_trader',  query: '{p} trading house Switzerland',              source_country: 'CH' },
+  { type: 'industriel',     query: '{p} manufacturer Japan Tokyo',               source_country: 'JP' },
+]
+
 async function fillClients(iso: string, product?: string): Promise<{ added: number; source: string }> {
   const sb = db()
   if (!product) return { added: 0, source: 'product_required' }
   const cName = countryName(iso)
 
-  const candidates: Array<{
-    name: string
-    buyer_type: string
-    country_iso: string
-    website_url: string | null
-    product_slugs: string[]
-    confidence_score: number
-    source: string
-    notes: string
-  }> = []
+  const candidates: BuyerCandidate[] = []
   const seen = new Set<string>()
 
   for (const bt of BUYER_TYPES) {
@@ -244,6 +261,7 @@ async function fillClients(iso: string, product?: string): Promise<{ added: numb
           confidence_score: 0.4,
           source: 'ai_research',
           notes: hit.snippet?.slice(0, 240) ?? '',
+          scope: 'local',
         })
         if (candidates.length >= 10) break
       }
@@ -251,15 +269,48 @@ async function fillClients(iso: string, product?: string): Promise<{ added: numb
     }
   }
 
+  // Fallback international: si moins de 5 buyers locaux trouvés, on prend le
+  // top 5-10 importateurs/grossistes internationaux pour ce produit et on les
+  // sauvegarde liés au pays cible. Zéro LLM, queries Serper ciblées pays
+  // importateurs majeurs (DE, US, FR, NL, GB, IT, ES, BE, CH, JP).
+  if (candidates.length < 5) {
+    const targetInt = 10 - candidates.length
+    for (const cfg of INTERNATIONAL_BUYER_QUERIES) {
+      if (candidates.filter(c => c.scope === 'international').length >= targetInt) break
+      const q = cfg.query.replaceAll('{p}', product)
+      const hits = await searchSerper(q)
+      for (const hit of hits) {
+        const { name, website } = extractDomainCity(hit)
+        const key = (website ?? name).toLowerCase()
+        if (!name || seen.has(key)) continue
+        seen.add(key)
+        candidates.push({
+          name: name.slice(0, 200),
+          buyer_type: cfg.type,
+          country_iso: iso.toUpperCase(),
+          website_url: website ?? null,
+          product_slugs: [product.toLowerCase()],
+          confidence_score: 0.3,
+          source: 'ai_research_international',
+          notes: (hit.snippet?.slice(0, 240) ?? '') + ` [international fallback from ${cfg.source_country}]`,
+          scope: 'international',
+          buyer_source_country: cfg.source_country,
+        })
+        if (candidates.filter(c => c.scope === 'international').length >= targetInt) break
+      }
+    }
+  }
+
   if (candidates.length === 0) return { added: 0, source: 'no_results' }
 
-  // Insert; ignore conflicts on (country_iso, name) if any (no unique index — best-effort).
   const { error } = await sb.from('local_buyers').insert(candidates)
   if (error) {
     console.warn('[section-fill/clients] insert failed:', error.message)
     return { added: 0, source: 'insert_error' }
   }
-  return { added: candidates.length, source: 'serper' }
+  const localCount = candidates.filter(c => c.scope === 'local').length
+  const intlCount = candidates.filter(c => c.scope === 'international').length
+  return { added: candidates.length, source: `serper:${localCount}_local+${intlCount}_intl` }
 }
 
 // ════════════════════════════════════════════════════════════════════════════
