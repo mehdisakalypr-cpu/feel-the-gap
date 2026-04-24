@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const SITE = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://feel-the-gap.com'
+const SITE = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.gapup.io'
 const LOCALES = ['en', 'fr', 'es'] as const
 const NOW = new Date()
 

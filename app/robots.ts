@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-const SITE = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://feel-the-gap.com'
+const SITE = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://www.gapup.io'
 
 export default function robots(): MetadataRoute.Robots {
   return {

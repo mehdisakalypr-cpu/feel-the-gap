@@ -101,8 +101,31 @@ function isStaticAsset(pathname: string): boolean {
   )
 }
 
+function allowedHosts(): string[] {
+  const raw = process.env.AUTH_ALLOWED_HOSTS ?? ''
+  return raw.split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
+}
+
+function hostAllowed(host: string): boolean {
+  const h = host.toLowerCase().split(':')[0]
+  for (const allowed of allowedHosts()) {
+    if (allowed.startsWith('*.')) {
+      const suffix = allowed.slice(1)
+      if (h.endsWith(suffix)) return true
+    } else if (h === allowed) {
+      return true
+    }
+  }
+  return false
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  const host = request.headers.get('host') ?? ''
+  if (host && !hostAllowed(host)) {
+    return new NextResponse('Forbidden host', { status: 400 })
+  }
 
   // Static assets — always pass through
   if (isStaticAsset(pathname)) return NextResponse.next()
