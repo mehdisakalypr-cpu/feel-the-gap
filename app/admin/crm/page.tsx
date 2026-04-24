@@ -30,6 +30,11 @@ async function getCRM() {
     scoutQueueRows,
     dirByCountry,
     dirRecent,
+    dirWithEmailCnt,
+    dirWithWebsiteCnt,
+    dirWithLinkedinCnt,
+    dirRealCnt,
+    dirLlmCnt,
   ] = await Promise.all([
     admin.from('profiles').select('id, email, tier, company, country, is_billed, is_admin, demo_expires_at, created_at').order('created_at', { ascending: false }).limit(100),
     admin.from('user_sessions').select('id, converted, last_seen_at').order('last_seen_at', { ascending: false }).limit(200),
@@ -48,6 +53,11 @@ async function getCRM() {
     admin.from('scout_queue').select('status').limit(20000),
     admin.from('entrepreneurs_directory').select('country_iso').limit(20000),
     admin.from('entrepreneurs_directory').select('id, name, country_iso, sector, city, created_at, source').order('created_at', { ascending: false }).limit(15),
+    admin.from('entrepreneurs_directory').select('*', { count: 'exact', head: true }).not('email', 'is', null),
+    admin.from('entrepreneurs_directory').select('*', { count: 'exact', head: true }).not('website_url', 'is', null),
+    admin.from('entrepreneurs_directory').select('*', { count: 'exact', head: true }).not('linkedin_url', 'is', null),
+    admin.from('entrepreneurs_directory').select('*', { count: 'exact', head: true }).like('source', 'ddg%'),
+    admin.from('entrepreneurs_directory').select('*', { count: 'exact', head: true }).like('source', 'llm%'),
   ])
 
   const upgradeSet = new Set(((upgradeClicks ?? []) as AnyRow[]).map(e => String(e.session_id)))
@@ -82,6 +92,11 @@ async function getCRM() {
       scoutByStatus,
       topCountries,
       recent: (dirRecent.data ?? []) as AnyRow[],
+      withEmail: dirWithEmailCnt.count ?? 0,
+      withWebsite: dirWithWebsiteCnt.count ?? 0,
+      withLinkedin: dirWithLinkedinCnt.count ?? 0,
+      realData: dirRealCnt.count ?? 0,
+      llmData: dirLlmCnt.count ?? 0,
     },
   }
 }
@@ -266,6 +281,34 @@ export default async function CRMPage() {
                 </span>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-5">
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3 text-center">
+            <div className="text-[10px] text-gray-500 uppercase">Email</div>
+            <div className="text-lg font-bold text-[#10B981]">{prospects.withEmail.toLocaleString('fr-FR')}</div>
+            <div className="text-[9px] text-gray-600">{prospects.directoryTotal ? ((prospects.withEmail / prospects.directoryTotal) * 100).toFixed(1) : 0}%</div>
+          </div>
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3 text-center">
+            <div className="text-[10px] text-gray-500 uppercase">Website</div>
+            <div className="text-lg font-bold text-[#60A5FA]">{prospects.withWebsite.toLocaleString('fr-FR')}</div>
+            <div className="text-[9px] text-gray-600">{prospects.directoryTotal ? ((prospects.withWebsite / prospects.directoryTotal) * 100).toFixed(1) : 0}%</div>
+          </div>
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3 text-center">
+            <div className="text-[10px] text-gray-500 uppercase">LinkedIn</div>
+            <div className="text-lg font-bold text-[#A78BFA]">{prospects.withLinkedin.toLocaleString('fr-FR')}</div>
+            <div className="text-[9px] text-gray-600">{prospects.directoryTotal ? ((prospects.withLinkedin / prospects.directoryTotal) * 100).toFixed(1) : 0}%</div>
+          </div>
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3 text-center">
+            <div className="text-[10px] text-gray-500 uppercase">Real (ddg)</div>
+            <div className="text-lg font-bold text-[#10B981]">{prospects.realData.toLocaleString('fr-FR')}</div>
+            <div className="text-[9px] text-gray-600">Brave/Serper needed</div>
+          </div>
+          <div className="rounded-lg border border-white/5 bg-[#111827] p-3 text-center">
+            <div className="text-[10px] text-gray-500 uppercase">LLM synth</div>
+            <div className="text-lg font-bold text-[#F59E0B]">{prospects.llmData.toLocaleString('fr-FR')}</div>
+            <div className="text-[9px] text-gray-600">DB volume, ~2% reach</div>
           </div>
         </div>
 
