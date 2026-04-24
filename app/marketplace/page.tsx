@@ -12,6 +12,7 @@ import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/components/LanguageProvider'
+import { MarketPulseStrip } from '@/components/marketplace/MarketPulseStrip'
 
 type Volume = {
   id: string
@@ -231,6 +232,8 @@ function MarketplaceInner() {
             {flash}
           </div>
         )}
+
+        {!loading && <MarketPulseStrip limit={12} />}
 
         {!loading && loggedIn && myMatches.length > 0 && (
           <section className="space-y-4">
