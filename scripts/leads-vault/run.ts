@@ -18,6 +18,7 @@ import {
   runSireneIngest,
   runCompaniesHouseIngest,
   runOsmIngest,
+  runCommonCrawlIngest,
   runMailscoutVerify,
   runProjectSync,
 } from '../../lib/leads-core'
@@ -56,6 +57,14 @@ async function main(): Promise<void> {
     }
     case 'osm': {
       const r = await runOsmIngest({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'common-crawl':
+    case 'cc': {
+      const tlds = typeof opts.tlds === 'string' ? (opts.tlds as string).split(',') : undefined
+      const crawl = typeof opts.crawl === 'string' ? (opts.crawl as string) : undefined
+      const r = await runCommonCrawlIngest({ limit, dryRun, tlds, crawl })
       console.log(JSON.stringify(r, null, 2))
       break
     }
