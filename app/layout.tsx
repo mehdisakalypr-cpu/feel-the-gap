@@ -10,6 +10,9 @@ import { WebVitalsReporter } from '@/components/WebVitalsReporter'
 import Topbar from '@/components/Topbar'
 import MaintenanceBanner from '@/components/MaintenanceBanner'
 import DemoTour from '@/components/DemoTour'
+import ContactWidget from '@/components/ContactWidget'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
@@ -87,8 +90,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ConversionBar />
             <ExitFeedback />
             <DemoTour />
+            <ContactWidget />
           </CookieBannerProvider>
         </LanguageProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
