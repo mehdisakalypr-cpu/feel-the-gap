@@ -32,6 +32,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/demo/',      // demo tour pages (public access)
   '/seller/',    // public seller mini-sites /seller/[slug] (catalogue B2B)
   '/docs/',      // /docs/api (Swagger) + /docs/api/webhooks (verification snippets)
+  '/tools/',     // free import/export tools (lead magnets, gated by email not auth)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
@@ -76,6 +77,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/catalog',         // Public catalogue (opt-in products only, enforced by RLS)
   '/api/v1/',             // API Platform (Bearer token auth done in route, not middleware)
   '/api/transport/',      // Transport quotes (public, no auth — just a quote estimator)
+  '/api/tools/',          // Free tools (EORI validator etc.) — gated by email, not auth
 ]
 
 // ── Admin routes — require admin role ────────────────────────────────────────
