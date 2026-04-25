@@ -20,6 +20,8 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: '/onboarding',   changeFrequency: 'monthly', priority: 0.6 },
   { path: '/training',     changeFrequency: 'weekly',  priority: 0.5 },
   { path: '/formation',    changeFrequency: 'weekly',  priority: 0.5 },
+  { path: '/tools',        changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/tools/eori',   changeFrequency: 'monthly', priority: 0.8 },
 ]
 
 const COUNTRIES_ISO3 = [
