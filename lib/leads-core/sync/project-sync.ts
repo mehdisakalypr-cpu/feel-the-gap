@@ -72,20 +72,29 @@ async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): P
   return out
 }
 
-async function fetchPrimaryContact(companyId: string): Promise<{ email: string | null; phone: string | null }> {
+type Contact = { email: string | null; phone: string | null }
+
+async function fetchPrimaryContactsBatch(companyIds: string[]): Promise<Map<string, Contact>> {
+  const out = new Map<string, Contact>()
+  if (companyIds.length === 0) return out
   const sb = vaultClient()
-  const { data } = await (sb.from as any)('lv_contacts')
-    .select('contact_type, contact_value, verify_status, verify_score')
-    .eq('company_id', companyId)
-    .order('verify_score', { ascending: false, nullsFirst: false })
-    .limit(10)
-  let email: string | null = null
-  let phone: string | null = null
-  for (const c of (data ?? []) as Array<{ contact_type: string; contact_value: string; verify_status: string }>) {
-    if (!email && c.contact_type === 'email' && c.verify_status !== 'invalid') email = c.contact_value
-    if (!phone && c.contact_type === 'phone') phone = c.contact_value
+  // PostgREST caps `.in()` URL length; chunk to stay safe.
+  const CHUNK = 200
+  for (let i = 0; i < companyIds.length; i += CHUNK) {
+    const slice = companyIds.slice(i, i + CHUNK)
+    const { data, error } = await (sb.from as any)('lv_contacts')
+      .select('company_id, contact_type, contact_value, verify_status, verify_score')
+      .in('company_id', slice)
+      .order('verify_score', { ascending: false, nullsFirst: false })
+    if (error) throw new Error(`contacts batch failed: ${error.message}`)
+    for (const c of (data ?? []) as Array<{ company_id: string; contact_type: string; contact_value: string; verify_status: string }>) {
+      const cur = out.get(c.company_id) ?? { email: null, phone: null }
+      if (!cur.email && c.contact_type === 'email' && c.verify_status !== 'invalid') cur.email = c.contact_value
+      if (!cur.phone && c.contact_type === 'phone') cur.phone = c.contact_value
+      out.set(c.company_id, cur)
+    }
   }
-  return { email, phone }
+  return out
 }
 
 export async function runProjectSync(opts: { project?: string; limit?: number } = {}): Promise<SyncResult> {
@@ -110,39 +119,49 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
 
   const pubSb = publicClient()
 
+  const UPSERT_CHUNK = 500
+
   for (const filter of (filters ?? []) as ProjectFilter[]) {
     if (!filter.target_table) continue // CC admin-readonly etc.
     const tableName = filter.target_table.replace(/^public\./, '')
     const companies = await fetchCompaniesForFilter(filter, opts.limit)
-    for (const c of companies) {
-      result.rows_processed++
-      const contact = await fetchPrimaryContact(c.id)
-      const slug = `${filter.project}-${c.country_iso.toLowerCase()}-${c.id.slice(0, 8)}`
-      const row: Record<string, unknown> = {
-        business_name: c.legal_name,
-        slug,
-        country_iso: c.country_iso,
-        city: c.city,
-        address: c.address,
-        phone: contact.phone,
-        email: contact.email,
-        website_url: c.domain ? `https://${c.domain}` : null,
-        category: c.nace_code || c.sic_code || (c.industry_tags?.[0] ?? null),
-        source: `vault:${c.primary_source}`,
-        source_id: Object.values(c.source_ids ?? {})[0] ?? c.id,
-        source_url: null,
-        status: 'identified',
+    for (let i = 0; i < companies.length; i += UPSERT_CHUNK) {
+      const chunk = companies.slice(i, i + UPSERT_CHUNK)
+      const contacts = await fetchPrimaryContactsBatch(chunk.map((c) => c.id))
+      const bySlug = new Map<string, Record<string, unknown>>()
+      for (const c of chunk) {
+        const contact = contacts.get(c.id) ?? { email: null, phone: null }
+        const slug = `${filter.project}-${c.country_iso.toLowerCase()}-${c.id.slice(0, 8)}`
+        if (bySlug.has(slug)) continue // dedup intra-chunk (EU/global overlap, slug collisions)
+        bySlug.set(slug, {
+          business_name: c.legal_name,
+          slug,
+          country_iso: c.country_iso,
+          city: c.city,
+          address: c.address,
+          phone: contact.phone,
+          email: contact.email,
+          website_url: c.domain ? `https://${c.domain}` : null,
+          category: c.nace_code || c.sic_code || (c.industry_tags?.[0] ?? null),
+          source: `vault:${c.primary_source}`,
+          source_id: Object.values(c.source_ids ?? {})[0] ?? c.id,
+          source_url: null,
+          status: 'identified',
+        })
       }
-      const { error: upErr, count } = await (pubSb.from as any)(tableName)
-        .upsert(row, { onConflict: 'slug', ignoreDuplicates: false, count: 'exact' })
+      const rows = Array.from(bySlug.values())
+      result.rows_processed += chunk.length
+      if (rows.length === 0) continue
+      const { error: upErr } = await (pubSb.from as any)(tableName)
+        .upsert(rows, { onConflict: 'slug', ignoreDuplicates: false })
       if (upErr) {
         if (process.env.LEADS_VAULT_DEBUG === '1') {
-          console.error(`upsert ${tableName} failed:`, upErr.message, 'row.slug=', row.slug)
+          console.error(`bulk upsert ${tableName} failed:`, upErr.message, 'chunk size=', rows.length)
         }
-        result.rows_skipped++
+        result.rows_skipped += rows.length
         continue
       }
-      result.rows_inserted += count ?? 1
+      result.rows_inserted += rows.length
     }
     await (sb.from as any)('lv_project_filters').update({ last_sync_at: new Date().toISOString() }).eq('id', filter.id)
   }
