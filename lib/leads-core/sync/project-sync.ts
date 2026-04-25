@@ -40,7 +40,11 @@ type CompanyRow = {
 function applyFilter(q: any, filter: ProjectFilter): any | null {
   switch (`${filter.project}/${filter.name}`) {
     case 'ftg/import-export-eu':
-      return q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL']).or('nace_code.like.46%,sic_code.like.46%')
+      // The OR (nace_code.like.46% OR sic_code.like.46%) defeats the planner
+      // and causes 60s timeouts on 800k+ rows. The boolean `is_import_export`
+      // was already set during ingest by the connectors based on those exact
+      // codes, so it's already implicit. Trust it.
+      return q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL'])
     case 'ftg/import-export-global':
       return q.eq('is_import_export', true)
     case 'ofa/smb-website-needed':
