@@ -44,7 +44,7 @@ async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): P
   let q = (sb.from as any)('lv_companies').select('id, legal_name, trade_name, domain, country_iso, city, address, nace_code, sic_code, industry_tags, is_import_export, size_bucket, primary_source, source_ids').limit(limit ?? 5000)
   switch (`${filter.project}/${filter.name}`) {
     case 'ftg/import-export-eu':
-      q = q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL']).like('nace_code', '46%')
+      q = q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL']).or('nace_code.like.46%,sic_code.like.46%')
       break
     case 'ftg/import-export-global':
       q = q.eq('is_import_export', true)
@@ -122,15 +122,13 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
         source: `vault:${c.primary_source}`,
         source_id: Object.values(c.source_ids ?? {})[0] ?? c.id,
         source_url: null,
-        status: 'pending_review',
+        status: 'identified',
       }
       const { error: upErr, count } = await (pubSb.from as any)(tableName)
         .upsert(row, { onConflict: 'slug', ignoreDuplicates: false, count: 'exact' })
       if (upErr) {
-        if (upErr.message.includes('does not exist')) {
-          // target table not present yet (e.g. estate_leads not created)
-          result.rows_skipped++
-          continue
+        if (process.env.LEADS_VAULT_DEBUG === '1') {
+          console.error(`upsert ${tableName} failed:`, upErr.message, 'row.slug=', row.slug)
         }
         result.rows_skipped++
         continue
