@@ -3,7 +3,11 @@
  *
  * License: CC-BY 2.0 — free
  * Volume: ~28M établissements FR, post NAF 46/52 filter ~600k I/E entities
- * URL stock: https://files.data.gouv.fr/insee-sirene/StockEtablissement_utf8.zip
+ *
+ * Note: INSEE migrated the legacy bucket on 2025-08-06. The previous URL
+ * https://files.data.gouv.fr/insee-sirene/StockEtablissement_utf8.zip now
+ * 404s. We point at the data.gouv.fr resource API (stable UUID) which 302s
+ * to the current snapshot on object.files.data.gouv.fr.
  */
 
 import { createReadStream, existsSync } from 'fs'
@@ -15,7 +19,7 @@ import { publicClient, vaultClient } from '../client'
 import { logSync, bumpSourceStock } from '../log'
 import type { LvCompanyInsert, ConnectorOptions, SyncResult } from '../types'
 
-const STOCK_URL = 'https://files.data.gouv.fr/insee-sirene/StockEtablissement_utf8.zip'
+const STOCK_URL = 'https://www.data.gouv.fr/api/1/datasets/r/0651fb76-bcf3-4f6a-a38d-bc04fa708576'
 const CACHE_DIR = '/root/leads-vault/cache/sirene'
 const CACHE_FILE = `${CACHE_DIR}/StockEtablissement_utf8.csv`
 const CACHE_ZIP = `${CACHE_DIR}/StockEtablissement_utf8.zip`
