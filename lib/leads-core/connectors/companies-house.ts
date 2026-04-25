@@ -118,8 +118,14 @@ function latestStockUrl(): string {
 async function ensureCache(): Promise<string> {
   await mkdir(CACHE_DIR, { recursive: true })
   const zip = `${CACHE_DIR}/BasicCompanyData.zip`
-  const csv = `${CACHE_DIR}/BasicCompanyDataAsOneFile.csv`
-  if (existsSync(csv)) return csv
+  // CSV file has dated suffix (e.g. BasicCompanyDataAsOneFile-2026-04-01.csv)
+  const findCsv = (): string | null => {
+    const fs = require('fs') as typeof import('fs')
+    const entries = fs.readdirSync(CACHE_DIR).filter((f: string) => f.startsWith('BasicCompanyDataAsOneFile') && f.endsWith('.csv'))
+    return entries.length > 0 ? `${CACHE_DIR}/${entries[0]}` : null
+  }
+  let existing = findCsv()
+  if (existing) return existing
   if (!existsSync(zip)) {
     const url = latestStockUrl()
     console.log(`[companies-house] downloading ${url}`)
@@ -133,7 +139,9 @@ async function ensureCache(): Promise<string> {
     const p = spawn('unzip', ['-o', '-j', zip, '-d', CACHE_DIR], { stdio: 'inherit' })
     p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`unzip exit ${code}`))))
   })
-  return csv
+  existing = findCsv()
+  if (!existing) throw new Error('CSV not found after unzip')
+  return existing
 }
 
 export async function runCompaniesHouseIngest(opts: ConnectorOptions = {}): Promise<SyncResult> {
