@@ -62,26 +62,16 @@ const PAGE_SIZE = 1000
 // Keyset pagination: avoid OFFSET (O(n log n) per page → 60s timeout on 332k rows)
 // by walking the `id` index forward via `id > last_seen_id`. Each page = O(log n)
 // index seek + O(PAGE_SIZE) read regardless of how deep we are in the result set.
-async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): Promise<CompanyRow[]> {
+async function fetchOnePage(filter: ProjectFilter, lastId: string | null, country: string | null, take: number): Promise<CompanyRow[]> {
   const sb = vaultClient()
-  const target = limit ?? 5000
-  const out: CompanyRow[] = []
-  let lastId: string | null = null
-
-  while (out.length < target) {
-    let base = (sb.from as any)('lv_companies').select(SELECT_COLS).order('id', { ascending: true }).limit(Math.min(PAGE_SIZE, target - out.length))
-    if (lastId) base = base.gt('id', lastId)
-    const q = applyFilter(base, filter)
-    if (!q) return []
-    const { data, error } = await q
-    if (error) throw new Error(`fetch failed: ${error.message}`)
-    const rows = (data ?? []) as CompanyRow[]
-    if (rows.length === 0) break
-    out.push(...rows)
-    lastId = rows[rows.length - 1].id
-    if (rows.length < PAGE_SIZE) break
-  }
-  return out
+  let base = (sb.from as any)('lv_companies').select(SELECT_COLS).order('id', { ascending: true }).limit(take)
+  if (lastId) base = base.gt('id', lastId)
+  if (country) base = base.eq('country_iso', country)
+  const q = applyFilter(base, filter)
+  if (!q) return []
+  const { data, error } = await q
+  if (error) throw new Error(`fetch failed: ${error.message}`)
+  return (data ?? []) as CompanyRow[]
 }
 
 type Contact = { email: string | null; phone: string | null }
@@ -109,7 +99,7 @@ async function fetchPrimaryContactsBatch(companyIds: string[]): Promise<Map<stri
   return out
 }
 
-export async function runProjectSync(opts: { project?: string; limit?: number } = {}): Promise<SyncResult> {
+export async function runProjectSync(opts: { project?: string; limit?: number; country?: string } = {}): Promise<SyncResult> {
   const start = Date.now()
   const result: SyncResult = {
     rows_processed: 0,
@@ -132,20 +122,34 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
   const pubSb = publicClient()
 
   const UPSERT_CHUNK = 500
+  const target = opts.limit ?? 5000
 
   for (const filter of (filters ?? []) as ProjectFilter[]) {
     if (!filter.target_table) continue // CC admin-readonly etc.
     const tableName = filter.target_table.replace(/^public\./, '')
-    const companies = await fetchCompaniesForFilter(filter, opts.limit)
-    for (let i = 0; i < companies.length; i += UPSERT_CHUNK) {
-      const chunk = companies.slice(i, i + UPSERT_CHUNK)
+
+    // Stream: fetch one page → upsert that page → next page. Bounded RAM,
+    // bounded query time, resumable on transient timeout via lastId.
+    let lastId: string | null = null
+    while (result.rows_processed < target) {
+      const remaining = target - result.rows_processed
+      const take = Math.min(PAGE_SIZE, remaining)
+      let chunk: CompanyRow[]
+      try {
+        chunk = await fetchOnePage(filter, lastId, opts.country ?? null, take)
+      } catch (e: any) {
+        if (process.env.LEADS_VAULT_DEBUG === '1') console.error('fetchOnePage failed', e.message)
+        break
+      }
+      if (chunk.length === 0) break
+
       const contacts = await fetchPrimaryContactsBatch(chunk.map((c) => c.id))
       const bySlug = new Map<string, Record<string, unknown>>()
       for (const c of chunk) {
         const contact = contacts.get(c.id) ?? { email: null, phone: null }
         const iso2 = toIso2(c.country_iso) ?? c.country_iso
         const slug = `${filter.project}-${iso2.toLowerCase()}-${c.id.slice(0, 8)}`
-        if (bySlug.has(slug)) continue // dedup intra-chunk (EU/global overlap, slug collisions)
+        if (bySlug.has(slug)) continue
         bySlug.set(slug, {
           business_name: c.legal_name,
           slug,
@@ -164,17 +168,25 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
       }
       const rows = Array.from(bySlug.values())
       result.rows_processed += chunk.length
-      if (rows.length === 0) continue
-      const { error: upErr } = await (pubSb.from as any)(tableName)
-        .upsert(rows, { onConflict: 'slug', ignoreDuplicates: false })
-      if (upErr) {
-        if (process.env.LEADS_VAULT_DEBUG === '1') {
-          console.error(`bulk upsert ${tableName} failed:`, upErr.message, 'chunk size=', rows.length)
+      lastId = chunk[chunk.length - 1].id
+
+      // Upsert in sub-chunks of UPSERT_CHUNK to keep each query short
+      for (let i = 0; i < rows.length; i += UPSERT_CHUNK) {
+        const sub = rows.slice(i, i + UPSERT_CHUNK)
+        if (sub.length === 0) continue
+        const { error: upErr } = await (pubSb.from as any)(tableName)
+          .upsert(sub, { onConflict: 'slug', ignoreDuplicates: false })
+        if (upErr) {
+          if (process.env.LEADS_VAULT_DEBUG === '1') {
+            console.error(`bulk upsert ${tableName} failed:`, upErr.message, 'chunk size=', sub.length)
+          }
+          result.rows_skipped += sub.length
+        } else {
+          result.rows_inserted += sub.length
         }
-        result.rows_skipped += rows.length
-        continue
       }
-      result.rows_inserted += rows.length
+
+      if (chunk.length < take) break // last page
     }
     await (sb.from as any)('lv_project_filters').update({ last_sync_at: new Date().toISOString() }).eq('id', filter.id)
   }

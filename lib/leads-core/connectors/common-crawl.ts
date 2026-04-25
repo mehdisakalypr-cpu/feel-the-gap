@@ -250,6 +250,9 @@ export async function runCommonCrawlIngest(opts: ConnectorOptions & { tlds?: str
       const { error } = await (sb.from as any)('lv_companies')
         .upsert([company], { onConflict: 'domain', ignoreDuplicates: false })
       if (error) {
+        if (process.env.LEADS_VAULT_DEBUG === '1') {
+          console.error('[common-crawl] upsert error', error.message, 'host=', host)
+        }
         result.rows_skipped++
       } else {
         result.rows_inserted++

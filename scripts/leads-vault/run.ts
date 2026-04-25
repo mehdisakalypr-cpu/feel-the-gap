@@ -74,7 +74,8 @@ async function main(): Promise<void> {
       break
     }
     case 'sync': {
-      const r = await runProjectSync({ project, limit })
+      const country = typeof opts.country === 'string' ? (opts.country as string) : undefined
+      const r = await runProjectSync({ project, limit, country })
       console.log(JSON.stringify(r, null, 2))
       break
     }
