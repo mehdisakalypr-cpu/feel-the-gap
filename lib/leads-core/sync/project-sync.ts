@@ -9,6 +9,7 @@
 import { vaultClient, publicClient } from '../client'
 import { logSync } from '../log'
 import type { SyncResult } from '../types'
+import { toIso2 } from '../../iso3-to-iso2'
 
 type ProjectFilter = {
   id: string
@@ -131,12 +132,13 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
       const bySlug = new Map<string, Record<string, unknown>>()
       for (const c of chunk) {
         const contact = contacts.get(c.id) ?? { email: null, phone: null }
-        const slug = `${filter.project}-${c.country_iso.toLowerCase()}-${c.id.slice(0, 8)}`
+        const iso2 = toIso2(c.country_iso) ?? c.country_iso
+        const slug = `${filter.project}-${iso2.toLowerCase()}-${c.id.slice(0, 8)}`
         if (bySlug.has(slug)) continue // dedup intra-chunk (EU/global overlap, slug collisions)
         bySlug.set(slug, {
           business_name: c.legal_name,
           slug,
-          country_iso: c.country_iso,
+          country_iso: iso2,
           city: c.city,
           address: c.address,
           phone: contact.phone,
