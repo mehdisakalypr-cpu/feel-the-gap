@@ -150,8 +150,7 @@ export async function runOsmIngest(opts: ConnectorOptions = {}): Promise<SyncRes
           continue
         }
 
-        const { data: companyRow, error: companyErr } = await sb
-          .from('lv_companies')
+        const { data: companyRow, error: companyErr } = await (sb.from as any)('lv_companies')
           .upsert(parsed.company, { onConflict: 'siren', ignoreDuplicates: true })
           .select('id')
           .maybeSingle()
@@ -164,7 +163,7 @@ export async function runOsmIngest(opts: ConnectorOptions = {}): Promise<SyncRes
         result.rows_inserted++
 
         for (const c of parsed.contacts) {
-          await sb.from('lv_contacts').upsert(
+          await (sb.from as any)('lv_contacts').upsert(
             { ...c, company_id: companyRow.id },
             { onConflict: 'contact_value,contact_type', ignoreDuplicates: true },
           )

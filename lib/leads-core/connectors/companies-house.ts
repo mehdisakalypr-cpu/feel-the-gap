@@ -159,8 +159,7 @@ export async function runCompaniesHouseIngest(opts: ConnectorOptions = {}): Prom
         batch.length = 0
         return
       }
-      const { error, count } = await sb
-        .from('lv_companies')
+      const { error, count } = await (sb.from as any)('lv_companies')
         .upsert(batch, { onConflict: 'crn', ignoreDuplicates: false, count: 'exact' })
       if (error) {
         console.error('[companies-house] upsert error', error.message)

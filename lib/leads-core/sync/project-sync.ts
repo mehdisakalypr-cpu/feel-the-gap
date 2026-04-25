@@ -41,7 +41,7 @@ async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): P
   // Apply filter via Postgres `OR` raw — Supabase JS doesn't take raw SQL but we
   // can use the rest API filter syntax via our restricted set of seeded filters.
   // For safety and simplicity, we hardcode supported filter shapes here.
-  let q = sb.from('lv_companies').select('id, legal_name, trade_name, domain, country_iso, city, address, nace_code, sic_code, industry_tags, is_import_export, size_bucket, primary_source, source_ids').limit(limit ?? 5000)
+  let q = (sb.from as any)('lv_companies').select('id, legal_name, trade_name, domain, country_iso, city, address, nace_code, sic_code, industry_tags, is_import_export, size_bucket, primary_source, source_ids').limit(limit ?? 5000)
   switch (`${filter.project}/${filter.name}`) {
     case 'ftg/import-export-eu':
       q = q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL']).like('nace_code', '46%')
@@ -65,17 +65,16 @@ async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): P
 
 async function fetchPrimaryContact(companyId: string): Promise<{ email: string | null; phone: string | null }> {
   const sb = vaultClient()
-  const { data } = await sb
-    .from('lv_contacts')
+  const { data } = await (sb.from as any)('lv_contacts')
     .select('contact_type, contact_value, verify_status, verify_score')
     .eq('company_id', companyId)
     .order('verify_score', { ascending: false, nullsFirst: false })
     .limit(10)
   let email: string | null = null
   let phone: string | null = null
-  for (const c of data ?? []) {
-    if (!email && c.contact_type === 'email' && c.verify_status !== 'invalid') email = c.contact_value as string
-    if (!phone && c.contact_type === 'phone') phone = c.contact_value as string
+  for (const c of (data ?? []) as Array<{ contact_type: string; contact_value: string; verify_status: string }>) {
+    if (!email && c.contact_type === 'email' && c.verify_status !== 'invalid') email = c.contact_value
+    if (!phone && c.contact_type === 'phone') phone = c.contact_value
   }
   return { email, phone }
 }
@@ -91,7 +90,7 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
   }
 
   const sb = vaultClient()
-  let q = sb.from('lv_project_filters').select('id, project, name, sql_filter, target_table, is_active').eq('is_active', true)
+  let q = (sb.from as any)('lv_project_filters').select('id, project, name, sql_filter, target_table, is_active').eq('is_active', true)
   if (opts.project) q = q.eq('project', opts.project)
   const { data: filters, error: filtersErr } = await q
   if (filtersErr) {
@@ -125,8 +124,7 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
         source_url: null,
         status: 'pending_review',
       }
-      const { error: upErr, count } = await pubSb
-        .from(tableName)
+      const { error: upErr, count } = await (pubSb.from as any)(tableName)
         .upsert(row, { onConflict: 'slug', ignoreDuplicates: false, count: 'exact' })
       if (upErr) {
         if (upErr.message.includes('does not exist')) {
@@ -139,7 +137,7 @@ export async function runProjectSync(opts: { project?: string; limit?: number } 
       }
       result.rows_inserted += count ?? 1
     }
-    await sb.from('lv_project_filters').update({ last_sync_at: new Date().toISOString() }).eq('id', filter.id)
+    await (sb.from as any)('lv_project_filters').update({ last_sync_at: new Date().toISOString() }).eq('id', filter.id)
   }
 
   result.duration_ms = Date.now() - start

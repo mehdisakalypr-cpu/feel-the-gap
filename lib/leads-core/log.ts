@@ -8,7 +8,7 @@ export async function logSync(opts: {
   result: SyncResult
 }): Promise<void> {
   const sb = vaultClient()
-  await sb.from('lv_sync_log').insert({
+  await (sb.from as any)('lv_sync_log').insert({
     source_id: opts.source_id,
     project: opts.project ?? null,
     operation: opts.operation,
@@ -34,9 +34,9 @@ export async function bumpSourceStock(opts: {
     last_delta_pull_at: now,
   }
   if (opts.is_full_pull) patch.last_full_pull_at = now
-  await sb.from('lv_sources').update(patch).eq('id', opts.source_id)
+  await (sb.from as any)('lv_sources').update(patch).eq('id', opts.source_id)
   // increment total_records using RPC-less approach
-  const { data: row } = await sb.from('lv_sources').select('total_records').eq('id', opts.source_id).single()
+  const { data: row } = await (sb.from as any)('lv_sources').select('total_records').eq('id', opts.source_id).single()
   const current = (row?.total_records as number | undefined) ?? 0
-  await sb.from('lv_sources').update({ total_records: current + opts.delta_count }).eq('id', opts.source_id)
+  await (sb.from as any)('lv_sources').update({ total_records: current + opts.delta_count }).eq('id', opts.source_id)
 }

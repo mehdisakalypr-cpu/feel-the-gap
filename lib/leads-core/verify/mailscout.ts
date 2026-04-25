@@ -70,8 +70,7 @@ export async function runMailscoutVerify(opts: { limit?: number; useBinary?: boo
   const sb = vaultClient()
   const limit = opts.limit ?? 1000
 
-  const { data: pending, error } = await sb
-    .from('lv_contacts')
+  const { data: pending, error } = await (sb.from as any)('lv_contacts')
     .select('id, contact_value')
     .eq('contact_type', 'email')
     .eq('verify_status', 'unverified')
@@ -83,13 +82,12 @@ export async function runMailscoutVerify(opts: { limit?: number; useBinary?: boo
     return result
   }
 
-  for (const c of pending ?? []) {
+  for (const c of (pending ?? []) as Array<{ id: string; contact_value: string }>) {
     result.rows_processed++
-    let res = opts.useBinary ? await mailscoutValidate(c.contact_value as string) : null
-    if (!res) res = await quickValidate(c.contact_value as string)
+    let res = opts.useBinary ? await mailscoutValidate(c.contact_value) : null
+    if (!res) res = await quickValidate(c.contact_value)
 
-    const { error: updErr } = await sb
-      .from('lv_contacts')
+    const { error: updErr } = await (sb.from as any)('lv_contacts')
       .update({
         verify_status: res.status,
         verify_provider: opts.useBinary ? 'mailscout' : 'regex+mx',
