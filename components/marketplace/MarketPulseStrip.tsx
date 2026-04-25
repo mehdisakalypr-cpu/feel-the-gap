@@ -34,6 +34,22 @@ function fmtUsd(v: number): string {
   return `$${Math.round(v)}`
 }
 
+// Map matview product labels (FR/EN) → /marketplace/new presets.
+// Returns null when no preset matches → CTA omits ?product= so the form
+// keeps its default selector instead of guessing wrong.
+const PRODUCT_LABEL_SLUGS: Record<string, string> = {
+  'cafe': 'cafe', 'café': 'cafe', 'coffee': 'cafe',
+  'cacao': 'cacao', 'cocoa': 'cacao',
+  'coton': 'textile', 'textile': 'textile', 'cotton': 'textile',
+  'anacarde': 'anacarde', 'cajou': 'anacarde', 'noix de cajou': 'anacarde', 'cashew': 'anacarde',
+  'huile de palme': 'huile_palme', 'palme': 'huile_palme', 'palm oil': 'huile_palme',
+  'mangue': 'mangue', 'mango': 'mangue',
+}
+function labelToSlug(label: string): string | null {
+  const norm = label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+  return PRODUCT_LABEL_SLUGS[norm] ?? null
+}
+
 export function MarketPulseStrip({ limit = 12 }: { limit?: number }) {
   const [items, setItems] = useState<PulseItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,20 +136,28 @@ export function MarketPulseStrip({ limit = 12 }: { limit?: number }) {
                 Indicative
               </span>
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/marketplace/new?kind=volume&country=${it.country_iso}`}
-                  className="text-[11px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2 whitespace-nowrap"
-                  title="I produce this — list a volume"
-                >
-                  Sell →
-                </Link>
-                <Link
-                  href={`/marketplace/new?kind=demand&country=${it.country_iso}`}
-                  className="text-[11px] text-[#C9A84C] hover:text-[#E8C97A] underline underline-offset-2 whitespace-nowrap"
-                  title="I need this — post a buyer demand"
-                >
-                  Buy →
-                </Link>
+                {(() => {
+                  const slug = labelToSlug(it.product_label)
+                  const productQs = slug ? `&product=${slug}` : ''
+                  return (
+                    <>
+                      <Link
+                        href={`/marketplace/new?kind=volume&country=${it.country_iso}${productQs}`}
+                        className="text-[11px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2 whitespace-nowrap"
+                        title="I produce this — list a volume"
+                      >
+                        Sell →
+                      </Link>
+                      <Link
+                        href={`/marketplace/new?kind=demand&country=${it.country_iso}${productQs}`}
+                        className="text-[11px] text-[#C9A84C] hover:text-[#E8C97A] underline underline-offset-2 whitespace-nowrap"
+                        title="I need this — post a buyer demand"
+                      >
+                        Buy →
+                      </Link>
+                    </>
+                  )
+                })()}
               </div>
             </div>
           </div>
