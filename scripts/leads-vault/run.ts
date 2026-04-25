@@ -17,6 +17,11 @@ config({ path: resolve(process.cwd(), '.env.local') })
 import {
   runSireneIngest,
   runCompaniesHouseIngest,
+  runHandelsregisterIngest,
+  runMercantilEsIngest,
+  runRegistroimpreseItIngest,
+  runOpenCorporatesIngest,
+  runEoriValidate,
   runOsmIngest,
   runCommonCrawlIngest,
   runMailscoutVerify,
@@ -65,6 +70,36 @@ async function main(): Promise<void> {
       const tlds = typeof opts.tlds === 'string' ? (opts.tlds as string).split(',') : undefined
       const crawl = typeof opts.crawl === 'string' ? (opts.crawl as string) : undefined
       const r = await runCommonCrawlIngest({ limit, dryRun, tlds, crawl })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'handelsregister':
+    case 'hreg': {
+      const r = await runHandelsregisterIngest({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'mercantil':
+    case 'mercantil-es': {
+      const r = await runMercantilEsIngest({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'registroimprese':
+    case 'ri-it': {
+      const r = await runRegistroimpreseItIngest({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'opencorporates':
+    case 'oc': {
+      const jurisdictions = typeof opts.jurisdictions === 'string' ? (opts.jurisdictions as string).split(',') : undefined
+      const r = await runOpenCorporatesIngest({ limit, dryRun, jurisdictions } as any)
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'eori': {
+      const r = await runEoriValidate({ limit, dryRun })
       console.log(JSON.stringify(r, null, 2))
       break
     }

@@ -53,6 +53,8 @@ export type LvContactInsert = {
 export type SourceId =
   | 'sirene'
   | 'companies_house'
+  | 'handelsregister'
+  | 'mercantil_es'
   | 'osm'
   | 'common_crawl'
   | 'gmaps'
@@ -60,6 +62,8 @@ export type SourceId =
   | 'hunter'
   | 'apollo'
   | 'phantombuster'
+  | 'opencorporates'
+  | 'eori_eu'
 
 export type SyncResult = {
   rows_processed: number
