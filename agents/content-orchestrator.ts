@@ -160,7 +160,9 @@ async function runJob(sb: any, job: Job): Promise<AgentResult> {
   const errs: string[] = []
 
   // Per-agent timeout to prevent infinite hangs when LLM providers stall
-  const AGENT_TIMEOUT_MS = 120_000 // 2 min
+  // Bumped from 120s → 240s after CHN/USA fr jobs hit the limit on
+  // business_plans (itachi) / potential_clients (hancock) — large datasets.
+  const AGENT_TIMEOUT_MS = 240_000 // 4 min
   const withTimeout = <T,>(p: Promise<T>, label: string): Promise<T> =>
     Promise.race([
       p,

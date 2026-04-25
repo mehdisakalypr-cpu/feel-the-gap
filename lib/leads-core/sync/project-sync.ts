@@ -36,31 +36,40 @@ type CompanyRow = {
   source_ids: Record<string, string>
 }
 
-async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): Promise<CompanyRow[]> {
-  const sb = vaultClient()
-  // Apply filter via Postgres `OR` raw — Supabase JS doesn't take raw SQL but we
-  // can use the rest API filter syntax via our restricted set of seeded filters.
-  // For safety and simplicity, we hardcode supported filter shapes here.
-  let q = (sb.from as any)('lv_companies').select('id, legal_name, trade_name, domain, country_iso, city, address, nace_code, sic_code, industry_tags, is_import_export, size_bucket, primary_source, source_ids').limit(limit ?? 5000)
+function applyFilter(q: any, filter: ProjectFilter): any | null {
   switch (`${filter.project}/${filter.name}`) {
     case 'ftg/import-export-eu':
-      q = q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL']).or('nace_code.like.46%,sic_code.like.46%')
-      break
+      return q.eq('is_import_export', true).in('country_iso', ['FRA', 'DEU', 'ESP', 'ITA', 'GBR', 'NLD', 'BEL', 'POL']).or('nace_code.like.46%,sic_code.like.46%')
     case 'ftg/import-export-global':
-      q = q.eq('is_import_export', true)
-      break
+      return q.eq('is_import_export', true)
     case 'ofa/smb-website-needed':
-      q = q.in('size_bucket', ['micro', 'small']).is('domain', null)
-      break
+      return q.in('size_bucket', ['micro', 'small']).is('domain', null)
     case 'estate/hospitality-chains':
-      q = q.like('nace_code', '55%').in('size_bucket', ['medium', 'large'])
-      break
+      return q.like('nace_code', '55%').in('size_bucket', ['medium', 'large'])
     default:
-      return []
+      return null
   }
-  const { data, error } = await q
-  if (error) throw new Error(`fetch failed: ${error.message}`)
-  return (data ?? []) as CompanyRow[]
+}
+
+const SELECT_COLS = 'id, legal_name, trade_name, domain, country_iso, city, address, nace_code, sic_code, industry_tags, is_import_export, size_bucket, primary_source, source_ids'
+const PAGE_SIZE = 1000
+
+async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): Promise<CompanyRow[]> {
+  const sb = vaultClient()
+  const target = limit ?? 5000
+  const out: CompanyRow[] = []
+  for (let from = 0; from < target; from += PAGE_SIZE) {
+    const to = Math.min(from + PAGE_SIZE - 1, target - 1)
+    const base = (sb.from as any)('lv_companies').select(SELECT_COLS).order('id', { ascending: true }).range(from, to)
+    const q = applyFilter(base, filter)
+    if (!q) return []
+    const { data, error } = await q
+    if (error) throw new Error(`fetch failed: ${error.message}`)
+    const rows = (data ?? []) as CompanyRow[]
+    out.push(...rows)
+    if (rows.length < PAGE_SIZE) break
+  }
+  return out
 }
 
 async function fetchPrimaryContact(companyId: string): Promise<{ email: string | null; phone: string | null }> {
