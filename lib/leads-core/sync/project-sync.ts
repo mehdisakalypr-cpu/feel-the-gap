@@ -55,19 +55,26 @@ function applyFilter(q: any, filter: ProjectFilter): any | null {
 const SELECT_COLS = 'id, legal_name, trade_name, domain, country_iso, city, address, nace_code, sic_code, industry_tags, is_import_export, size_bucket, primary_source, source_ids'
 const PAGE_SIZE = 1000
 
+// Keyset pagination: avoid OFFSET (O(n log n) per page → 60s timeout on 332k rows)
+// by walking the `id` index forward via `id > last_seen_id`. Each page = O(log n)
+// index seek + O(PAGE_SIZE) read regardless of how deep we are in the result set.
 async function fetchCompaniesForFilter(filter: ProjectFilter, limit?: number): Promise<CompanyRow[]> {
   const sb = vaultClient()
   const target = limit ?? 5000
   const out: CompanyRow[] = []
-  for (let from = 0; from < target; from += PAGE_SIZE) {
-    const to = Math.min(from + PAGE_SIZE - 1, target - 1)
-    const base = (sb.from as any)('lv_companies').select(SELECT_COLS).order('id', { ascending: true }).range(from, to)
+  let lastId: string | null = null
+
+  while (out.length < target) {
+    let base = (sb.from as any)('lv_companies').select(SELECT_COLS).order('id', { ascending: true }).limit(Math.min(PAGE_SIZE, target - out.length))
+    if (lastId) base = base.gt('id', lastId)
     const q = applyFilter(base, filter)
     if (!q) return []
     const { data, error } = await q
     if (error) throw new Error(`fetch failed: ${error.message}`)
     const rows = (data ?? []) as CompanyRow[]
+    if (rows.length === 0) break
     out.push(...rows)
+    lastId = rows[rows.length - 1].id
     if (rows.length < PAGE_SIZE) break
   }
   return out
