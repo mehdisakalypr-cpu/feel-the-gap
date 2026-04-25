@@ -159,10 +159,11 @@ async function runJob(sb: any, job: Job): Promise<AgentResult> {
   let quotaHit = false
   const errs: string[] = []
 
-  // Per-agent timeout to prevent infinite hangs when LLM providers stall
-  // Bumped from 120s → 240s after CHN/USA fr jobs hit the limit on
-  // business_plans (itachi) / potential_clients (hancock) — large datasets.
-  const AGENT_TIMEOUT_MS = 240_000 // 4 min
+  // Per-agent timeout to prevent infinite hangs when LLM providers stall.
+  // History: 120s → 240s (2026-04-25 morning), still 3 jobs hit the 240s cap
+  // → 360s. CHN/USA French datasets are the largest and saturate itachi
+  // (business_plans), hancock (potential_clients), shikamaru (production_methods).
+  const AGENT_TIMEOUT_MS = 360_000 // 6 min
   const withTimeout = <T,>(p: Promise<T>, label: string): Promise<T> =>
     Promise.race([
       p,
