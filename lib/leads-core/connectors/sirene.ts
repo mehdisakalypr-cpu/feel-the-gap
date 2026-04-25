@@ -199,13 +199,23 @@ export async function runSireneIngest(opts: ConnectorOptions = {}): Promise<Sync
         batch.length = 0
         return
       }
+      // Dedup intra-batch: a single SIREN has multiple SIRET établissements,
+      // so the same conflict key can repeat in one batch. Postgres ON CONFLICT
+      // refuses to update the same row twice — keep the last occurrence.
+      const bySiren = new Map<string, LvCompanyInsert>()
+      for (const row of batch) {
+        const key = (row as any).siren as string | undefined
+        if (!key) continue
+        bySiren.set(key, row)
+      }
+      const deduped = Array.from(bySiren.values())
       const { error, count } = await (sb.from as any)('lv_companies')
-        .upsert(batch, { onConflict: 'siren', ignoreDuplicates: false, count: 'exact' })
+        .upsert(deduped, { onConflict: 'siren', ignoreDuplicates: false, count: 'exact' })
       if (error) {
-        console.error('[sirene] upsert error', error.message)
+        console.error('[sirene] upsert error', error.message, 'dedup_size=', deduped.length)
         result.rows_skipped += batch.length
       } else {
-        result.rows_inserted += count ?? batch.length
+        result.rows_inserted += count ?? deduped.length
       }
       batch.length = 0
     }
