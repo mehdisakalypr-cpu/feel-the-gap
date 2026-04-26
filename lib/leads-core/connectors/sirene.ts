@@ -249,6 +249,22 @@ export async function runSireneIngest(opts: ConnectorOptions = {}): Promise<Sync
     if (!opts.dryRun) {
       await logSync({ source_id: 'sirene', operation: opts.delta ? 'delta' : 'ingest', result })
     }
+    if (!opts.dryRun && result.rows_inserted > 0 && !result.error) {
+      await cleanCache()
+    }
   }
   return result
+}
+
+async function cleanCache(): Promise<void> {
+  try {
+    const { unlink } = await import('fs/promises')
+    let removed = 0
+    for (const f of [CACHE_FILE, CACHE_ZIP]) {
+      try { await unlink(f); removed++ } catch { /* not present */ }
+    }
+    console.log(`[sirene] cache purged (${removed} files, ~10GB freed)`)
+  } catch (err) {
+    console.warn('[sirene] cache cleanup failed', (err as Error).message)
+  }
 }

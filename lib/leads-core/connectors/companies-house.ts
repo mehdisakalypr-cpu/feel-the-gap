@@ -7,7 +7,8 @@
  */
 
 import { createReadStream, existsSync } from 'fs'
-import { mkdir } from 'fs/promises'
+import { mkdir, readdir, unlink } from 'fs/promises'
+import { join } from 'path'
 import { spawn } from 'child_process'
 import { createInterface } from 'readline'
 import { vaultClient } from '../client'
@@ -207,6 +208,21 @@ export async function runCompaniesHouseIngest(opts: ConnectorOptions = {}): Prom
     if (!opts.dryRun) {
       await logSync({ source_id: 'companies_house', operation: opts.delta ? 'delta' : 'ingest', result })
     }
+    if (!opts.dryRun && result.rows_inserted > 0 && !result.error) {
+      await cleanCache()
+    }
   }
   return result
+}
+
+async function cleanCache(): Promise<void> {
+  try {
+    const entries = await readdir(CACHE_DIR)
+    for (const e of entries) {
+      try { await unlink(join(CACHE_DIR, e)) } catch { /* ignore */ }
+    }
+    console.log(`[companies-house] cache purged (${entries.length} files)`)
+  } catch (err) {
+    console.warn('[companies-house] cache cleanup failed', (err as Error).message)
+  }
 }

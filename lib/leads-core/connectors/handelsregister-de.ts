@@ -307,8 +307,29 @@ export async function runHandelsregisterIngest(
         result,
       })
     }
+    if (!opts.dryRun && result.rows_inserted > 0 && !result.error) {
+      await cleanCache()
+    }
   }
   return result
+}
+
+async function cleanCache(): Promise<void> {
+  try {
+    const { readdir, unlink } = await import('fs/promises')
+    const { join } = await import('path')
+    const entries = await readdir(CACHE_DIR)
+    let removed = 0
+    for (const e of entries) {
+      // Keep .bz2 source — it's expensive to re-download (4GB).
+      // Remove only the inflated .json that was streamed.
+      if (e.endsWith('.bz2')) continue
+      try { await unlink(join(CACHE_DIR, e)); removed++ } catch { /* ignore */ }
+    }
+    console.log(`[handelsregister] cache purged (${removed} files, kept .bz2 source)`)
+  } catch (err) {
+    console.warn('[handelsregister] cache cleanup failed', (err as Error).message)
+  }
 }
 
 // ─── tech-debt notes ──────────────────────────────────────────────────
