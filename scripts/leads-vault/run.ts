@@ -26,6 +26,9 @@ import {
   runCommonCrawlIngest,
   runMailscoutVerify,
   runProjectSync,
+  runPersonsUkCh,
+  runPersonsFrInpi,
+  runDomainSearch,
 } from '../../lib/leads-core'
 
 function parseArgs(argv: string[]): { command: string; opts: Record<string, string | boolean> } {
@@ -114,6 +117,23 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(r, null, 2))
       break
     }
+    case 'persons-uk':
+    case 'persons-uk-ch': {
+      const r = await runPersonsUkCh({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-fr':
+    case 'persons-fr-inpi': {
+      const r = await runPersonsFrInpi({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'domain-search': {
+      const r = await runDomainSearch({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
     case 'all': {
       console.log('▶ Sirene...')
       console.log(JSON.stringify(await runSireneIngest({ limit }), null, 2))
@@ -129,7 +149,9 @@ async function main(): Promise<void> {
     }
     default:
       console.log(`Unknown command: ${command}`)
-      console.log('Available: sirene, companies-house, osm, verify, sync, all')
+      console.log(
+        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, verify, sync, persons-uk, persons-fr, domain-search, all',
+      )
       process.exit(1)
   }
 }
