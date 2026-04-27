@@ -160,11 +160,8 @@ async function processRows(
 
     if (batch.length >= BATCH_SIZE) {
       if (!dryRun) {
-        const { error } = await client.from('lv_persons').upsert(batch, {
-          onConflict: 'company_id,full_name,role',
-          ignoreDuplicates: true,
-        })
-        if (error) console.error('upsert err:', error.message)
+        const { error } = await client.from('lv_persons').insert(batch)
+        if (error && !error.message.includes('duplicate')) console.error('insert err:', error.message)
       }
       inserted += batch.length
       batch.length = 0
@@ -179,12 +176,12 @@ async function processRows(
 
   // Flush
   if (batch.length > 0 && !dryRun) {
-    const { error } = await client.from('lv_persons').upsert(batch, {
-      onConflict: 'company_id,full_name,role',
-      ignoreDuplicates: true,
-    })
-    if (error) console.error('flush err:', error.message)
-    inserted += batch.length
+    const { error } = await client.from('lv_persons').insert(batch)
+    if (error && !error.message.includes('duplicate')) {
+      console.error('flush err:', error.message)
+    } else {
+      inserted += batch.length
+    }
   }
 
   const result: SyncResult = {
@@ -196,7 +193,11 @@ async function processRows(
   }
 
   if (!dryRun) {
-    await logSync('companies_house', 'persons_enrich', result)
+    try {
+      await logSync({ source_id: 'companies_house', operation: 'sync', result })
+    } catch (e) {
+      console.error('logSync err:', (e as Error).message)
+    }
   }
 
   return result

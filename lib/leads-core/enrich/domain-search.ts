@@ -243,7 +243,11 @@ export async function runDomainSearch(opts: ConnectorOptions = {}): Promise<Sync
   }
 
   if (!opts.dryRun) {
-    await logSync('common_crawl', 'domain_search', result)
+    try {
+      await logSync({ source_id: 'common_crawl', operation: 'sync', result })
+    } catch (e) {
+      console.error('logSync err:', (e as Error).message)
+    }
   }
 
   return result
