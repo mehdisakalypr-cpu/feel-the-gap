@@ -79,6 +79,7 @@ export type SourceId =
   | 'wikidata'
   | 'sec_edgar'
   | 'linkedin_serp'
+  | 'gleif'
 
 export type SyncResult = {
   rows_processed: number

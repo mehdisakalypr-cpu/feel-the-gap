@@ -20,6 +20,7 @@ import {
   runHandelsregisterIngest,
   runMercantilEsIngest,
   runRegistroimpreseItIngest,
+  runGleifIngest,
   runOpenCorporatesIngest,
   runEoriValidate,
   runOsmIngest,
@@ -101,6 +102,8 @@ const handlers: Record<string, Handler> = {
   'mercantil-es': basic(runMercantilEsIngest),
   registroimprese: basic(runRegistroimpreseItIngest),
   'ri-it': basic(runRegistroimpreseItIngest),
+  gleif: async ({ limit, dryRun, opts }) =>
+    runGleifIngest({ limit, dryRun, countries: getCsv(opts, 'countries'), maxPagesPerCountry: getNumber(opts, 'max-pages') }),
   opencorporates: async ({ limit, dryRun, opts }) =>
     runOpenCorporatesIngest({ limit, dryRun, jurisdictions: getCsv(opts, 'jurisdictions') } as any),
   oc: async ({ limit, dryRun, opts }) =>
