@@ -146,36 +146,43 @@ async function ddgSearch(legalName: string, city: string | null): Promise<string
 
 export async function runDomainSearch(opts: ConnectorOptions = {}): Promise<SyncResult> {
   const t0 = Date.now()
-  const limit = opts.limit ?? 500
+  const totalLimit = opts.limit ?? 500
+  const PAGE_SIZE = 1000 // Supabase REST max
   const client = vaultClient()
 
   const allowedCountries = ['FRA', 'GBR', 'DEU', 'ESP', 'NLD', 'BEL', 'POL', 'ITA']
 
-  const { data: rows, error } = await client
-    .from('lv_companies')
-    .select('id, legal_name, country_iso, city')
-    .is('domain', null)
-    .in('country_iso', allowedCountries)
-    .order('id', { ascending: true })
-    .limit(limit)
-
-  if (error) {
-    return {
-      rows_processed: 0,
-      rows_inserted: 0,
-      rows_updated: 0,
-      rows_skipped: 0,
-      duration_ms: Date.now() - t0,
-      error: error.message,
+  // Multi-page cursor: keep fetching pages of 1000 until totalLimit reached or no more rows
+  type Row = { id: string; legal_name: string; country_iso: string; city: string | null }
+  let lastId: string | null = null
+  const list: Row[] = []
+  while (list.length < totalLimit) {
+    const remain = Math.min(PAGE_SIZE, totalLimit - list.length)
+    let q = client
+      .from('lv_companies')
+      .select('id, legal_name, country_iso, city')
+      .is('domain', null)
+      .in('country_iso', allowedCountries)
+      .order('id', { ascending: true })
+      .limit(remain)
+    if (lastId) q = q.gt('id', lastId)
+    const { data: page, error } = await q
+    if (error) {
+      return {
+        rows_processed: 0,
+        rows_inserted: 0,
+        rows_updated: 0,
+        rows_skipped: 0,
+        duration_ms: Date.now() - t0,
+        error: error.message,
+      }
     }
+    const rows = (page ?? []) as Row[]
+    if (rows.length === 0) break
+    list.push(...rows)
+    lastId = rows[rows.length - 1].id
+    if (rows.length < remain) break
   }
-
-  const list = (rows ?? []) as Array<{
-    id: string
-    legal_name: string
-    country_iso: string
-    city: string | null
-  }>
 
   let processed = 0
   let updated = 0
