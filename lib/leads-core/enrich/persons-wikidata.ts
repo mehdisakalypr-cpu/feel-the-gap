@@ -20,9 +20,10 @@ import { splitFullName } from './role-classifier'
 import type { LvPersonInsert, LvContactInsert, ConnectorOptions, SyncResult } from '../types'
 
 const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql'
-const WIKIDATA_BATCH = 50
-const SLEEP_MS = 2000
+const WIKIDATA_BATCH = 20
+const SLEEP_MS = 5000
 const BATCH_SIZE = 100
+const MAX_RETRY = 2
 const UA = 'feel-the-gap-leadsvault/1.0 (https://gapup.io; mehdi.sakalypr@gmail.com)'
 
 function sleep(ms: number): Promise<void> {
@@ -92,23 +93,43 @@ function normalizeWikidataRole(roleLabel: string): { seniority: RoleSeniority; s
   return { seniority: 'individual', score: 15 }
 }
 
-async function querySparql(domains: string[]): Promise<WikidataBinding[]> {
+async function querySparql(domains: string[], attempt = 0): Promise<WikidataBinding[]> {
   const query = buildSparql(domains)
   const url = `${SPARQL_ENDPOINT}?query=${encodeURIComponent(query)}&format=json`
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': UA,
-      Accept: 'application/sparql-results+json',
-    },
-    signal: AbortSignal.timeout(35_000),
-  })
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '')
-    console.error(`[persons-wikidata] SPARQL HTTP ${res.status}: ${errBody.slice(0, 500)}`)
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': UA,
+        Accept: 'application/sparql-results+json',
+      },
+      signal: AbortSignal.timeout(60_000),
+    })
+    if (res.status === 502 || res.status === 503 || res.status === 504 || res.status === 429) {
+      if (attempt < MAX_RETRY) {
+        const backoff = 15000 * (attempt + 1)
+        console.warn(`[persons-wikidata] HTTP ${res.status}, retry ${attempt + 1}/${MAX_RETRY} after ${backoff}ms`)
+        await sleep(backoff)
+        return querySparql(domains, attempt + 1)
+      }
+    }
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      console.error(`[persons-wikidata] SPARQL HTTP ${res.status}: ${errBody.slice(0, 200)}`)
+      return []
+    }
+    const json = (await res.json()) as WikidataResult
+    return json.results?.bindings ?? []
+  } catch (e) {
+    const msg = (e as Error).message
+    if (attempt < MAX_RETRY && (msg.includes('aborted') || msg.includes('timeout') || msg.includes('fetch failed'))) {
+      const backoff = 15000 * (attempt + 1)
+      console.warn(`[persons-wikidata] ${msg}, retry ${attempt + 1}/${MAX_RETRY} after ${backoff}ms`)
+      await sleep(backoff)
+      return querySparql(domains, attempt + 1)
+    }
+    console.error(`[persons-wikidata] giving up: ${msg}`)
     return []
   }
-  const json = (await res.json()) as WikidataResult
-  return json.results?.bindings ?? []
 }
 
 export async function runPersonsWikidata(opts: ConnectorOptions = {}): Promise<SyncResult> {
