@@ -93,8 +93,7 @@ export async function runOpenSanctionsIngest(opts: ConnectorOptions = {}): Promi
     // Sentinel company for PEPs (state/government context, no specific company)
     let sentinelCompanyId: string | null = null
     {
-      const { data: existing } = await sb
-        .from('lv_companies')
+      const { data: existing } = await (sb.from as any)('lv_companies')
         .select('id')
         .eq('primary_source', 'opencorporates')
         .eq('crn', '__opensanctions_peps_sentinel__')
@@ -102,8 +101,7 @@ export async function runOpenSanctionsIngest(opts: ConnectorOptions = {}): Promi
       if (existing) {
         sentinelCompanyId = (existing as { id: string }).id
       } else if (!opts.dryRun) {
-        const { data: ins } = await sb
-          .from('lv_companies')
+        const { data: ins } = await (sb.from as any)('lv_companies')
           .insert({
             crn: '__opensanctions_peps_sentinel__',
             legal_name: 'OpenSanctions PEPs — Aggregate',
@@ -139,8 +137,7 @@ export async function runOpenSanctionsIngest(opts: ConnectorOptions = {}): Promi
     const flush = async (): Promise<void> => {
       if (!personBatch.length) return
       if (!opts.dryRun) {
-        const { data: inserted, error } = await sb
-          .from('lv_persons')
+        const { data: inserted, error } = await (sb.from as any)('lv_persons')
           .insert(personBatch)
           .select('id')
         if (error && !error.message.includes('duplicate')) {
@@ -166,7 +163,7 @@ export async function runOpenSanctionsIngest(opts: ConnectorOptions = {}): Promi
               }
             }
             if (contactBatch.length) {
-              const { error: ce } = await sb.from('lv_contacts').insert(contactBatch)
+              const { error: ce } = await (sb.from as any)('lv_contacts').insert(contactBatch)
               if (ce && !ce.message.includes('duplicate')) {
                 console.error('[opensanctions] contacts insert error', ce.message)
               }
