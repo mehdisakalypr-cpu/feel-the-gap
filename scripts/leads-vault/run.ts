@@ -28,7 +28,17 @@ import {
   runProjectSync,
   runPersonsUkCh,
   runPersonsFrInpi,
+  runPersonsNoBrreg,
+  runPersonsFiPrh,
+  runPersonsCzAres,
+  runPersonsEeAriregister,
+  runPersonsGithub,
+  runPersonsWikidata,
+  runPersonsSecEdgar,
   runDomainSearch,
+  runOpenOwnershipIngest,
+  runOpenSanctionsIngest,
+  runIcijOffshoreIngest,
 } from '../../lib/leads-core'
 
 function parseArgs(argv: string[]): { command: string; opts: Record<string, string | boolean> } {
@@ -129,8 +139,68 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(r, null, 2))
       break
     }
+    case 'persons-no':
+    case 'persons-no-brreg': {
+      const r = await runPersonsNoBrreg({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-fi':
+    case 'persons-fi-prh': {
+      const r = await runPersonsFiPrh({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-cz':
+    case 'persons-cz-ares': {
+      const r = await runPersonsCzAres({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-ee':
+    case 'persons-ee-ariregister': {
+      const r = await runPersonsEeAriregister({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-github':
+    case 'github': {
+      const r = await runPersonsGithub({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-wikidata':
+    case 'wikidata': {
+      const r = await runPersonsWikidata({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'persons-sec':
+    case 'sec-edgar': {
+      const r = await runPersonsSecEdgar({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
     case 'domain-search': {
       const r = await runDomainSearch({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'openownership':
+    case 'oo': {
+      const r = await runOpenOwnershipIngest({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'opensanctions':
+    case 'peps': {
+      const r = await runOpenSanctionsIngest({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'icij':
+    case 'icij-offshore': {
+      const r = await runIcijOffshoreIngest({ limit, dryRun })
       console.log(JSON.stringify(r, null, 2))
       break
     }
@@ -150,7 +220,7 @@ async function main(): Promise<void> {
     default:
       console.log(`Unknown command: ${command}`)
       console.log(
-        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, verify, sync, persons-uk, persons-fr, domain-search, all',
+        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, verify, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, domain-search, openownership, opensanctions, icij, all',
       )
       process.exit(1)
   }
