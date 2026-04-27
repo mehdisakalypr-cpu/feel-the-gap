@@ -93,7 +93,9 @@ function recordToCompany(r: GleifRecord): LvCompanyInsert | null {
     region: addr?.region || null,
     status: 'active',
     primary_source: 'gleif',
-    source_ids: { gleif: r.id, registration_authority: ent.registeredAt?.id ?? null },
+    source_ids: ent.registeredAt?.id
+      ? { gleif: r.id, registration_authority: ent.registeredAt.id }
+      : { gleif: r.id },
     enrichment_score: 12,
   }
 }
