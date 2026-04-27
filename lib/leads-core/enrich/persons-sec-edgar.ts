@@ -171,7 +171,11 @@ async function fetchForm4Persons(cik: string): Promise<Form4Person[]> {
     if (!accession || !primaryDoc) continue
 
     const accNoSlash = accessionToPath(accession)
-    const xmlUrl = `${EDGAR_DATA}/Archives/edgar/data/${cik}/${accNoSlash}/${primaryDoc}`
+    // primaryDocument from submissions API is the XSL-rendered path (e.g. xslF345X06/wk-form4_NNN.xml)
+    // The raw XML is at the same filename without the xsl<...>/ prefix
+    const rawDoc = primaryDoc.replace(/^xsl[^/]*\//, '')
+    // /Archives/ is hosted on www.sec.gov (data.sec.gov returns 403)
+    const xmlUrl = `${EDGAR_WWW}/Archives/edgar/data/${cik}/${accNoSlash}/${rawDoc}`
     const xml = await edgarGetText(xmlUrl)
     await sleep(SLEEP_MS)
     if (!xml) continue
@@ -193,7 +197,7 @@ export async function runPersonsSecEdgar(opts: ConnectorOptions = {}): Promise<S
   const totalLimit = opts.limit ?? 500
   const client = vaultClient()
 
-  type Row = { id: string; legal_name: string }
+  type Row = { id: string; legal_name: string; crn: string | null }
 
   let lastId: string | null = null
   const list: Row[] = []
@@ -201,7 +205,7 @@ export async function runPersonsSecEdgar(opts: ConnectorOptions = {}): Promise<S
     const remain = Math.min(1000, totalLimit - list.length)
     let q = client
       .from('lv_companies')
-      .select('id, legal_name')
+      .select('id, legal_name, crn')
       .eq('country_iso', 'USA')
       .order('id', { ascending: true })
       .limit(remain)
@@ -234,8 +238,12 @@ export async function runPersonsSecEdgar(opts: ConnectorOptions = {}): Promise<S
     processed++
 
     try {
-      const cik = await findCik(row.legal_name)
-      await sleep(SLEEP_MS)
+      // Prefer crn (already CIK from SEC seed); fallback to text search by legal_name
+      let cik: string | null = row.crn
+      if (!cik) {
+        cik = await findCik(row.legal_name)
+        await sleep(SLEEP_MS)
+      }
       if (!cik) {
         notFound++
         continue
