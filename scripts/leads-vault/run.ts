@@ -40,6 +40,9 @@ import {
   runOpenSanctionsIngest,
   runIcijOffshoreIngest,
   runPersonsLinkedinSerp,
+  runEmailPermutator,
+  runHibpCheck,
+  runCommonCrawlMailto,
 } from '../../lib/leads-core'
 
 function parseArgs(argv: string[]): { command: string; opts: Record<string, string | boolean> } {
@@ -211,6 +214,26 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(r, null, 2))
       break
     }
+    case 'email-permutator':
+    case 'permutator': {
+      const maxSmtpProbes = opts['max-probes'] ? Number(opts['max-probes']) : undefined
+      const r = await runEmailPermutator({ limit, dryRun, maxSmtpProbes })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'hibp-check':
+    case 'hibp': {
+      const r = await runHibpCheck({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
+    case 'cc-mailto': {
+      const crawl = typeof opts.crawl === 'string' ? (opts.crawl as string) : undefined
+      const patterns = typeof opts.patterns === 'string' ? (opts.patterns as string).split(',') : undefined
+      const r = await runCommonCrawlMailto({ limit, dryRun, crawl, patterns })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
     case 'all': {
       console.log('▶ Sirene...')
       console.log(JSON.stringify(await runSireneIngest({ limit }), null, 2))
@@ -227,7 +250,7 @@ async function main(): Promise<void> {
     default:
       console.log(`Unknown command: ${command}`)
       console.log(
-        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, verify, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, all',
+        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, all',
       )
       process.exit(1)
   }
