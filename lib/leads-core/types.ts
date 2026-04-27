@@ -64,6 +64,11 @@ export type SourceId =
   | 'phantombuster'
   | 'opencorporates'
   | 'eori_eu'
+  | 'pagesjaunes'
+  | 'europages'
+  | 'goldenpages'
+  | 'kompass'
+  | 'directories_eu'
 
 export type SyncResult = {
   rows_processed: number
