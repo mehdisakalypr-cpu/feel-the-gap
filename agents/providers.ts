@@ -27,7 +27,17 @@ export function buildProviders(): Provider[] {
     const g = createGoogleGenerativeAI({ apiKey: k })
     p.push({ name: `Gemini${i === 0 ? '' : '_' + (i + 1)}`, model: g('gemini-2.5-flash'), exhausted: false })
   })
-  if (process.env.GROQ_API_KEY) { const g = createGroq({ apiKey: process.env.GROQ_API_KEY }); p.push({ name: 'Groq', model: g('llama-3.3-70b-versatile'), exhausted: false }) }
+  const groqKeys = [
+    process.env.GROQ_API_KEY,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3,
+    process.env.GROQ_API_KEY_4,
+    process.env.GROQ_API_KEY_5,
+  ].filter(Boolean) as string[]
+  groqKeys.forEach((k, i) => {
+    const g = createGroq({ apiKey: k })
+    p.push({ name: `Groq${i === 0 ? '' : '_' + (i + 1)}`, model: g('llama-3.3-70b-versatile'), exhausted: false })
+  })
   if (process.env.MISTRAL_API_KEY) { const m = createMistral({ apiKey: process.env.MISTRAL_API_KEY }); p.push({ name: 'Mistral', model: m('mistral-small-latest'), exhausted: false }) }
   if (process.env.CEREBRAS_API_KEY) { const c = createOpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: 'https://api.cerebras.ai/v1' }); p.push({ name: 'Cerebras', model: c('llama-3.3-70b'), exhausted: false }) }
   // Payant en dernier recours — rotation sur toutes les clés OpenAI dispo
