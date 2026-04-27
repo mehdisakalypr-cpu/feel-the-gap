@@ -10,8 +10,8 @@
  * to the current snapshot on object.files.data.gouv.fr.
  */
 
-import { createReadStream, existsSync, statfsSync } from 'fs'
-import { mkdir } from 'fs/promises'
+import { createReadStream, existsSync, statfsSync, statSync } from 'fs'
+import { mkdir, unlink } from 'fs/promises'
 import { dirname } from 'path'
 import { spawn } from 'child_process'
 import { createInterface } from 'readline'
@@ -25,8 +25,10 @@ const CACHE_FILE = `${CACHE_DIR}/StockEtablissement_utf8.csv`
 const CACHE_ZIP = `${CACHE_DIR}/StockEtablissement_utf8.zip`
 const CSV_NAME_IN_ZIP = 'StockEtablissement_utf8.csv'
 
-// Disk-guard : zip ~2.8 GB + working overhead ~1 GB. Abort if free < 4 GB.
-const MIN_FREE_BYTES = 4 * 1024 * 1024 * 1024
+// Disk-guard : zip ~2.8 GB + working overhead ~1 GB. Abort if free < 4.5 GB.
+const MIN_FREE_BYTES = 4.5 * 1024 * 1024 * 1024
+// INSEE refreshes the Sirene snapshot ~monthly. Drop a cached zip older than this.
+const ZIP_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 function checkFreeDisk(): { freeGB: number; ok: boolean } {
   const s = statfsSync('/root')
@@ -166,6 +168,13 @@ function rowToCompany(cols: string[]): LvCompanyInsert | null {
 
 async function ensureZip(): Promise<string> {
   await mkdir(CACHE_DIR, { recursive: true })
+  if (existsSync(CACHE_ZIP)) {
+    const ageMs = Date.now() - statSync(CACHE_ZIP).mtimeMs
+    if (ageMs > ZIP_TTL_MS) {
+      console.log(`[sirene] cached zip is ${Math.round(ageMs / 86400000)}d old, refreshing`)
+      await unlink(CACHE_ZIP)
+    }
+  }
   if (!existsSync(CACHE_ZIP)) {
     console.log(`[sirene] downloading ${STOCK_URL} → ${CACHE_ZIP}`)
     await new Promise<void>((resolve, reject) => {
@@ -195,6 +204,7 @@ export async function runSireneIngest(opts: ConnectorOptions = {}): Promise<Sync
   console.log(`[sirene] disk guard OK (${disk.freeGB} GB free)`)
 
   let unzipProc: ReturnType<typeof spawn> | null = null
+  let unzipExitErr: Error | null = null
   try {
     const zipPath = await ensureZip()
     const sb = vaultClient()
@@ -204,6 +214,13 @@ export async function runSireneIngest(opts: ConnectorOptions = {}): Promise<Sync
     console.log(`[sirene] streaming ${CSV_NAME_IN_ZIP} from zip via unzip -p`)
     unzipProc = spawn('unzip', ['-p', zipPath, CSV_NAME_IN_ZIP], { stdio: ['ignore', 'pipe', 'inherit'] })
     if (!unzipProc.stdout) throw new Error('unzip spawn failed: no stdout')
+    unzipProc.on('error', (err) => { unzipExitErr = err })
+    unzipProc.on('exit', (code, signal) => {
+      // SIGTERM is expected when we break early on --limit. Anything else is a real failure.
+      if (code !== 0 && code !== null && signal !== 'SIGTERM') {
+        unzipExitErr = new Error(`unzip exited with code ${code}`)
+      }
+    })
 
     const rl = createInterface({
       input: unzipProc.stdout,
@@ -211,7 +228,9 @@ export async function runSireneIngest(opts: ConnectorOptions = {}): Promise<Sync
     })
 
     const batch: LvCompanyInsert[] = []
-    const FLUSH_SIZE = 500
+    // Smaller batches : Supabase pooler timed out on 500-row upserts during
+    // the first full pull (5 batches lost). 100 keeps each upsert <2s.
+    const FLUSH_SIZE = 100
     let isHeader = true
 
     const flush = async (): Promise<void> => {
@@ -259,6 +278,12 @@ export async function runSireneIngest(opts: ConnectorOptions = {}): Promise<Sync
       if (opts.limit && result.rows_inserted + batch.length >= opts.limit) break
     }
     await flush()
+
+    // Surface unzip subprocess failures that would otherwise yield a silent
+    // 0-row "successful" run (e.g. corrupt zip, renamed CSV inside).
+    if (unzipExitErr && !opts.limit) {
+      throw unzipExitErr
+    }
 
     if (!opts.dryRun) {
       await bumpSourceStock({ source_id: 'sirene', delta_count: result.rows_inserted, is_full_pull: !opts.delta })
