@@ -100,11 +100,69 @@ function recordToCompany(r: GleifRecord): LvCompanyInsert | null {
   }
 }
 
-async function fetchPage(country: string, page: number, perPage = 200): Promise<GleifResponse> {
-  const url = `${GLEIF_BASE}?filter%5Bentity.legalAddress.country%5D=${country}&page%5Bsize%5D=${perPage}&page%5Bnumber%5D=${page}`
+// GLEIF caps any filtered query at 50 pages × 200 = 10 000 records. To go past
+// that, we sub-filter by `registration.initialRegistrationDate`. Empirically:
+//   - FR sum(year=2010..2026) = 181 562 vs full FR=181 722 (99.9% coverage)
+//   - most year-buckets sit under 8 k except recent years (2018+ in big jurisdictions)
+// Strategy: per (country, year) bucket. If the bucket is over 8 000, drop into
+// monthly buckets. Days are not needed empirically (max month seen ≈ 1 500).
+const PAGE_CAP = 8000 // soft cap with safety margin under GLEIF's 10 k hard cap
+const FIRST_YEAR = 2010
+const LAST_YEAR = new Date().getUTCFullYear()
+
+function buildBucketUrl(country: string, range: string | null, page: number, perPage = 200): string {
+  const q = new URLSearchParams()
+  q.set('filter[entity.legalAddress.country]', country)
+  if (range) q.set('filter[registration.initialRegistrationDate]', range)
+  q.set('page[size]', String(perPage))
+  q.set('page[number]', String(page))
+  return `${GLEIF_BASE}?${q.toString()}`
+}
+
+async function fetchBucketPage(country: string, range: string | null, page: number, perPage = 200): Promise<GleifResponse> {
+  const url = buildBucketUrl(country, range, page, perPage)
   const res = await fetch(url, { headers: { Accept: 'application/vnd.api+json' } })
-  if (!res.ok) throw new Error(`GLEIF ${res.status} ${res.statusText} (${country} p${page})`)
+  if (!res.ok) throw new Error(`GLEIF ${res.status} ${res.statusText} (${country} ${range ?? 'all'} p${page})`)
   return res.json() as Promise<GleifResponse>
+}
+
+async function bucketTotal(country: string, range: string | null): Promise<number> {
+  const r = await fetchBucketPage(country, range, 1, 1)
+  return r.meta?.pagination?.total ?? 0
+}
+
+function monthRanges(year: number): string[] {
+  const ranges: string[] = []
+  for (let m = 1; m <= 12; m++) {
+    const mm = String(m).padStart(2, '0')
+    const lastDay = new Date(Date.UTC(year, m, 0)).getUTCDate()
+    ranges.push(`${year}-${mm}-01..${year}-${mm}-${String(lastDay).padStart(2, '0')}`)
+  }
+  return ranges
+}
+
+async function* iterateCountryBuckets(country: string): AsyncGenerator<{ range: string | null; expectedTotal: number }> {
+  // First emit the "no filter" bucket only if total <= PAGE_CAP (small jurisdictions)
+  const fullTotal = await bucketTotal(country, null)
+  if (fullTotal === 0) return
+  if (fullTotal <= PAGE_CAP) {
+    yield { range: null, expectedTotal: fullTotal }
+    return
+  }
+  // Otherwise iterate per year, drilling into months when a year overflows
+  for (let y = FIRST_YEAR; y <= LAST_YEAR; y++) {
+    const yearRange = `${y}-01-01..${y}-12-31`
+    const yt = await bucketTotal(country, yearRange)
+    if (yt === 0) continue
+    if (yt <= PAGE_CAP) {
+      yield { range: yearRange, expectedTotal: yt }
+    } else {
+      for (const mr of monthRanges(y)) {
+        const mt = await bucketTotal(country, mr)
+        if (mt > 0) yield { range: mr, expectedTotal: mt }
+      }
+    }
+  }
 }
 
 export type GleifIngestOptions = ConnectorOptions & {
@@ -151,39 +209,41 @@ export async function runGleifIngest(opts: GleifIngestOptions = {}): Promise<Syn
   try {
     for (const cc of countries) {
       if (result.rows_inserted >= limit) break
-      let page = 1
-      let consecutiveEmpty = 0
-      while (page <= maxPages && result.rows_inserted < limit) {
-        let resp: GleifResponse
-        try {
-          resp = await fetchPage(cc, page)
-        } catch (e) {
-          console.warn(`[gleif] ${cc} p${page} failed: ${(e as Error).message}`)
-          break
-        }
-        const recs = resp.data ?? []
-        if (recs.length === 0) {
-          consecutiveEmpty++
-          if (consecutiveEmpty >= 2) break
-        } else {
-          consecutiveEmpty = 0
-        }
-        for (const r of recs) {
-          result.rows_processed++
-          const c = recordToCompany(r)
-          if (!c) {
-            result.rows_skipped++
-            continue
+      const insertsAtCountryStart = result.rows_inserted
+      try {
+        for await (const bucket of iterateCountryBuckets(cc)) {
+          if (result.rows_inserted >= limit) break
+          let page = 1
+          while (page <= maxPages && result.rows_inserted < limit) {
+            let resp: GleifResponse
+            try {
+              resp = await fetchBucketPage(cc, bucket.range, page)
+            } catch (e) {
+              console.warn(`[gleif] ${cc} ${bucket.range ?? 'all'} p${page} failed: ${(e as Error).message}`)
+              break
+            }
+            const recs = resp.data ?? []
+            if (recs.length === 0) break
+            for (const r of recs) {
+              result.rows_processed++
+              const c = recordToCompany(r)
+              if (!c) {
+                result.rows_skipped++
+                continue
+              }
+              batch.push(c)
+              if (batch.length >= FLUSH) await flush()
+              if (result.rows_inserted + batch.length >= limit) break
+            }
+            if (!resp.links?.next) break
+            page++
           }
-          batch.push(c)
-          if (batch.length >= FLUSH) await flush()
-          if (result.rows_inserted + batch.length >= limit) break
+          await flush()
         }
-        if (!resp.links?.next) break
-        page++
+      } catch (e) {
+        console.warn(`[gleif] ${cc} bucket iteration failed: ${(e as Error).message}`)
       }
-      await flush()
-      console.log(`[gleif] ${cc}: ${result.rows_inserted} cumulative inserts`)
+      console.log(`[gleif] ${cc}: +${result.rows_inserted - insertsAtCountryStart} (cumulative ${result.rows_inserted})`)
     }
     await flush()
     if (!opts.dryRun) {
