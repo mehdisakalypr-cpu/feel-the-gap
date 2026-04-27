@@ -69,6 +69,7 @@ export type SourceId =
   | 'goldenpages'
   | 'kompass'
   | 'directories_eu'
+  | 'numverify'
 
 export type SyncResult = {
   rows_processed: number

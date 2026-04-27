@@ -42,6 +42,7 @@ import {
   runPersonsLinkedinSerp,
   runEmailPermutator,
   runHibpCheck,
+  runPhoneNumverify,
   runCommonCrawlMailto,
   runDirectoriesEu,
   runGmapsGosomEnrich,
@@ -230,6 +231,13 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(r, null, 2))
       break
     }
+    case 'phone-numverify':
+    case 'phone-validate':
+    case 'numverify': {
+      const r = await runPhoneNumverify({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
     case 'cc-mailto': {
       const crawl = typeof opts.crawl === 'string' ? (opts.crawl as string) : undefined
       const patterns = typeof opts.patterns === 'string' ? (opts.patterns as string).split(',') : undefined
@@ -272,7 +280,7 @@ async function main(): Promise<void> {
     default:
       console.log(`Unknown command: ${command}`)
       console.log(
-        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, directories-eu, gmaps-gosom, schema-crawl, all',
+        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, all',
       )
       process.exit(1)
   }
