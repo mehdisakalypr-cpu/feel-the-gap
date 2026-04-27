@@ -70,6 +70,15 @@ export type SourceId =
   | 'kompass'
   | 'directories_eu'
   | 'numverify'
+  | 'inpi'
+  | 'brreg'
+  | 'prh'
+  | 'ares'
+  | 'ariregister'
+  | 'github'
+  | 'wikidata'
+  | 'sec_edgar'
+  | 'linkedin_serp'
 
 export type SyncResult = {
   rows_processed: number

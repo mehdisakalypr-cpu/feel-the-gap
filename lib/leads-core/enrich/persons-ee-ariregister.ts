@@ -152,7 +152,7 @@ function summaryToCompany(s: EeCompanySummary): LvCompanyInsert | null {
     region: s.maakond ?? null,
     founded_year: foundedYear && !isNaN(foundedYear) ? foundedYear : null,
     status: 'active',
-    primary_source: 'opencorporates' as const,
+    primary_source: 'ariregister' as const,
   }
 }
 
@@ -177,7 +177,7 @@ function officerToPerson(o: EeOfficer, companyId: string, boardType: 'juhatus' |
     role: mapped.label,
     role_seniority: mapped.seniority,
     decision_maker_score: mapped.score,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'ariregister' as const,
   }
 }
 

@@ -228,14 +228,14 @@ export async function runPersonsGithub(opts: ConnectorOptions = {}): Promise<Syn
                   role: 'Tech contributor',
                   role_seniority: seniority,
                   decision_maker_score: score,
-                  primary_source: 'opencorporates',
+                  primary_source: 'github',
                 })
                 contactBatch.push({
                   company_id: row.id,
                   contact_type: 'email',
                   contact_value: email,
                   verify_status: 'unverified',
-                  primary_source: 'opencorporates',
+                  primary_source: 'github',
                 })
               }
             }
@@ -265,7 +265,7 @@ export async function runPersonsGithub(opts: ConnectorOptions = {}): Promise<Syn
           role: bio ?? 'Tech contributor',
           role_seniority: seniority,
           decision_maker_score: score,
-          primary_source: 'opencorporates',
+          primary_source: 'github',
         })
 
         if (email && isEmailForDomain(email, domain)) {
@@ -274,7 +274,7 @@ export async function runPersonsGithub(opts: ConnectorOptions = {}): Promise<Syn
             contact_type: 'email',
             contact_value: email,
             verify_status: 'unverified',
-            primary_source: 'opencorporates',
+            primary_source: 'github',
           })
         }
       }

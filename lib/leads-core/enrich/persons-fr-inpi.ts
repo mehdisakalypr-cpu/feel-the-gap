@@ -187,7 +187,7 @@ function pouvoirToPerson(p: InpiPouvoir, companyId: string): LvPersonInsert | nu
     role: roleLabel,
     role_seniority: seniority,
     decision_maker_score: score,
-    primary_source: 'opencorporates' as const, // reuse source enum slot for INPI RNE
+    primary_source: 'inpi' as const,
   }
 }
 
@@ -211,7 +211,7 @@ function entrepreneurToPerson(
     role: 'Entrepreneur individuel',
     role_seniority: 'c-level',
     decision_maker_score: 100,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'inpi' as const,
   }
 }
 

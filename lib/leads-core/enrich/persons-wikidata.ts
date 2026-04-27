@@ -243,7 +243,7 @@ export async function runPersonsWikidata(opts: ConnectorOptions = {}): Promise<S
           role_seniority: seniority,
           decision_maker_score: score,
           linkedin_url: linkedinUrl || undefined,
-          primary_source: 'opencorporates',
+          primary_source: 'wikidata',
         })
 
         if (linkedinUrl) {
@@ -252,7 +252,7 @@ export async function runPersonsWikidata(opts: ConnectorOptions = {}): Promise<S
             contact_type: 'linkedin',
             contact_value: linkedinUrl,
             verify_status: 'unverified',
-            primary_source: 'opencorporates',
+            primary_source: 'wikidata',
           })
         }
       }
