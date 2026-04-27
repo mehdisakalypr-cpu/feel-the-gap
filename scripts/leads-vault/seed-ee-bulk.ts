@@ -14,6 +14,7 @@ config({ path: resolve(process.cwd(), '.env.local') })
 
 import { spawn } from 'child_process'
 import { createInterface } from 'readline'
+import { createReadStream } from 'fs'
 import { mkdir, rm, stat } from 'fs/promises'
 import { vaultClient } from '../../lib/leads-core/client'
 import type { LvCompanyInsert, LvPersonInsert } from '../../lib/leads-core/types'
@@ -77,25 +78,38 @@ async function ensureFile(mode: Mode): Promise<string> {
   return json
 }
 
-function streamRecords(file: string, onRecord: (rec: CompanyRecord) => Promise<void>): Promise<void> {
-  return new Promise((resolve, reject) => {
+async function preprocessJsonl(file: string): Promise<string> {
+  // Run `jq -c '.[]' file > file.jsonl` first — decouples streaming from subprocess timing
+  const jsonlFile = `${file}.jsonl`
+  console.log(`▶ converting to JSONL: ${jsonlFile}`)
+  await new Promise<void>((resolve, reject) => {
+    const out = require('fs').createWriteStream(jsonlFile)
     const proc = spawn('jq', ['-c', '.[]', file])
-    const rl = createInterface({ input: proc.stdout, crlfDelay: Infinity })
-    let queue: Promise<void> = Promise.resolve()
-    rl.on('line', (line) => {
-      queue = queue.then(async () => {
-        try {
-          const rec = JSON.parse(line) as CompanyRecord
-          await onRecord(rec)
-        } catch (e) {
-          console.error('parse err:', (e as Error).message)
-        }
-      })
-    })
-    rl.on('close', () => queue.then(() => resolve()).catch(reject))
+    proc.stdout.pipe(out)
     proc.stderr.on('data', (d) => process.stderr.write(d))
+    proc.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`jq exit ${code}`))))
     proc.on('error', reject)
   })
+  return jsonlFile
+}
+
+async function streamRecords(file: string, onRecord: (rec: CompanyRecord) => Promise<void>): Promise<{ count: number }> {
+  const jsonlFile = await preprocessJsonl(file)
+  let count = 0
+  const rl = createInterface({ input: createReadStream(jsonlFile), crlfDelay: Infinity })
+  for await (const line of rl) {
+    if (!line.trim()) continue
+    try {
+      const rec = JSON.parse(line) as CompanyRecord
+      await onRecord(rec)
+      count++
+    } catch (e) {
+      console.error('parse err:', (e as Error).message)
+    }
+  }
+  // Cleanup intermediate JSONL
+  await rm(jsonlFile).catch(() => {})
+  return { count }
 }
 
 function mapUboRole(method: string | undefined): { label: string; seniority: 'c-level' | 'director'; score: number } {
@@ -218,13 +232,15 @@ async function main(): Promise<void> {
         })
       }
     } else {
-      for (const p of rec.isikud ?? []) {
+      // kaardile_kantud_isikud: officers field is `kaardile_kantud_isikud[]`, not `isikud[]`
+      // Person field uses `nimi_arinimi` for last_name, not `nimi`
+      for (const p of (rec as any).kaardile_kantud_isikud ?? []) {
         if (p.lopp_kpv) continue
         const first = (p.eesnimi ?? '').trim()
-        const last = (p.nimi ?? '').trim()
+        const last = (p.nimi_arinimi ?? p.nimi ?? '').trim()
         const full = [first, last].filter(Boolean).join(' ')
         if (!full) continue
-        const mapped = mapOfficerRole(p.rolli_tekstina)
+        const mapped = mapOfficerRole(p.isiku_roll_tekstina ?? p.rolli_tekstina)
         if (!mapped) continue
         persons.push({
           company_id: companyId,
