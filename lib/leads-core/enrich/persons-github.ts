@@ -20,6 +20,10 @@ import type { LvPersonInsert, LvContactInsert, ConnectorOptions, SyncResult } fr
 
 const API_BASE = 'https://api.github.com'
 const SLEEP_MS = 600
+// GitHub search API limit = 30 req/min auth (separate from 5000/h main quota).
+// Run du 27/04 spammait des `rate limited, waiting 33s` car 600ms × 100 calls/min
+// dépassait largement les 30/min. 2200ms = 27 req/min, safe.
+const SEARCH_SLEEP_MS = 2200
 const BATCH_SIZE = 100
 const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -95,7 +99,8 @@ function isEmailForDomain(email: string, domain: string): boolean {
 
 async function findOrgForDomain(domain: string): Promise<string | null> {
   const stripped = stripDomain(domain)
-  // Search for org type with domain keyword
+  // Search API limit 30/min — pace before EVERY call
+  await sleep(SEARCH_SLEEP_MS)
   const result = await ghGet<GhSearchUsersResult>(
     `/search/users?q=type:org+${encodeURIComponent(stripped)}&per_page=5`,
   )

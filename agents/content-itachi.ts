@@ -13,10 +13,13 @@ export async function generateBusinessPlans(
   countryName: string,
   lang: string = 'fr',
 ): Promise<{ payload: unknown; cost_eur: number }> {
-  // Sequential to avoid Gemini quota burst (Promise.all would double the rate
-  // on a single provider and hit limits → whole agent fails instead of one plan).
-  const tradePlan = await buildTradePlanTiered(opp, productName, countryName, 'standard')
-  const productionPlan = await buildProductionPlanTiered(opp, productName, countryName, 'standard')
+  // Run du 27/04 voyait 1200s timeouts en mode séquentiel. 13 providers
+  // rotatifs (Gemini×7 + Groq + Mistral + OpenAI×4 + Claude) absorbent le burst,
+  // donc on paralléllise pour wall-time ÷ 2.
+  const [tradePlan, productionPlan] = await Promise.all([
+    buildTradePlanTiered(opp, productName, countryName, 'standard'),
+    buildProductionPlanTiered(opp, productName, countryName, 'standard'),
+  ])
 
   const payload = {
     lang,
