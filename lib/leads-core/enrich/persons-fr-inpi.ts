@@ -222,7 +222,8 @@ export async function runPersonsFrInpi(opts: ConnectorOptions = {}): Promise<Syn
   const client = vaultClient()
 
   type Row = { id: string; siren: string }
-  let lastSiren: string | null = null
+  // Skip pre-RNE SIREN (< 300000000) — those are pre-1973 entities radiated, INPI returns 404
+  let lastSiren: string | null = '299999999'
   const list: Row[] = []
   while (list.length < totalLimit) {
     const remain = Math.min(PAGE_SIZE, totalLimit - list.length)
@@ -231,6 +232,7 @@ export async function runPersonsFrInpi(opts: ConnectorOptions = {}): Promise<Syn
       .select('id, siren')
       .eq('country_iso', 'FRA')
       .not('siren', 'is', null)
+      .gte('siren', '300000000')
       .order('siren', { ascending: true })
       .limit(remain)
     if (lastSiren) q = q.gt('siren', lastSiren)
