@@ -39,6 +39,7 @@ import {
   runOpenOwnershipIngest,
   runOpenSanctionsIngest,
   runIcijOffshoreIngest,
+  runPersonsLinkedinSerp,
 } from '../../lib/leads-core'
 
 function parseArgs(argv: string[]): { command: string; opts: Record<string, string | boolean> } {
@@ -204,6 +205,12 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(r, null, 2))
       break
     }
+    case 'persons-linkedin':
+    case 'linkedin': {
+      const r = await runPersonsLinkedinSerp({ limit, dryRun })
+      console.log(JSON.stringify(r, null, 2))
+      break
+    }
     case 'all': {
       console.log('▶ Sirene...')
       console.log(JSON.stringify(await runSireneIngest({ limit }), null, 2))
@@ -220,7 +227,7 @@ async function main(): Promise<void> {
     default:
       console.log(`Unknown command: ${command}`)
       console.log(
-        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, verify, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, domain-search, openownership, opensanctions, icij, all',
+        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, verify, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, all',
       )
       process.exit(1)
   }
