@@ -39,7 +39,11 @@ export function buildProviders(): Provider[] {
     p.push({ name: `Groq${i === 0 ? '' : '_' + (i + 1)}`, model: g('llama-3.3-70b-versatile'), exhausted: false })
   })
   if (process.env.MISTRAL_API_KEY) { const m = createMistral({ apiKey: process.env.MISTRAL_API_KEY }); p.push({ name: 'Mistral', model: m('mistral-small-latest'), exhausted: false }) }
-  if (process.env.CEREBRAS_API_KEY) { const c = createOpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: 'https://api.cerebras.ai/v1' }); p.push({ name: 'Cerebras', model: c('llama-3.3-70b'), exhausted: false }) }
+  if (process.env.CEREBRAS_API_KEY) {
+    const c = createOpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: 'https://api.cerebras.ai/v1' })
+    p.push({ name: 'Cerebras_Qwen', model: c('qwen-3-235b-a22b-instruct-2507'), exhausted: false })
+    p.push({ name: 'Cerebras_Llama', model: c('llama3.1-8b'), exhausted: false })
+  }
   // Payant en dernier recours — rotation sur toutes les clés OpenAI dispo
   const openaiKeys = [
     process.env.OPENAI_API_KEY,
