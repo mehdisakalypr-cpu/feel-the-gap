@@ -62,6 +62,7 @@ import {
   runAfricaTldsIngest,
   runMcaInIngest,
   runAsiaEmergingIngest,
+  runExploriumEnrich,
 } from '../../lib/leads-core'
 
 type OptValue = string | boolean
@@ -212,6 +213,8 @@ const handlers: Record<string, Handler> = {
     runAsiaEmergingIngest({ limit, dryRun, country: 'VNM' }),
   ph: async ({ limit, dryRun }) =>
     runAsiaEmergingIngest({ limit, dryRun, country: 'PHL' }),
+  explorium: basic(runExploriumEnrich),
+  exp: basic(runExploriumEnrich),
   /** Special: chains sirene → companies-house → osm → verify → sync. dryRun is intentionally NOT forwarded. */
   all: async ({ limit }) => {
     console.log('▶ Sirene...')

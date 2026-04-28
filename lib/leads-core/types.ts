@@ -97,6 +97,9 @@ export type SourceId =
   | 'bri_id'
   | 'dkkd_vn'
   | 'sec_ph'
+  | 'explorium'
+  | 'apify_gmaps'
+  | 'apify_linkedin'
 
 export type SyncResult = {
   rows_processed: number
