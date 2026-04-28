@@ -90,6 +90,13 @@ export type SourceId =
   | 'bolagsverket_se'
   | 'onrc_ro'
   | 'orsr_sk'
+  | 'rfb_br'
+  | 'cc_mailto_africa'
+  | 'oo_africa'
+  | 'mca_in'
+  | 'bri_id'
+  | 'dkkd_vn'
+  | 'sec_ph'
 
 export type SyncResult = {
   rows_processed: number
