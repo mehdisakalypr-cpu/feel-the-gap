@@ -84,6 +84,8 @@ export type SourceId =
   | 'krs_pl'
   | 'kbo_be'
   | 'rnpc_pt'
+  | 'cro_ie'
+  | 'kvk_nl'
 
 export type SyncResult = {
   rows_processed: number

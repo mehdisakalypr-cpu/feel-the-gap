@@ -52,6 +52,7 @@ import {
   runKrsPlIngest,
   runKboBeIngest,
   runRnpcPtIngest,
+  runCroIeIngest,
 } from '../../lib/leads-core'
 
 type OptValue = string | boolean
@@ -191,7 +192,7 @@ const handlers: Record<string, Handler> = {
 }
 
 const COMMAND_LIST =
-  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, zefix-ch, krs-pl, kbo-be, all'
+  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, zefix-ch, krs-pl, kbo-be, rnpc-pt, all'
 
 async function main(): Promise<void> {
   const { command, opts } = parseArgs(process.argv)
