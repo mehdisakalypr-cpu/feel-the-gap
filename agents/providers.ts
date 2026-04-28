@@ -1,12 +1,13 @@
 /**
- * Shared AI provider rotation — 5 providers, priorité gratuit
- * Gemini free → Groq free → Mistral → Cerebras → OpenAI (dernier recours, payant)
+ * Shared AI provider rotation — 6 providers, priorité gratuit
+ * Gemini free → Groq free → Mistral → Anthropic Claude → Cerebras → OpenAI (dernier recours)
  */
 import { generateText } from 'ai'
 import type { LanguageModel } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
 import { createMistral } from '@ai-sdk/mistral'
+import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 
 export interface Provider { name: string; model: LanguageModel; exhausted: boolean }
@@ -39,6 +40,10 @@ export function buildProviders(): Provider[] {
     p.push({ name: `Groq${i === 0 ? '' : '_' + (i + 1)}`, model: g('llama-3.3-70b-versatile'), exhausted: false })
   })
   if (process.env.MISTRAL_API_KEY) { const m = createMistral({ apiKey: process.env.MISTRAL_API_KEY }); p.push({ name: 'Mistral', model: m('mistral-small-latest'), exhausted: false }) }
+  if (process.env.ANTHROPIC_API_KEY) {
+    const a = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    p.push({ name: 'Claude_Haiku', model: a('claude-haiku-4-5-20251001'), exhausted: false })
+  }
   if (process.env.CEREBRAS_API_KEY) {
     const c = createOpenAI({ apiKey: process.env.CEREBRAS_API_KEY, baseURL: 'https://api.cerebras.ai/v1' })
     p.push({ name: 'Cerebras_Qwen', model: c('qwen-3-235b-a22b-instruct-2507'), exhausted: false })
@@ -80,7 +85,7 @@ export async function gen(prompt: string, tokens = 8192): Promise<string> {
       return text
     } catch (err: any) {
       const m = err.message?.toLowerCase() || ''
-      if (m.match(/429|quota|rate|billing|disabled|exceeded|high demand|overload|unavailable|503|service.*busy|resource.?exhausted/)) {
+      if (m.match(/429|quota|rate|billing|disabled|exceeded|high demand|overload|unavailable|503|404|not.?found|service.*busy|resource.?exhausted|restricted|organization|forbidden|invalid[_ ]api[_ ]key|authentication|permission|401|403/)) {
         p.exhausted = true; idx = (idx + 1) % providers.length; continue
       }
       throw err
