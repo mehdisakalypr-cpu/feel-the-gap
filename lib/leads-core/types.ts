@@ -83,6 +83,7 @@ export type SourceId =
   | 'zefix_ch'
   | 'krs_pl'
   | 'kbo_be'
+  | 'rnpc_pt'
 
 export type SyncResult = {
   rows_processed: number

@@ -51,6 +51,7 @@ import {
   runZefixChIngest,
   runKrsPlIngest,
   runKboBeIngest,
+  runRnpcPtIngest,
 } from '../../lib/leads-core'
 
 type OptValue = string | boolean
@@ -171,6 +172,8 @@ const handlers: Record<string, Handler> = {
     runKrsPlIngest({ limit, dryRun, start: getNumber(opts, 'start') }),
   'kbo-be': basic(runKboBeIngest),
   be: basic(runKboBeIngest),
+  'rnpc-pt': basic(runRnpcPtIngest),
+  pt: basic(runRnpcPtIngest),
   /** Special: chains sirene → companies-house → osm → verify → sync. dryRun is intentionally NOT forwarded. */
   all: async ({ limit }) => {
     console.log('▶ Sirene...')
