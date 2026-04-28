@@ -86,6 +86,10 @@ export type SourceId =
   | 'rnpc_pt'
   | 'cro_ie'
   | 'kvk_nl'
+  | 'cvr_dk'
+  | 'bolagsverket_se'
+  | 'onrc_ro'
+  | 'orsr_sk'
 
 export type SyncResult = {
   rows_processed: number

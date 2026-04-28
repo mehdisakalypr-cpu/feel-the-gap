@@ -54,6 +54,10 @@ import {
   runRnpcPtIngest,
   runCroIeIngest,
   runKvkNlIngest,
+  runCvrDkIngest,
+  runBolagsverketSeIngest,
+  runOnrcRoIngest,
+  runOrsrSkIngest,
 } from '../../lib/leads-core'
 
 type OptValue = string | boolean
@@ -180,6 +184,14 @@ const handlers: Record<string, Handler> = {
   ie: basic(runCroIeIngest),
   'kvk-nl': basic(runKvkNlIngest),
   nl: basic(runKvkNlIngest),
+  'cvr-dk': basic(runCvrDkIngest),
+  dk: basic(runCvrDkIngest),
+  'bolagsverket-se': basic(runBolagsverketSeIngest),
+  se: basic(runBolagsverketSeIngest),
+  'onrc-ro': basic(runOnrcRoIngest),
+  ro: basic(runOnrcRoIngest),
+  'orsr-sk': basic(runOrsrSkIngest),
+  sk: basic(runOrsrSkIngest),
   /** Special: chains sirene → companies-house → osm → verify → sync. dryRun is intentionally NOT forwarded. */
   all: async ({ limit }) => {
     console.log('▶ Sirene...')
@@ -197,7 +209,7 @@ const handlers: Record<string, Handler> = {
 }
 
 const COMMAND_LIST =
-  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, zefix-ch, krs-pl, kbo-be, rnpc-pt, cro-ie, kvk-nl, all'
+  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, zefix-ch, krs-pl, kbo-be, rnpc-pt, cro-ie, kvk-nl, cvr-dk, bolagsverket-se, onrc-ro, orsr-sk, all'
 
 async function main(): Promise<void> {
   const { command, opts } = parseArgs(process.argv)
