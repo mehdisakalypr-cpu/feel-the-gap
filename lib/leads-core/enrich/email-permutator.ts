@@ -362,19 +362,11 @@ export async function runEmailPermutator(opts: EmailPermutatorOptions = {}): Pro
   console.log(`[email-permutator] port-25 outbound: ${smtpEnabled ? 'AVAILABLE' : 'BLOCKED — MX-only fallback'}`)
   ;(result.metadata as Record<string, unknown>).smtp_enabled = smtpEnabled
 
-  // ── 2. Cursor query ─────────────────────────────────────────────────────────
-  const { data: rows, error: qErr } = await (client.from as any)('lv_persons')
-    .select(`
-      id,
-      company_id,
-      first_name,
-      last_name,
-      lv_companies!inner(domain)
-    `)
-    .not('first_name', 'is', null)
-    .not('last_name', 'is', null)
-    .order('id', { ascending: true })
-    .limit(limit)
+  // ── 2. Cursor query (RPC: priority by decision_maker_score, exclude already-emailed) ────
+  const { data: rpcRows, error: qErr } = await (client.rpc as any)(
+    'lv_pick_persons_for_email_permutation',
+    { p_limit: limit },
+  )
 
   if (qErr) {
     result.error = qErr.message
@@ -382,36 +374,19 @@ export async function runEmailPermutator(opts: EmailPermutatorOptions = {}): Pro
     return result
   }
 
-  // Normalise rows — Supabase returns nested join as object
-  const persons: PersonRow[] = ((rows ?? []) as Array<Record<string, unknown>>)
-    .map((r) => {
-      const company = (r['lv_companies'] as Record<string, unknown> | null) ?? {}
-      return {
-        id: r['id'] as string,
-        company_id: r['company_id'] as string,
-        first_name: r['first_name'] as string,
-        last_name: r['last_name'] as string,
-        domain: (company['domain'] as string | undefined) ?? '',
-      }
-    })
+  const persons: PersonRow[] = ((rpcRows ?? []) as Array<Record<string, unknown>>)
+    .map((r) => ({
+      id: r['id'] as string,
+      company_id: r['company_id'] as string,
+      first_name: r['first_name'] as string,
+      last_name: r['last_name'] as string,
+      domain: (r['domain'] as string | undefined) ?? '',
+    }))
     .filter((p) => p.domain && p.domain.length > 3)
 
-  // ── 3. Filter persons that already have an email contact ───────────────────
-  // We fetch existing person_ids that already have email to skip them
-  const personIds = persons.map((p) => p.id)
-  let alreadyHaveEmail = new Set<string>()
-  if (personIds.length > 0) {
-    const { data: existing } = await (client.from as any)('lv_contacts')
-      .select('person_id')
-      .eq('contact_type', 'email')
-      .in('person_id', personIds)
-    for (const row of (existing ?? []) as Array<{ person_id: string }>) {
-      alreadyHaveEmail.add(row.person_id)
-    }
-  }
-
-  const toProcess = persons.filter((p) => !alreadyHaveEmail.has(p.id))
-  console.log(`[email-permutator] ${persons.length} fetched, ${toProcess.length} to process (${alreadyHaveEmail.size} already have email)`)
+  // RPC already excludes already-emailed persons (NOT EXISTS); no extra filter needed.
+  const toProcess = persons
+  console.log(`[email-permutator] ${persons.length} fetched (RPC priority), ${toProcess.length} to process`)
 
   // ── 4. Group by domain ──────────────────────────────────────────────────────
   const byDomain = new Map<string, PersonRow[]>()

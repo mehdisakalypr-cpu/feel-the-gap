@@ -218,41 +218,25 @@ function entrepreneurToPerson(
 export async function runPersonsFrInpi(opts: ConnectorOptions = {}): Promise<SyncResult> {
   const t0 = Date.now()
   const totalLimit = opts.limit ?? 500
-  const PAGE_SIZE = 1000
   const client = vaultClient()
 
   type Row = { id: string; siren: string }
-  // Skip pre-RNE SIREN (< 300000000) — those are pre-1973 entities radiated, INPI returns 404
-  let lastSiren: string | null = '299999999'
-  const list: Row[] = []
-  while (list.length < totalLimit) {
-    const remain = Math.min(PAGE_SIZE, totalLimit - list.length)
-    let q = client
-      .from('lv_companies')
-      .select('id, siren')
-      .eq('country_iso', 'FRA')
-      .not('siren', 'is', null)
-      .gte('siren', '300000000')
-      .order('siren', { ascending: true })
-      .limit(remain)
-    if (lastSiren) q = q.gt('siren', lastSiren)
-    const { data: page, error } = await q
-    if (error) {
-      return {
-        rows_processed: 0,
-        rows_inserted: 0,
-        rows_updated: 0,
-        rows_skipped: 0,
-        duration_ms: Date.now() - t0,
-        error: error.message,
-      }
+  // Priority cursor: domain-bearing companies first, exclude already-covered by INPI.
+  // RPC: gapup_leads.lv_pick_fr_companies_for_dirigeants(p_limit)
+  const { data: picked, error: rpcErr } = await client.rpc('lv_pick_fr_companies_for_dirigeants', {
+    p_limit: totalLimit,
+  })
+  if (rpcErr) {
+    return {
+      rows_processed: 0,
+      rows_inserted: 0,
+      rows_updated: 0,
+      rows_skipped: 0,
+      duration_ms: Date.now() - t0,
+      error: rpcErr.message,
     }
-    const rows = (page ?? []) as Row[]
-    if (rows.length === 0) break
-    list.push(...rows)
-    lastSiren = rows[rows.length - 1].siren
-    if (rows.length < remain) break
   }
+  const list: Row[] = (picked ?? []) as Row[]
 
   let processed = 0
   let inserted = 0
