@@ -142,6 +142,10 @@ async function fetchCompany(siren: string): Promise<InpiCompany | null> {
     return fetchCompany(siren)
   }
   if (res.status === 429) {
+    const body = await res.text().catch(() => '')
+    if (body.includes('quota_exceeded') || body.includes('QUOTA_SERVICE')) {
+      throw new Error('INPI_QUOTA_EXHAUSTED')
+    }
     await new Promise((r) => setTimeout(r, 10_000))
     return fetchCompany(siren)
   }
@@ -266,7 +270,12 @@ export async function runPersonsFrInpi(opts: ConnectorOptions = {}): Promise<Syn
         if (ent) batch.push(ent)
       }
     } catch (e) {
-      console.error(`[persons-fr-inpi] ${row.siren}:`, (e as Error).message)
+      const msg = (e as Error).message
+      console.error(`[persons-fr-inpi] ${row.siren}:`, msg)
+      if (msg === 'INPI_QUOTA_EXHAUSTED') {
+        console.error('[persons-fr-inpi] quota exhausted — bailing out, will retry next cycle after reset')
+        break
+      }
     }
 
     if (batch.length >= BATCH_SIZE) {

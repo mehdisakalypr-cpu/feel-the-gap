@@ -26,6 +26,7 @@ import {
   runOsmIngest,
   runCommonCrawlIngest,
   runMailscoutVerify,
+  runNeverBounceVerify,
   runProjectSync,
   runPersonsUkCh,
   runPersonsFrInpi,
@@ -127,6 +128,18 @@ const handlers: Record<string, Handler> = {
     runOpenCorporatesIngest({ limit, dryRun, jurisdictions: getCsv(opts, 'jurisdictions') } as any),
   eori: basic(runEoriValidate),
   verify: async ({ limit }) => runMailscoutVerify({ limit }),
+  'verify-neverbounce': async ({ limit, opts }) =>
+    runNeverBounceVerify({
+      limit,
+      reverifyStatuses: getCsv(opts, 'statuses') ?? ['valid'],
+      personBoundOnly: opts?.['all'] ? false : true,
+    }),
+  neverbounce: async ({ limit, opts }) =>
+    runNeverBounceVerify({
+      limit,
+      reverifyStatuses: getCsv(opts, 'statuses') ?? ['valid'],
+      personBoundOnly: opts?.['all'] ? false : true,
+    }),
   sync: async ({ limit, project, opts }) =>
     runProjectSync({ project, limit, country: getString(opts, 'country') }),
   'persons-uk': basic(runPersonsUkCh),

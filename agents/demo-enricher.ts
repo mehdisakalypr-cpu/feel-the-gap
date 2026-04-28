@@ -273,13 +273,12 @@ async function applyEmail(
   target: EnrichTarget,
   rowId: string,
   email: string,
+  personName: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const table = target === 'leads' ? 'commerce_leads' : 'entrepreneur_demos'
-  const { error } = await pub
-    .from(table)
-    .update({ email, updated_at: new Date().toISOString() })
-    .eq('id', rowId)
-    .is('email', null)
+  const patch: Record<string, unknown> = { email, updated_at: new Date().toISOString() }
+  if (target === 'leads' && personName) patch.contact_owner_name = personName
+  const { error } = await pub.from(table).update(patch).eq('id', rowId).is('email', null)
   return error ? { ok: false, error: error.message } : { ok: true }
 }
 
@@ -389,7 +388,7 @@ export async function runDemoEnricher(
       }
 
       if (apply) {
-        const upd = await applyEmail(pub, target, row.id, contact.contact_value)
+        const upd = await applyEmail(pub, target, row.id, contact.contact_value, person?.full_name ?? null)
         if (!upd.ok) {
           result.errors += 1
           console.error(`[demo-enricher] update ${target}.${row.id} failed:`, upd.error)
