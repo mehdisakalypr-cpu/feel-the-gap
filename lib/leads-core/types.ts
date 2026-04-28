@@ -80,6 +80,9 @@ export type SourceId =
   | 'sec_edgar'
   | 'linkedin_serp'
   | 'gleif'
+  | 'zefix_ch'
+  | 'krs_pl'
+  | 'kbo_be'
 
 export type SyncResult = {
   rows_processed: number

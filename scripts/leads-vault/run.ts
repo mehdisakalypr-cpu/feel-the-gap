@@ -48,6 +48,9 @@ import {
   runDirectoriesEu,
   runGmapsGosomEnrich,
   runSchemaJsonLdCrawl,
+  runZefixChIngest,
+  runKrsPlIngest,
+  runKboBeIngest,
 } from '../../lib/leads-core'
 
 type OptValue = string | boolean
@@ -158,6 +161,16 @@ const handlers: Record<string, Handler> = {
   gmaps: basic(runGmapsGosomEnrich),
   'schema-crawl': basic(runSchemaJsonLdCrawl),
   jsonld: basic(runSchemaJsonLdCrawl),
+  'zefix-ch': async ({ limit, dryRun, opts }) =>
+    runZefixChIngest({ limit, dryRun, cantons: getCsv(opts, 'cantons') }),
+  zefix: async ({ limit, dryRun, opts }) =>
+    runZefixChIngest({ limit, dryRun, cantons: getCsv(opts, 'cantons') }),
+  'krs-pl': async ({ limit, dryRun, opts }) =>
+    runKrsPlIngest({ limit, dryRun, start: getNumber(opts, 'start') }),
+  pl: async ({ limit, dryRun, opts }) =>
+    runKrsPlIngest({ limit, dryRun, start: getNumber(opts, 'start') }),
+  'kbo-be': basic(runKboBeIngest),
+  be: basic(runKboBeIngest),
   /** Special: chains sirene → companies-house → osm → verify → sync. dryRun is intentionally NOT forwarded. */
   all: async ({ limit }) => {
     console.log('▶ Sirene...')
@@ -175,7 +188,7 @@ const handlers: Record<string, Handler> = {
 }
 
 const COMMAND_LIST =
-  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, all'
+  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, zefix-ch, krs-pl, kbo-be, all'
 
 async function main(): Promise<void> {
   const { command, opts } = parseArgs(process.argv)
