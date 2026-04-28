@@ -63,6 +63,8 @@ import {
   runMcaInIngest,
   runAsiaEmergingIngest,
   runExploriumEnrich,
+  runApifyGmaps,
+  runApifyLinkedinCompany,
 } from '../../lib/leads-core'
 
 type OptValue = string | boolean
@@ -215,6 +217,10 @@ const handlers: Record<string, Handler> = {
     runAsiaEmergingIngest({ limit, dryRun, country: 'PHL' }),
   explorium: basic(runExploriumEnrich),
   exp: basic(runExploriumEnrich),
+  'apify-gmaps': async ({ limit, dryRun, opts }) =>
+    runApifyGmaps({ limit, dryRun, searches: getCsv(opts, 'searches'), location: getString(opts, 'location') }),
+  'apify-linkedin': async ({ limit, dryRun, opts }) =>
+    runApifyLinkedinCompany({ limit, dryRun, domains: getCsv(opts, 'domains') }),
   /** Special: chains sirene → companies-house → osm → verify → sync. dryRun is intentionally NOT forwarded. */
   all: async ({ limit }) => {
     console.log('▶ Sirene...')
