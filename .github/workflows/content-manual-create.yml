@@ -1,0 +1,86 @@
+name: content-manual-create
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'regenerate | modify-prompt | image-remix | video-animate | theme-variants'
+        required: true
+        default: 'regenerate'
+        type: string
+      prompt:
+        description: 'Creative prompt'
+        required: false
+        default: ''
+        type: string
+      asset_url:
+        description: 'Source asset URL (image-remix / video-animate)'
+        required: false
+        default: ''
+        type: string
+      persona:
+        description: 'entrepreneur | influenceur | investisseur | financeur'
+        required: false
+        default: 'entrepreneur'
+        type: string
+      target_saas:
+        description: 'ftg | ofa | estate | aici | aiplb | ancf | hub'
+        required: false
+        default: 'ftg'
+        type: string
+      variants:
+        description: 'Number of variants 1-5'
+        required: false
+        default: '3'
+        type: string
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install deps
+        run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Run content pipeline
+        env:
+          MODE: ${{ github.event.inputs.mode }}
+          PROMPT: ${{ github.event.inputs.prompt }}
+          ASSET_URL: ${{ github.event.inputs.asset_url }}
+          PERSONA: ${{ github.event.inputs.persona }}
+          TARGET_SAAS: ${{ github.event.inputs.target_saas }}
+          VARIANTS: ${{ github.event.inputs.variants }}
+          RUN_ID: ${{ github.run_id }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          GOOGLE_GENERATIVE_AI_API_KEY_2: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY_2 }}
+          GOOGLE_GENERATIVE_AI_API_KEY_3: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY_3 }}
+          GOOGLE_GENERATIVE_AI_API_KEY_4: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY_4 }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          POLLINATIONS_TOKEN: ${{ secrets.POLLINATIONS_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          FAL_KEY: ${{ secrets.FAL_KEY }}
+        run: npx tsx scripts/content/manual-create.ts
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: content-${{ github.run_id }}
+          path: |
+            dist/manual/${{ github.run_id }}/**
+          if-no-files-found: warn
+          retention-days: 30

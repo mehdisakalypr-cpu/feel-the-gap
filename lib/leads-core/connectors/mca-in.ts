@@ -69,6 +69,7 @@ type WikidataSparqlResult = {
       itemLabel: { value: string }
       cin?: { value: string }
       city?: { value: string }
+      cityLabel?: { value: string }
       stateLabel?: { value: string }
       founded?: { value: string }
       industry?: { value: string }
