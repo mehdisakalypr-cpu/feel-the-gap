@@ -313,8 +313,8 @@ export async function runExploriumEnrich(opts: ConnectorOptions): Promise<SyncRe
   }
   result.duration_ms = Date.now() - t0
 
-  await logSync('explorium', result)
-  await bumpSourceStock('explorium', result.rows_inserted)
+  await logSync({ source_id: 'explorium', operation: 'ingest', result })
+  await bumpSourceStock({ source_id: 'explorium', delta_count: result.rows_inserted })
 
   console.log(
     `[explorium] DONE matched=${idByCompany.size} persons=${totalPersons} contacts=${totalContacts} credits~${creditsUsed}/${budget}`,

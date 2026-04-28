@@ -212,8 +212,8 @@ export async function runApifyGmaps(opts: ConnectorOptions & {
     budget_usd: budget,
   }
   result.duration_ms = Date.now() - t0
-  await logSync('apify_gmaps', result)
-  await bumpSourceStock('apify_gmaps', result.rows_inserted)
+  await logSync({ source_id: 'apify_gmaps', operation: 'ingest', result })
+  await bumpSourceStock({ source_id: 'apify_gmaps', delta_count: result.rows_inserted })
   console.log(`[apify-gmaps] inserted=${result.rows_inserted}/${result.rows_processed} usage=$${usage}/$${budget}`)
   return result
 }
@@ -304,8 +304,8 @@ export async function runApifyLinkedinCompany(opts: ConnectorOptions & {
     budget_usd: budget,
   }
   result.duration_ms = Date.now() - t0
-  await logSync('apify_linkedin', result)
-  await bumpSourceStock('apify_linkedin', result.rows_inserted)
+  await logSync({ source_id: 'apify_linkedin', operation: 'ingest', result })
+  await bumpSourceStock({ source_id: 'apify_linkedin', delta_count: result.rows_inserted })
   console.log(`[apify-linkedin] inserted=${result.rows_inserted}/${result.rows_processed} usage=$${usage}/$${budget}`)
   return result
 }

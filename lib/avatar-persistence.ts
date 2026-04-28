@@ -97,7 +97,8 @@ export async function recordAvatarUse(
     output_url: outputUrl,
     prompt,
   })
-  await db.rpc('increment_avatar_use', { p_id: avatarId }).catch(async () => {
+  const rpc = await db.rpc('increment_avatar_use', { p_id: avatarId })
+  if (rpc.error) {
     const { data: cur } = await db
       .from('ftg_avatars')
       .select('used_count')
@@ -110,7 +111,7 @@ export async function recordAvatarUse(
         last_used_at: new Date().toISOString(),
       })
       .eq('id', avatarId)
-  })
+  }
 }
 
 export async function listAvatars(targetSaas?: string): Promise<AvatarRow[]> {
