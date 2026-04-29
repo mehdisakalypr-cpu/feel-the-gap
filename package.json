@@ -20,6 +20,7 @@
     "video:render:all": "npm run video:render:marketplace && npm run video:render:parcours"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.71",
     "@ai-sdk/google": "^3.0.58",
     "@ai-sdk/groq": "^3.0.35",
     "@ai-sdk/mistral": "^3.0.30",
