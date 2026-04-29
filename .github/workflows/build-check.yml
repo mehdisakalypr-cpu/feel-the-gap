@@ -21,11 +21,13 @@ jobs:
       - name: Verify imports vs package.json
         run: node scripts/check-imports.js
       - name: Next.js build (catches Module not found, type fails, etc.)
+        if: ${{ hashFiles('package.json') != '' }}
         env:
           # Supabase
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://stub.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub.stub' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://stub.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub.stub' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub.stub' }}
           # Auth
           AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'stubstubstubstubstubstubstubstub' }}
@@ -49,4 +51,9 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET || 'stubcronsecret' }}
           # Telegram
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || 'stub:stub' }}
-        run: npm run build --silent
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
+            npm run build --silent
+          else
+            echo "✓ no 'build' script in package.json — skipping (lib-only repo)"
+          fi
