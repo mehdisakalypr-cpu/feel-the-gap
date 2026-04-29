@@ -2,6 +2,35 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { redirectPathForClosedRole } from '@/lib/open-roles'
 
+// ── Hub SSO HMAC verify (Web Crypto, edge-runtime safe) ─────────────────────
+function _b64UrlDecode(str: string): string {
+  let s = str.replace(/-/g, '+').replace(/_/g, '/')
+  while (s.length % 4) s += '='
+  return atob(s)
+}
+function _bufToHex(buf: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+async function verifyHubSessionEdge(token: string): Promise<boolean> {
+  try {
+    const secret = process.env.HUB_SHARED_SECRET
+    if (!secret || secret.length < 16) return false
+    const decoded = _b64UrlDecode(token)
+    const [userId, expStr, sig] = decoded.split('|')
+    if (!userId || !expStr || !sig) return false
+    if (Date.now() > Number(expStr)) return false
+    const enc = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw', enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    )
+    const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(`${userId}|${expStr}`))
+    return _bufToHex(sigBuf) === sig
+  } catch {
+    return false
+  }
+}
+
 // ── Public pages — no auth required ──────────────────────────────────────────
 const PUBLIC_PAGES = new Set([
   '/',
@@ -173,6 +202,15 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/api/') && isPublicApi(pathname)) return withCountry(NextResponse.next({ request: { headers: forwardHeaders } }))
 
   // ── Auth check for all other routes ────────────────────────────────────────
+
+  // Hub SSO short-circuit — recognize `gapup_session` cookie issued by either
+  // the hub directly (.gapup.io subdomains) or the local /auth/sso-callback
+  // (cross-domain exchange). HMAC verified with HUB_SHARED_SECRET (shared).
+  const hubToken = request.cookies.get('gapup_session')?.value
+  if (hubToken && (await verifyHubSessionEdge(hubToken))) {
+    return withCountry(NextResponse.next({ request: { headers: forwardHeaders } }))
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   let response = NextResponse.next({ request: { headers: forwardHeaders } })
