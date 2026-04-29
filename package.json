@@ -17,7 +17,8 @@
     "video:render:still": "remotion still remotion/index.ts MapLightsUp out/map-poster.png",
     "video:render:marketplace": "remotion render remotion/index.ts MarketplaceMatchReveal out/marketplace-match-reveal.mp4",
     "video:render:parcours": "remotion render remotion/index.ts Parcours7Steps out/parcours-7-steps.mp4",
-    "video:render:all": "npm run video:render:marketplace && npm run video:render:parcours"
+    "video:render:all": "npm run video:render:marketplace && npm run video:render:parcours",
+    "prepare": "node scripts/install-hooks.js || true"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.71",
