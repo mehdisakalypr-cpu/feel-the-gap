@@ -27,7 +27,7 @@ export default function AllAccessPromoBanner() {
           <span className="opacity-90">— All-Access portfolio (50+ SaaS dont les futurs lancés)</span>
           <span className="font-bold">€999/mo verrouillé à vie pour les 200 premiers</span>
           <Link
-            href="https://hub.gapup.io/pricing"
+            href="https://hub.gapup.io/pricing/launch"
             className="ml-1 underline font-medium hover:no-underline"
           >
             Voir l'offre →
