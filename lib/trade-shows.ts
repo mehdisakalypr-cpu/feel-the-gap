@@ -916,6 +916,36 @@ export const TRADE_SHOWS: TradeShow[] = [
     industry: "Renewable / MENA", url: "https://www.menaelec.com",
     description: "Salon renouvelables Méditerranée. Solaire + éolien + storage + transition énergétique Maghreb.",
   },
+  {
+    slug: "dmexco-cologne-2026", name: "DMEXCO Cologne 2026", city: "Cologne", country: "DE", countryFlag: "🇩🇪",
+    venue: "Koelnmesse", startDate: "2026-09-23", endDate: "2026-09-24", attendees: 40000, exhibitors: 800,
+    industry: "Digital Marketing", url: "https://www.dmexco.com",
+    description: "Salon européen #1 du marketing digital + ad tech + martech. CMOs + agences + plateformes.",
+  },
+  {
+    slug: "premiere-vision-ny-2026", name: "Première Vision New York 2026", city: "New York", country: "US", countryFlag: "🇺🇸",
+    venue: "Center 415", startDate: "2026-07-21", endDate: "2026-07-22", attendees: 3500, exhibitors: 300,
+    industry: "Textile / Fashion US", url: "https://www.premierevision.com/en/show/new-york",
+    description: "Salon textile premium US — tissus, accessoires, cuir. Acheteurs ready-to-wear high-end + luxury brands.",
+  },
+  {
+    slug: "isc-east-ny-2026", name: "ISC East New York 2026", city: "New York", country: "US", countryFlag: "🇺🇸",
+    venue: "Javits Center", startDate: "2026-11-17", endDate: "2026-11-19", attendees: 12000, exhibitors: 280,
+    industry: "Security Tech East US", url: "https://www.isceast.com",
+    description: "Salon security + surveillance East Coast US. Corollaire de ISC West Las Vegas. Integrators + dealers.",
+  },
+  {
+    slug: "supplyside-east-2026", name: "SupplySide East 2026", city: "Secaucus", country: "US", countryFlag: "🇺🇸",
+    venue: "Meadowlands Expo", startDate: "2026-04-13", endDate: "2026-04-15", attendees: 4500, exhibitors: 380,
+    industry: "Nutraceuticals US", url: "https://east.supplysideshow.com",
+    description: "Salon B2B ingrédients nutraceutiques + functional food + supplements East Coast. Acheteurs Whole Foods/CVS.",
+  },
+  {
+    slug: "indaba-durban-2026", name: "Africa Travel Indaba 2026", city: "Durban", country: "ZA", countryFlag: "🇿🇦",
+    venue: "Inkosi Albert Luthuli ICC", startDate: "2026-05-12", endDate: "2026-05-15", attendees: 6500, exhibitors: 1100,
+    industry: "Travel / Africa", url: "https://www.indaba-southafrica.co.za",
+    description: "Salon tourisme africain #1. Tour-operators + DMCs + lodges + governments tourism boards.",
+  },
 ];
 
 export function bySlug(slug: string): TradeShow | undefined {
