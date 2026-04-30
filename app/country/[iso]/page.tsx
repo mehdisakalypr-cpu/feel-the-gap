@@ -23,7 +23,8 @@ interface Country {
 interface Opportunity {
   id: string; type: string; opportunity_score: number; gap_value_usd: number | null
   summary: string | null; land_availability: string | null
-  products: { name: string; category: string } | null
+  product_id: string | null
+  products: { name: string; name_fr: string | null; category: string } | null
 }
 
 interface TopImport {
@@ -267,13 +268,26 @@ function CountryPageInner() {
       sb.from('countries').select('*').eq('id', iso.toUpperCase()).single(),
       // 50 opps = densité visuelle acceptable en une page + CTA rapport complet pour la suite.
       // Avant (10) : utilisateurs signalaient que "la carte n'affiche pas la totalité" — on voyait 5990 dans le count mais 10 dans la liste. Fixé Senku 2026-04-18.
-      sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, products(name, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(50),
+      // Fetch 200 to allow client-side dedup (DB has many duplicates per product_id from multi-run agent),
+      // then keep best-scoring per (product_id, type) tuple, cap to 50 displayed.
+      sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, product_id, products(name, name_fr, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(200),
       sb.from('opportunities').select('*', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase()),
       sb.auth.getUser(),
     ]).then(async ([{ data: c }, { data: o }, { count: total }, { data: authData }]) => {
       if (!c) { router.push('/reports'); return }
       setCountry(c as Country)
-      setOpps((o ?? []).map((x: any) => ({ ...x, products: Array.isArray(x.products) ? x.products[0] ?? null : x.products })) as Opportunity[])
+      // Dedup by (product_id, type) — keep highest opportunity_score
+      const rawOpps = (o ?? []).map((x: any) => ({ ...x, products: Array.isArray(x.products) ? x.products[0] ?? null : x.products })) as Opportunity[]
+      const dedupMap = new Map<string, Opportunity>()
+      for (const opp of rawOpps) {
+        const key = `${opp.product_id ?? opp.id}::${opp.type}`
+        const existing = dedupMap.get(key)
+        if (!existing || (opp.opportunity_score > existing.opportunity_score)) {
+          dedupMap.set(key, opp)
+        }
+      }
+      const dedupOpps = Array.from(dedupMap.values()).sort((a, b) => b.opportunity_score - a.opportunity_score).slice(0, 50)
+      setOpps(dedupOpps)
       setTotalOpps(total ?? 0)
       if (authData.user) {
         const { data: profile } = await sb.from('profiles').select('tier').eq('id', authData.user.id).single()
@@ -435,7 +449,7 @@ function CountryPageInner() {
                 {opps.map(opp => (
                   <div key={opp.id} className="bg-[#0D1117] border border-[rgba(201,168,76,.15)] rounded-xl p-4 hover:border-[#C9A84C]/30 transition-colors">
                     <div className="flex items-start justify-between mb-2">
-                      <div><span className="text-sm font-semibold text-white">{opp.products ? (CATEGORY_ICON[opp.products.category] ?? '') + ' ' + opp.products.name : 'Product'}</span><span className="ml-2 text-xs text-gray-500 capitalize">{TYPE_LABEL[opp.type] ?? opp.type}</span></div>
+                      <div><span className="text-sm font-semibold text-white">{opp.products ? (CATEGORY_ICON[opp.products.category] ?? '') + ' ' + (lang === 'fr' && opp.products.name_fr ? opp.products.name_fr : opp.products.name) : 'Product'}</span><span className="ml-2 text-xs text-gray-500 capitalize">{TYPE_LABEL[opp.type] ?? opp.type}</span></div>
                       <div className="text-right"><div className="font-bold text-[#C9A84C]">{opp.opportunity_score}</div><div className="text-[10px] text-gray-500">score</div></div>
                     </div>
                     {opp.gap_value_usd && <div className="text-xs text-emerald-400 mb-1.5">{t('country.gap_label')} {fmt(opp.gap_value_usd)}/yr</div>}
