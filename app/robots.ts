@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
+        allow: ['/', '/api/companies-sitemap-index', '/api/companies-sitemap/', '/api/trade-shows-sitemap', '/api/companies/remove-request'],
         disallow: [
           '/admin/',
           '/api/',
@@ -25,7 +25,11 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/',
       },
     ],
-    sitemap: `${SITE}/sitemap.xml`,
+    sitemap: [
+      `${SITE}/sitemap.xml`,
+      `${SITE}/api/companies-sitemap-index`,
+      `${SITE}/api/trade-shows-sitemap`,
+    ],
     host: SITE,
   }
 }
