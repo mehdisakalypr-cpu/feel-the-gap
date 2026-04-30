@@ -51,17 +51,21 @@ const PUBLIC_PAGES = new Set([
   '/invest',           // Investisseur landing page (public)
   '/invest/signup',    // Investisseur signup (public — auth check inside page)
   '/invest/waitlist',  // Public waitlist (closed-role gate target)
+  '/companies',     // ReviewNest top index — public SEO surface
+  '/trade-shows',   // TradeShowGen index — public SEO surface
 ])
 
 const PUBLIC_PAGE_PREFIXES = [
-  '/auth/',      // login, register, forgot, reset-password, callback, biometric-setup
-  '/go/',        // affiliate redirect links
-  '/reports/',   // country reports (tier-gated in page)
-  '/country/',   // country detail pages (tier-gated in page)
-  '/demo/',      // demo tour pages (public access)
-  '/seller/',    // public seller mini-sites /seller/[slug] (catalogue B2B)
-  '/docs/',      // /docs/api (Swagger) + /docs/api/webhooks (verification snippets)
-  '/tools/',     // free import/export tools (lead magnets, gated by email not auth)
+  '/auth/',         // login, register, forgot, reset-password, callback, biometric-setup
+  '/go/',           // affiliate redirect links
+  '/reports/',      // country reports (tier-gated in page)
+  '/country/',      // country detail pages (tier-gated in page)
+  '/demo/',         // demo tour pages (public access)
+  '/seller/',       // public seller mini-sites /seller/[slug] (catalogue B2B)
+  '/docs/',         // /docs/api (Swagger) + /docs/api/webhooks (verification snippets)
+  '/tools/',        // free import/export tools (lead magnets, gated by email not auth)
+  '/companies/',    // ReviewNest /companies/[country]/[slug] + /companies/remove (public SEO)
+  '/trade-shows/',  // TradeShowGen /trade-shows/[slug] (public SEO)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
@@ -92,6 +96,9 @@ const PUBLIC_API = new Set([
   '/api/health',                      // Readiness probe (DB + env checks) — consumed by uptime monitors
   '/api/parcours-state',              // Public parcours open/closed state
   '/api/geo',                         // Public geo-pricing resolution
+  '/api/companies-sitemap-index',     // Public sitemap index for ReviewNest crawl
+  '/api/trade-shows-sitemap',         // Public sitemap for TradeShowGen
+  '/api/companies/remove-request',    // Public RGPD removal form POST
 ])
 
 const PUBLIC_API_READONLY_PREFIXES = [
@@ -107,6 +114,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/v1/',             // API Platform (Bearer token auth done in route, not middleware)
   '/api/transport/',      // Transport quotes (public, no auth — just a quote estimator)
   '/api/tools/',          // Free tools (EORI validator etc.) — gated by email, not auth
+  '/api/companies-sitemap/', // Public sitemap chunks (50k URLs each)
 ]
 
 // ── Admin routes — require admin role ────────────────────────────────────────
