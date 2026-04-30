@@ -1,7 +1,7 @@
 {
   "generated_at": "2026-04-30T10:15:09+00:00",
   "count": 10,
-  "total_posts": 240,
+  "total_posts": 270,
   "personas": [
     {
       "id": 1,
@@ -14,7 +14,308 @@
       "icp": "trade_executive",
       "expertise": "Import/export Europe-Asie, sourcing produits manufacturés, stratégie tarifaire CBAM",
       "photo_prompt": "professional French woman 42yo CEO confident smile navy blazer office Lyon",
-      "posts": [],
+      "posts": [
+        {
+          "day": 1,
+          "format": "thought_leadership",
+          "title": "Le futur du commerce international",
+          "content": "Le commerce international est en constante évolution. Les entreprises doivent s'adapter pour rester compétitives. Chez Marchand Trade, nous nous concentrons sur l'import/export Europe-Asie et la stratégie tarifaire CBAM pour aider nos clients à réussir.",
+          "hashtags": [
+            "#commerceinternationnal",
+            "#strategietarifaire"
+          ]
+        },
+        {
+          "day": 2,
+          "format": "case_study",
+          "title": "Etude de cas : mise en place d'une stratégie d'import/export",
+          "content": "Notre équipe a aidé un client à mettre en place une stratégie d'import/export pour ses produits manufacturés. Le résultat : une augmentation de 25% de ses ventes à l'international.",
+          "hashtags": [
+            "#importexport",
+            "#strategiecommerciale"
+          ]
+        },
+        {
+          "day": 3,
+          "format": "data_insight",
+          "title": "Les tendances du commerce international en 2024",
+          "content": "Selon les données, le commerce international devrait augmenter de 10% en 2024. Les entreprises doivent se préparer à cette croissance en adaptant leurs stratégies.",
+          "hashtags": [
+            "#commerceinternationnal",
+            "#donnees"
+          ]
+        },
+        {
+          "day": 4,
+          "format": "how_to",
+          "title": "Comment mettre en place une stratégie de sourcing de produits manufacturés",
+          "content": "Pour mettre en place une stratégie de sourcing de produits manufacturés, il faut identifier les fournisseurs les plus fiables et négocier des prix compétitifs. Chez Marchand Trade, nous avons l'expertise pour vous aider.",
+          "hashtags": [
+            "#sourcing",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 5,
+          "format": "industry_hot-take",
+          "title": "L'impact du CBAM sur le commerce international",
+          "content": "Le CBAM (Carbon Border Adjustment Mechanism) va changer la donne pour les entreprises qui importent et exportent des produits manufacturés. Il est essentiel de comprendre son impact sur votre stratégie commerciale.",
+          "hashtags": [
+            "#CBAM",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 6,
+          "format": "case_study",
+          "title": "Etude de cas : optimisation de la chaîne d'approvisionnement",
+          "content": "Notre équipe a aidé un client à optimiser sa chaîne d'approvisionnement, ce qui a permis de réduire les coûts de 15% et d'améliorer la qualité des produits.",
+          "hashtags": [
+            "#optimisation",
+            "#chaineadapprovisionnement"
+          ]
+        },
+        {
+          "day": 7,
+          "format": "thought_leadership",
+          "title": "La nécessité de l'innovation dans le commerce international",
+          "content": "Pour rester compétitif, il est essentiel d'innover et de s'adapter aux nouvelles tendances du commerce international. Chez Marchand Trade, nous sommes constamment à la recherche de nouvelles solutions pour nos clients.",
+          "hashtags": [
+            "#innovation",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 8,
+          "format": "data_insight",
+          "title": "Les chiffres clés du commerce international en Europe",
+          "content": "Les données montrent que le commerce international en Europe représente plus de 50% du PIB de la région. Il est essentiel de comprendre ces chiffres pour prendre des décisions éclairées.",
+          "hashtags": [
+            "#donnees",
+            "#europe"
+          ]
+        },
+        {
+          "day": 9,
+          "format": "how_to",
+          "title": "Comment gérer les risques liés au commerce international",
+          "content": "Pour gérer les risques liés au commerce international, il faut identifier les menaces potentielles et mettre en place des stratégies pour les atténuer. Chez Marchand Trade, nous avons l'expertise pour vous aider.",
+          "hashtags": [
+            "#risques",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 10,
+          "format": "industry_hot-take",
+          "title": "L'impact de la crise économique sur le commerce international",
+          "content": "La crise économique a un impact significatif sur le commerce international. Les entreprises doivent s'adapter et trouver des solutions pour minimiser les pertes.",
+          "hashtags": [
+            "#criseeconomique",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 11,
+          "format": "case_study",
+          "title": "Etude de cas : mise en place d'une stratégie de marketing international",
+          "content": "Notre équipe a aidé un client à mettre en place une stratégie de marketing international, ce qui a permis d'augmenter sa visibilité et ses ventes à l'international.",
+          "hashtags": [
+            "#marketing",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 12,
+          "format": "thought_leadership",
+          "title": "La stratégie tarifaire CBAM : comprendre les enjeux",
+          "content": "La stratégie tarifaire CBAM est essentielle pour les entreprises qui importent et exportent des produits manufacturés. Il est essentiel de comprendre les enjeux et les implications pour votre entreprise.",
+          "hashtags": [
+            "#CBAM",
+            "#strategietarifaire"
+          ]
+        },
+        {
+          "day": 13,
+          "format": "data_insight",
+          "title": "Les tendances du commerce électronique international",
+          "content": "Le commerce électronique international est en constante croissance. Les entreprises doivent s'adapter pour rester compétitives et profiter de ces tendances.",
+          "hashtags": [
+            "#commerceelectronique",
+            "#donnees"
+          ]
+        },
+        {
+          "day": 14,
+          "format": "how_to",
+          "title": "Comment optimiser vos processus de logistique internationale",
+          "content": "Pour optimiser vos processus de logistique internationale, il faut identifier les inefficacités et mettre en place des solutions pour améliorer la qualité et la rapidité.",
+          "hashtags": [
+            "#logistique",
+            "#optimisation"
+          ]
+        },
+        {
+          "day": 15,
+          "format": "industry_hot-take",
+          "title": "L'impact de la technologie sur le commerce international",
+          "content": "La technologie a un impact significatif sur le commerce international. Les entreprises doivent s'adapter et utiliser les outils et les solutions pour rester compétitives.",
+          "hashtags": [
+            "#technologie",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 16,
+          "format": "case_study",
+          "title": "Etude de cas : mise en place d'une stratégie de développement durable",
+          "content": "Notre équipe a aidé un client à mettre en place une stratégie de développement durable, ce qui a permis de réduire son impact environnemental et d'améliorer sa réputation.",
+          "hashtags": [
+            "#developpementdurable",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 17,
+          "format": "thought_leadership",
+          "title": "La nécessité de la stratégie dans le commerce international",
+          "content": "Pour réussir dans le commerce international, il est essentiel d'avoir une stratégie claire et bien définie. Chez Marchand Trade, nous aidons nos clients à développer des stratégies pour réussir.",
+          "hashtags": [
+            "#strategie",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 18,
+          "format": "data_insight",
+          "title": "Les chiffres clés du commerce international en Asie",
+          "content": "Les données montrent que le commerce international en Asie représente plus de 30% du PIB de la région. Il est essentiel de comprendre ces chiffres pour prendre des décisions éclairées.",
+          "hashtags": [
+            "#donnees",
+            "#asie"
+          ]
+        },
+        {
+          "day": 19,
+          "format": "how_to",
+          "title": "Comment gérer les relations avec les fournisseurs internationaux",
+          "content": "Pour gérer les relations avec les fournisseurs internationaux, il faut communiquer clairement et établir des attentes claires. Chez Marchand Trade, nous avons l'expertise pour vous aider.",
+          "hashtags": [
+            "#fournisseurs",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 20,
+          "format": "industry_hot-take",
+          "title": "L'impact de la politique commerciale sur le commerce international",
+          "content": "La politique commerciale a un impact significatif sur le commerce international. Les entreprises doivent s'adapter et comprendre les implications pour leur entreprise.",
+          "hashtags": [
+            "#politiquecommerciale",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 21,
+          "format": "case_study",
+          "title": "Etude de cas : mise en place d'une stratégie de diversification",
+          "content": "Notre équipe a aidé un client à mettre en place une stratégie de diversification, ce qui a permis de réduire les risques et d'augmenter les opportunités.",
+          "hashtags": [
+            "#diversification",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 22,
+          "format": "thought_leadership",
+          "title": "La stratégie de sourcing de produits manufacturés : comprendre les enjeux",
+          "content": "La stratégie de sourcing de produits manufacturés est essentielle pour les entreprises qui importent et exportent des produits. Il est essentiel de comprendre les enjeux et les implications pour votre entreprise.",
+          "hashtags": [
+            "#sourcing",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 23,
+          "format": "data_insight",
+          "title": "Les tendances du commerce international dans le secteur de la mode",
+          "content": "Le commerce international dans le secteur de la mode est en constante croissance. Les entreprises doivent s'adapter pour rester compétitives et profiter de ces tendances.",
+          "hashtags": [
+            "#mode",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 24,
+          "format": "how_to",
+          "title": "Comment optimiser vos processus de paiement internationaux",
+          "content": "Pour optimiser vos processus de paiement internationaux, il faut identifier les inefficacités et mettre en place des solutions pour améliorer la rapidité et la sécurité.",
+          "hashtags": [
+            "#paiement",
+            "#optimisation"
+          ]
+        },
+        {
+          "day": 25,
+          "format": "industry_hot-take",
+          "title": "L'impact de la cybersécurité sur le commerce international",
+          "content": "La cybersécurité a un impact significatif sur le commerce international. Les entreprises doivent s'adapter et utiliser les outils et les solutions pour protéger leurs données.",
+          "hashtags": [
+            "#cybersecurite",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 26,
+          "format": "case_study",
+          "title": "Etude de cas : mise en place d'une stratégie de gestion des risques",
+          "content": "Notre équipe a aidé un client à mettre en place une stratégie de gestion des risques, ce qui a permis de réduire les risques et d'améliorer la sécurité.",
+          "hashtags": [
+            "#gestiondesrisques",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 27,
+          "format": "thought_leadership",
+          "title": "La stratégie de développement durable dans le commerce international",
+          "content": "La stratégie de développement durable est essentielle pour les entreprises qui opèrent dans le commerce international. Il est essentiel de comprendre les enjeux et les implications pour votre entreprise.",
+          "hashtags": [
+            "#developpementdurable",
+            "#commerceinternationnal"
+          ]
+        },
+        {
+          "day": 28,
+          "format": "data_insight",
+          "title": "Les chiffres clés du commerce international dans le secteur de l'électronique",
+          "content": "Les données montrent que le commerce international dans le secteur de l'électronique représente plus de 20% du PIB de la région. Il est essentiel de comprendre ces chiffres pour prendre des décisions éclairées.",
+          "hashtags": [
+            "#donnees",
+            "#electronique"
+          ]
+        },
+        {
+          "day": 29,
+          "format": "how_to",
+          "title": "Comment gérer les relations avec les clients internationaux",
+          "content": "Pour gérer les relations avec les clients internationaux, il faut communiquer clairement et établir des attentes claires. Chez Marchand Trade, nous avons l'expertise pour vous aider.",
+          "hashtags": [
+            "#clients",
+            "#strategie"
+          ]
+        },
+        {
+          "day": 30,
+          "format": "industry_hot-take",
+          "title": "L'impact de la mondialisation sur le commerce international",
+          "content": "La mondialisation a un impact significatif sur le commerce international. Les entreprises doivent s'adapter et comprendre les implications pour leur entreprise.",
+          "hashtags": [
+            "#mondialisation",
+            "#commerceinternationnal"
+          ]
+        }
+      ],
       "headshot_url": "https://image.pollinations.ai/prompt/professional%20French%20woman%2042yo%20CEO%20confident%20smile%20navy%20blazer%20office%20Lyon?width=512&height=512&model=flux&seed=1&nologo=true"
     },
     {
