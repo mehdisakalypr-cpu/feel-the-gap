@@ -268,12 +268,10 @@ function CountryPageInner() {
       sb.from('countries').select('*').eq('id', iso.toUpperCase()).single(),
       // 50 opps = densité visuelle acceptable en une page + CTA rapport complet pour la suite.
       // Avant (10) : utilisateurs signalaient que "la carte n'affiche pas la totalité" — on voyait 5990 dans le count mais 10 dans la liste. Fixé Senku 2026-04-18.
-      // Fetch 200 to allow client-side dedup (DB has many duplicates per product_id from multi-run agent),
-      // then keep best-scoring per (product_id, type) tuple, cap to 50 displayed.
-      sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, product_id, products(name, name_fr, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(200),
-      sb.from('opportunities').select('*', { count: 'exact', head: true }).eq('country_iso', iso.toUpperCase()),
+      // Fetch up to 1000 rows to dedup, then count unique tuples for accurate total.
+      sb.from('opportunities').select('id, type, opportunity_score, gap_value_usd, summary, land_availability, product_id, products(name, name_fr, category)').eq('country_iso', iso.toUpperCase()).order('opportunity_score', { ascending: false }).limit(1000),
       sb.auth.getUser(),
-    ]).then(async ([{ data: c }, { data: o }, { count: total }, { data: authData }]) => {
+    ]).then(async ([{ data: c }, { data: o }, { data: authData }]) => {
       if (!c) { router.push('/reports'); return }
       setCountry(c as Country)
       // Dedup by (product_id, type) — keep highest opportunity_score
@@ -286,9 +284,9 @@ function CountryPageInner() {
           dedupMap.set(key, opp)
         }
       }
-      const dedupOpps = Array.from(dedupMap.values()).sort((a, b) => b.opportunity_score - a.opportunity_score).slice(0, 50)
-      setOpps(dedupOpps)
-      setTotalOpps(total ?? 0)
+      const dedupOpps = Array.from(dedupMap.values()).sort((a, b) => b.opportunity_score - a.opportunity_score)
+      setOpps(dedupOpps.slice(0, 50))
+      setTotalOpps(dedupOpps.length)
       if (authData.user) {
         const { data: profile } = await sb.from('profiles').select('tier').eq('id', authData.user.id).single()
         setUserTier(profile?.tier ?? 'free')
