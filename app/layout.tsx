@@ -9,6 +9,7 @@ import AuthorshipMeta from '@/components/AuthorshipMeta'
 import { WebVitalsReporter } from '@/components/WebVitalsReporter'
 import Topbar from '@/components/Topbar'
 import MaintenanceBanner from '@/components/MaintenanceBanner'
+import AllAccessPromoBanner from '@/components/AllAccessPromoBanner'
 import DemoTour from '@/components/DemoTour'
 import ContactWidget from '@/components/ContactWidget'
 import { Analytics } from '@vercel/analytics/next'
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-full bg-[#07090F] text-white antialiased">
         <MaintenanceBanner />
+        <AllAccessPromoBanner />
         <WebVitalsReporter />
         <LanguageProvider>
           <CookieBannerProvider>
