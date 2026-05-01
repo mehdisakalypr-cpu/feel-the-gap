@@ -79,6 +79,14 @@
     {
       "path": "/api/cron/stale-refresh",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/trade-pulse-weekly",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/launch-bonus-followup",
+      "schedule": "0 9 * * *"
     }
   ]
 }
