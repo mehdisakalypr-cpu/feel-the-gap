@@ -23,6 +23,8 @@ const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
 ]
 
+const CC_BASE = process.env.NEXT_PUBLIC_CC_BASE || 'https://cc-dashboard.vercel.app'
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -33,6 +35,17 @@ const nextConfig: NextConfig = {
   turbopack: {},
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
+  },
+  // Ad Factory moved to command-center 2026-05-01. 308 preserves method (POST→POST)
+  // for any external callers still hitting FTG API routes; users following bookmarks
+  // get redirected to the new admin pages.
+  async redirects() {
+    return [
+      { source: '/admin/ad-factory', destination: `${CC_BASE}/admin/ad-factory`, permanent: true },
+      { source: '/admin/ad-factory/:path*', destination: `${CC_BASE}/admin/ad-factory/:path*`, permanent: true },
+      { source: '/api/admin/ad-factory/:path*', destination: `${CC_BASE}/api/admin/ad-factory/:path*`, permanent: true },
+      { source: '/api/ad-factory/:path*', destination: `${CC_BASE}/api/ad-factory/:path*`, permanent: true },
+    ]
   },
 }
 
