@@ -31,6 +31,7 @@ import {
   logEvent,
   verifySitePassword,
 } from '@/lib/auth-v2'
+import { detectLegacyCredentials, needsUnification, createUnificationToken } from '@/lib/auth-v2/unification'
 import { TERMS_VERSION, PRODUCT_TAG } from '@/lib/terms-version'
 
 export const runtime = 'nodejs'
@@ -178,6 +179,21 @@ export async function POST(req: NextRequest) {
     return jsonError(500, 'Session issuance failed')
   }
 
+  // Auth unification check : if email has >1 active credential across sites,
+  // mint a one-time cross-domain token + return redirect URL. Client routes to
+  // hub.gapup.io/auth/unify AFTER terms re-acceptance (if any).
+  let unificationRedirectUrl: string | null = null
+  try {
+    const creds = await detectLegacyCredentials(email)
+    if (needsUnification(creds)) {
+      const { redirectUrl } = await createUnificationToken(email, 'ftg')
+      unificationRedirectUrl = redirectUrl
+    }
+  } catch (e) {
+    // Fail-open : do not block login on unification token failure
+    console.error('[login] unification check failed:', (e as Error).message)
+  }
+
   const res = NextResponse.json({
     ok: true,
     token_hash: hashedToken,
@@ -185,9 +201,10 @@ export async function POST(req: NextRequest) {
     user: { id: userId, email },
     require_terms_reacceptance: requireTermsReacceptance,
     terms_version: TERMS_VERSION,
+    unification_redirect_url: unificationRedirectUrl,
   })
   res.headers.set('Cache-Control', 'no-store')
   attachCsrfCookie(res, issueCsrfToken())
-  await logEvent({ userId, event: 'login_ok', ip, ua, meta: { reaccept_needed: requireTermsReacceptance } })
+  await logEvent({ userId, event: 'login_ok', ip, ua, meta: { reaccept_needed: requireTermsReacceptance, unification_pending: !!unificationRedirectUrl } })
   return res
 }

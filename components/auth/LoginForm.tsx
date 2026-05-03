@@ -187,7 +187,7 @@ export function LoginForm({
         body: JSON.stringify({ email, password, captchaToken, remember }),
       })
       const json = (await res.json().catch(() => null)) as
-        | { ok?: boolean; require_mfa?: boolean; mfa_token?: string; access_token?: string; refresh_token?: string; token_hash?: string; type?: 'magiclink' | 'email'; error?: string; require_terms_reacceptance?: boolean }
+        | { ok?: boolean; require_mfa?: boolean; mfa_token?: string; access_token?: string; refresh_token?: string; token_hash?: string; type?: 'magiclink' | 'email'; error?: string; require_terms_reacceptance?: boolean; unification_redirect_url?: string | null }
         | null
       if (!res.ok || !json?.ok) {
         setError(json?.error === 'Accès non autorisé' ? 'Accès non autorisé' : 'Identifiants invalides')
@@ -200,12 +200,17 @@ export function LoginForm({
       }
       const sb = createSupabaseBrowser()
       const needsReaccept = json.require_terms_reacceptance === true
+      const unificationUrl = json.unification_redirect_url
       const success = async () => {
-        // Terms re-acceptance gate — if the user's last signed_agreements row is
-        // older than the current pinned TERMS_VERSION, route them through the
-        // /legal/accept page before they land on the site.
+        // Terms re-acceptance first (legal gate)
         if (needsReaccept) {
           window.location.assign(`/legal/accept?next=${encodeURIComponent(postLoginPath)}`)
+          return
+        }
+        // Auth unification next : if email has multi-site credentials, redirect to hub
+        // for one-time password unification. Token is HMAC-signed (5min TTL, single-use).
+        if (unificationUrl) {
+          window.location.assign(unificationUrl)
           return
         }
         // If device supports biometric AND user has NO passkey yet for this site,
