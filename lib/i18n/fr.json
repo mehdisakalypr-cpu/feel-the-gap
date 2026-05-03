@@ -288,10 +288,10 @@
     ]
   },
   "home": {
-    "badge": "Plateforme SaaS · Données mondiales import/export",
-    "hero_title": "Trouvez où vendre",
-    "hero_title_accent": "avant tout le monde",
-    "hero_desc": "Feel The Gap analyse les flux commerciaux mondiaux pour identifier les marchés sous-approvisionnés. IA, données réelles, business plans actionnables.",
+    "badge": "Plateforme SaaS · Données import/export mondial",
+    "hero_title": "Identifie les opportunités",
+    "hero_title_accent": "de marché",
+    "hero_desc": "On t'accompagne de A à Z pour les saisir.",
     "cta_register": "Commencer gratuitement →",
     "cta_register_full": "S'inscrire et commencer gratuitement →",
     "cta_signin": "Déjà inscrit ? Se connecter",
