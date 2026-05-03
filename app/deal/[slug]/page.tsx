@@ -44,7 +44,8 @@ interface DealRoomRow {
   migrated_at: string | null
 }
 
-const OFA_BASE = process.env.OFA_PUBLIC_BASE_URL || 'https://one-for-all-app.vercel.app'
+// TODO custom domain client-facing (ex: sites.feel-the-gap.com) pour ne plus exposer Vercel raw URL OFA
+const OFA_BASE = process.env.OFA_PUBLIC_BASE_URL || 'https://one-for-all-app.vercel.app' // @admin-leak-allowed
 
 async function getRoom(slug: string): Promise<DealRoomRow | null> {
   const { data } = await sb()

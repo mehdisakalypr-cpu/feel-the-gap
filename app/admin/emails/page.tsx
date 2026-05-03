@@ -95,6 +95,7 @@ export default async function EmailsHubPage({ searchParams }: { searchParams: Pr
       <h1 style={{ fontSize: 28, fontWeight: 800, margin: '6px 0 8px' }}>📧 Emails</h1>
       <p style={{ color: C.muted, fontSize: 14, lineHeight: 1.6, marginBottom: 20, maxWidth: 760 }}>
         Templates Resend FTG-spécifiques. Le hub cross-portfolio (welcome + launch-bonus) vit sur{' '}
+        {/* @admin-leak-allowed (page /admin/emails, founder-only auth gate) */}
         <a href="https://cc-dashboard.vercel.app/admin/emails" style={{ color: C.accent, textDecoration: 'none' }}>cc-dashboard.vercel.app/admin/emails ↗</a>.
       </p>
 

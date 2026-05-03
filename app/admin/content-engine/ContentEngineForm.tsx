@@ -18,7 +18,9 @@ const MODES = [
 
 const SAAS_LIST = [
   { value: 'ftg', label: 'Feel The Gap' },
+  // @admin-leak-allowed (form admin /admin/content-engine, founder-only)
   { value: 'ofa', label: 'One For All' },
+  // @admin-leak-allowed
   { value: 'estate', label: 'The Estate' },
   { value: 'aici', label: 'AICI' },
   { value: 'aiplb', label: 'AIPLB' },

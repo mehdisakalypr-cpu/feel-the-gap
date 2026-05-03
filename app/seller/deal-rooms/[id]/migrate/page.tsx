@@ -35,7 +35,8 @@ interface Room {
   migrated_at: string | null
 }
 
-const OFA_BASE = process.env.OFA_PUBLIC_BASE_URL || 'https://one-for-all-app.vercel.app'
+// TODO custom domain (cf. app/deal/[slug]/page.tsx note)
+const OFA_BASE = process.env.OFA_PUBLIC_BASE_URL || 'https://one-for-all-app.vercel.app' // @admin-leak-allowed
 
 export default async function MigrateDealRoomPage({
   params,
