@@ -4,6 +4,7 @@
 import { useState, useCallback, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { PasswordField } from '@/components/auth/PasswordField'
 
 interface Props {
   slug: string
@@ -74,7 +75,13 @@ export function RegisterForm({ slug, storeName, postLoginPath }: Props) {
     <form onSubmit={submit} className="space-y-4 rounded-2xl border border-[rgba(201,168,76,.15)] bg-[#0D1117] p-6">
       <Field label="Nom complet" id="reg-full-name" type="text" autoComplete="name" required value={fullName} onChange={setFullName} />
       <Field label="Email" id="reg-email" type="email" autoComplete="email" required value={email} onChange={setEmail} />
-      <Field label="Mot de passe" id="reg-password" type="password" autoComplete="new-password" required minLength={12} value={password} onChange={setPassword} hint="12 caractères minimum" />
+      <div className="space-y-1">
+        <label htmlFor="reg-password" className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+          Mot de passe
+        </label>
+        <PasswordField name="password" autoComplete="new-password" required minLength={12} value={password} onChange={setPassword} />
+        <div className="text-[10px] text-gray-500">12 caractères minimum</div>
+      </div>
 
       <label htmlFor="reg-accept" className="flex items-start gap-2 text-xs text-gray-400">
         <input

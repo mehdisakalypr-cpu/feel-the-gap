@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useEffect, type FormEvent } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
+import { PasswordField } from '@/components/auth/PasswordField'
 
 interface Props {
   slug: string
@@ -106,9 +107,19 @@ export function ProfileForm({ slug, email }: Props) {
 
       <form onSubmit={submitPwd} className="space-y-4 rounded-2xl border border-[rgba(201,168,76,.15)] bg-[#0D1117] p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-300">Mot de passe</h2>
-        <Field label="Mot de passe actuel" id="pwd-current" type="password" autoComplete="current-password" required value={currentPwd} onChange={setCurrentPwd} />
-        <Field label="Nouveau mot de passe" id="pwd-next" type="password" autoComplete="new-password" required value={nextPwd} onChange={setNextPwd} hint="12 caractères minimum" />
-        <Field label="Confirmer" id="pwd-confirm" type="password" autoComplete="new-password" required value={confirmPwd} onChange={setConfirmPwd} />
+        <div className="space-y-1">
+          <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">Mot de passe actuel</label>
+          <PasswordField name="current_password" autoComplete="current-password" required value={currentPwd} onChange={setCurrentPwd} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">Nouveau mot de passe</label>
+          <PasswordField name="new_password" autoComplete="new-password" required value={nextPwd} onChange={setNextPwd} />
+          <div className="text-[10px] text-gray-500">12 caractères minimum</div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold uppercase tracking-wide text-gray-400">Confirmer</label>
+          <PasswordField name="confirm_password" autoComplete="new-password" required value={confirmPwd} onChange={setConfirmPwd} />
+        </div>
         {pwdMsg && (
           <div role="alert" className={`rounded-xl border px-3 py-2 text-sm ${pwdMsg.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
             {pwdMsg.msg}
