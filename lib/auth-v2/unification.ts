@@ -12,6 +12,7 @@
  */
 import crypto from 'node:crypto'
 import { supabaseAdmin } from './supabase-server'
+import { isClientPoolSite, CLIENT_FACING_POOL } from './auth-pools'
 
 const TOKEN_TTL_SEC = 5 * 60
 
@@ -51,13 +52,27 @@ export async function detectLegacyCredentials(email: string): Promise<LegacyCred
 }
 
 /**
- * Returns true iff the email has >1 active (non-superseded) credential row.
- * A user already unified will have all rows superseded except hub_users.
+ * Returns true iff the email has credentials on >1 site of the CLIENT_FACING_POOL
+ * (currently {ftg, hub}). Sites of the ADMIN_SEPARATE_POOL (cc, ofa, estate) are
+ * EXPLICITLY IGNORED — they have separate credentials by design (security boundary).
+ *
+ * Voir lib/auth-v2/auth-pools.ts pour la rationale.
  */
 export function needsUnification(creds: LegacyCredential[]): boolean {
-  const active = creds.filter(c => !c.superseded)
-  return active.length > 1
+  const activeClientPool = creds.filter(
+    (c) => !c.superseded && isClientPoolSite(c.site_slug),
+  )
+  // Need >= 2 distinct sites of the client pool (e.g. ftg AND hub) to trigger
+  const distinctSites = new Set(activeClientPool.map((c) => c.site_slug))
+  return distinctSites.size >= 2
 }
+
+/** Filter helper exposed for the hub /auth/unify page UI */
+export function filterClientPoolCredentials(creds: LegacyCredential[]): LegacyCredential[] {
+  return creds.filter((c) => isClientPoolSite(c.site_slug))
+}
+
+export { CLIENT_FACING_POOL }
 
 /**
  * Mints a cross-domain one-time token + persists hash to unification_tokens
