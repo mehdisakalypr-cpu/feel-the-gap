@@ -14,6 +14,7 @@ import DemoTour from '@/components/DemoTour'
 import ContactWidget from '@/components/ContactWidget'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import AnalyticsTracker from "@/components/AnalyticsTracker";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
@@ -97,6 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </LanguageProvider>
         <Analytics />
         <SpeedInsights />
+              <AnalyticsTracker />
       </body>
     </html>
   )
