@@ -355,7 +355,7 @@ Voir ma commande : ${orderUrl}`
 
   try {
     const resend = new Resend(key)
-    const from = process.env.AUTH_EMAIL_FROM || `${storeName} <onboarding@resend.dev>`
+    const from = process.env.AUTH_EMAIL_FROM || process.env.EMAIL_FROM || `${storeName} <noreply@gapup.io>`
     await resend.emails.send({
       from,
       to: order.buyer_email,

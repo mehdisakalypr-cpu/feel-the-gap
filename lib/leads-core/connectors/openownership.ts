@@ -105,8 +105,7 @@ function extractBestName(names: BodsName[] | undefined): {
 async function lookupCompanyId(entityStatementId: string): Promise<string | null> {
   if (!entityStatementId) return null
   const sb = vaultClient()
-  const { data } = await sb
-    .from('lv_companies')
+  const { data } = await (sb.from as any)('lv_companies')
     .select('id')
     .contains('source_ids', { openownership: entityStatementId })
     .limit(1)
@@ -139,8 +138,7 @@ export async function runOpenOwnershipIngest(opts: ConnectorOptions = {}): Promi
 
     let sentinelCompanyId: string | null = null
     {
-      const { data: existing } = await sb
-        .from('lv_companies')
+      const { data: existing } = await (sb.from as any)('lv_companies')
         .select('id')
         .eq('primary_source', 'opencorporates')
         .eq('crn', '__openownership_sentinel__')
@@ -148,8 +146,7 @@ export async function runOpenOwnershipIngest(opts: ConnectorOptions = {}): Promi
       if (existing) {
         sentinelCompanyId = (existing as { id: string }).id
       } else if (!opts.dryRun) {
-        const { data: ins } = await sb
-          .from('lv_companies')
+        const { data: ins } = await (sb.from as any)('lv_companies')
           .insert({
             crn: '__openownership_sentinel__',
             legal_name: 'OpenOwnership Data — Aggregate',
@@ -182,7 +179,7 @@ export async function runOpenOwnershipIngest(opts: ConnectorOptions = {}): Promi
     const flush = async (): Promise<void> => {
       if (!batch.length) return
       if (!opts.dryRun) {
-        const { error } = await sb.from('lv_persons').insert(batch)
+        const { error } = await (sb.from as any)('lv_persons').insert(batch)
         if (error && !error.message.includes('duplicate')) {
           console.error('[openownership] insert error', error.message)
           result.rows_skipped += batch.length

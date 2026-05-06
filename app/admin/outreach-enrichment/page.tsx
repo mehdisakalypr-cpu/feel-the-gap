@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import OutreachEnrichmentClient from './OutreachEnrichmentClient'
+import AutoEnrichButton from './AutoEnrichButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,6 +108,8 @@ export default async function OutreachEnrichmentPage() {
         </div>
 
         {snapshots.length > 0 && <TrendStrip snapshots={snapshots as Snapshot[]} />}
+
+        <AutoEnrichButton />
 
         <OutreachEnrichmentClient initialDemos={demos} />
       </div>

@@ -170,8 +170,8 @@ function scoreMatch(v: Volume, d: Demand): { score: number; notes: Record<string
 async function main() {
   console.log(`\n[matcher] 🔍 Scan marketplace — product=${argv.product ?? 'ALL'} floor=${argv.floor} limit=${argv.limit} commission=${argv.commission}%${argv.dryRun ? ' [DRY-RUN]' : ''}`)
 
-  let vq = db.from('production_volumes').select('*').eq('status', 'open').limit(argv.limit)
-  let dq = db.from('buyer_demands').select('*').eq('status', 'open').limit(argv.limit)
+  let vq = db.from('production_volumes').select('*').eq('status', 'open').eq('is_seed', false).limit(argv.limit)
+  let dq = db.from('buyer_demands').select('*').eq('status', 'open').eq('is_seed', false).limit(argv.limit)
   if (argv.product) {
     vq = vq.eq('product_slug', argv.product)
     dq = dq.eq('product_slug', argv.product)

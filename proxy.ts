@@ -2,6 +2,35 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { redirectPathForClosedRole } from '@/lib/open-roles'
 
+// ── Hub SSO HMAC verify (Web Crypto, edge-runtime safe) ─────────────────────
+function _b64UrlDecode(str: string): string {
+  let s = str.replace(/-/g, '+').replace(/_/g, '/')
+  while (s.length % 4) s += '='
+  return atob(s)
+}
+function _bufToHex(buf: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+async function verifyHubSessionEdge(token: string): Promise<boolean> {
+  try {
+    const secret = process.env.HUB_SHARED_SECRET
+    if (!secret || secret.length < 16) return false
+    const decoded = _b64UrlDecode(token)
+    const [userId, expStr, sig] = decoded.split('|')
+    if (!userId || !expStr || !sig) return false
+    if (Date.now() > Number(expStr)) return false
+    const enc = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw', enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    )
+    const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(`${userId}|${expStr}`))
+    return _bufToHex(sigBuf) === sig
+  } catch {
+    return false
+  }
+}
+
 // ── Public pages — no auth required ──────────────────────────────────────────
 const PUBLIC_PAGES = new Set([
   '/',
@@ -22,17 +51,21 @@ const PUBLIC_PAGES = new Set([
   '/invest',           // Investisseur landing page (public)
   '/invest/signup',    // Investisseur signup (public — auth check inside page)
   '/invest/waitlist',  // Public waitlist (closed-role gate target)
+  '/companies',     // ReviewNest top index — public SEO surface
+  '/trade-shows',   // TradeShowGen index — public SEO surface
 ])
 
 const PUBLIC_PAGE_PREFIXES = [
-  '/auth/',      // login, register, forgot, reset-password, callback, biometric-setup
-  '/go/',        // affiliate redirect links
-  '/reports/',   // country reports (tier-gated in page)
-  '/country/',   // country detail pages (tier-gated in page)
-  '/demo/',      // demo tour pages (public access)
-  '/seller/',    // public seller mini-sites /seller/[slug] (catalogue B2B)
-  '/docs/',      // /docs/api (Swagger) + /docs/api/webhooks (verification snippets)
-  '/tools/',     // free import/export tools (lead magnets, gated by email not auth)
+  '/auth/',         // login, register, forgot, reset-password, callback, biometric-setup
+  '/go/',           // affiliate redirect links
+  '/reports/',      // country reports (tier-gated in page)
+  '/country/',      // country detail pages (tier-gated in page)
+  '/demo/',         // demo tour pages (public access)
+  '/seller/',       // public seller mini-sites /seller/[slug] (catalogue B2B)
+  '/docs/',         // /docs/api (Swagger) + /docs/api/webhooks (verification snippets)
+  '/tools/',        // free import/export tools (lead magnets, gated by email not auth)
+  '/companies/',    // ReviewNest /companies/[country]/[slug] + /companies/remove (public SEO)
+  '/trade-shows/',  // TradeShowGen /trade-shows/[slug] (public SEO)
 ]
 
 // ── Public API routes — no auth required ─────────────────────────────────────
@@ -63,6 +96,9 @@ const PUBLIC_API = new Set([
   '/api/health',                      // Readiness probe (DB + env checks) — consumed by uptime monitors
   '/api/parcours-state',              // Public parcours open/closed state
   '/api/geo',                         // Public geo-pricing resolution
+  '/api/companies-sitemap-index',     // Public sitemap index for ReviewNest crawl
+  '/api/trade-shows-sitemap',         // Public sitemap for TradeShowGen
+  '/api/companies/remove-request',    // Public RGPD removal form POST
 ])
 
 const PUBLIC_API_READONLY_PREFIXES = [
@@ -78,6 +114,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/v1/',             // API Platform (Bearer token auth done in route, not middleware)
   '/api/transport/',      // Transport quotes (public, no auth — just a quote estimator)
   '/api/tools/',          // Free tools (EORI validator etc.) — gated by email, not auth
+  '/api/companies-sitemap/', // Public sitemap chunks (50k URLs each)
 ]
 
 // ── Admin routes — require admin role ────────────────────────────────────────
@@ -173,6 +210,15 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/api/') && isPublicApi(pathname)) return withCountry(NextResponse.next({ request: { headers: forwardHeaders } }))
 
   // ── Auth check for all other routes ────────────────────────────────────────
+
+  // Hub SSO short-circuit — recognize `gapup_session` cookie issued by either
+  // the hub directly (.gapup.io subdomains) or the local /auth/sso-callback
+  // (cross-domain exchange). HMAC verified with HUB_SHARED_SECRET (shared).
+  const hubToken = request.cookies.get('gapup_session')?.value
+  if (hubToken && (await verifyHubSessionEdge(hubToken))) {
+    return withCountry(NextResponse.next({ request: { headers: forwardHeaders } }))
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   let response = NextResponse.next({ request: { headers: forwardHeaders } })

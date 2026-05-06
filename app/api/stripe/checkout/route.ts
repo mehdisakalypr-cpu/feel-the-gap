@@ -52,18 +52,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/pricing?err=invalid', req.url))
   }
   const priceId = PRICE_IDS[key]
-  if (!priceId) {
-    return NextResponse.redirect(new URL(`/pricing?err=setup_required&key=${key}`, req.url))
+
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  const stripeReady = stripeKey && !stripeKey.includes('REMPLACER') && !!priceId
+  if (!stripeReady) {
+    const wlUrl = new URL('/waitlist', req.url)
+    if (plan) wlUrl.searchParams.set('plan', plan)
+    if (pack) wlUrl.searchParams.set('pack', pack)
+    return NextResponse.redirect(wlUrl)
   }
 
   const user = await getAuthUser()
   if (!user) {
     return NextResponse.redirect(new URL(`/auth/login?next=/api/stripe/checkout?${req.nextUrl.searchParams.toString()}`, req.url))
-  }
-
-  const stripeKey = process.env.STRIPE_SECRET_KEY
-  if (!stripeKey || stripeKey.includes('REMPLACER')) {
-    return NextResponse.redirect(new URL('/pricing?err=stripe_not_configured', req.url))
   }
 
   const Stripe = (await import('stripe')).default

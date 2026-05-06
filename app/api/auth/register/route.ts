@@ -30,6 +30,7 @@ import {
   logEvent,
   setSitePassword,
 } from '@/lib/auth-v2'
+import { sendWelcome } from '@/lib/emails/welcome'
 
 // Pinned version of the consolidated terms (CGU + mentions + privacy).
 // When you change any of those legal pages, bump this tag AND regenerate TERMS_HASH.
@@ -193,6 +194,36 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     // Email send failure is non-fatal for account creation; user can resend via forgot/resend flow.
     await logEvent({ userId: user.id, event: 'register_fail', ip, ua, meta: { reason: 'email_send', err: (e as Error).message.slice(0, 140) } })
+  }
+
+  // Welcome email (transactional, post-signup) — separate from the OTP verify mail.
+  // Locale derived from Accept-Language; non-fatal on failure.
+  try {
+    const acceptLang = req.headers.get('accept-language') ?? ''
+    const locale: 'fr' | 'en' = /^fr\b/i.test(acceptLang) ? 'fr' : 'en'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://feel-the-gap.vercel.app'
+    const result = await sendWelcome(
+      {
+        productName: cfg.appName ?? 'Feel The Gap',
+        productUrl: appUrl,
+        fromAddress: process.env.EMAIL_FROM,
+        supportEmail: process.env.SUPPORT_EMAIL ?? 'support@gapup.io',
+      },
+      locale,
+      {
+        firstName: displayName || undefined,
+        email,
+        loginUrl: `${appUrl}/login`,
+        pricingUrl: `${appUrl}/offres`,
+        demoUrl: `${appUrl}/demo`,
+        unsubscribeUrl: `${appUrl}/account/notifications?email=${encodeURIComponent(email)}&topic=transactional`,
+      },
+    )
+    if (!result.ok) {
+      await logEvent({ userId: user.id, event: 'register_fail', ip, ua, meta: { reason: 'welcome_send', err: result.reason.slice(0, 140) } })
+    }
+  } catch (e) {
+    await logEvent({ userId: user.id, event: 'register_fail', ip, ua, meta: { reason: 'welcome_send', err: (e as Error).message.slice(0, 140) } })
   }
 
   await logEvent({ userId: user.id, event: 'register_ok', ip, ua })

@@ -33,7 +33,7 @@ async function sendEmail(to: string, subject: string, html: string) {
   try {
     const resend = new Resend(key)
     await resend.emails.send({
-      from:    'Feel The Gap <onboarding@resend.dev>',
+      from:    process.env.EMAIL_FROM || 'Feel The Gap <noreply@gapup.io>',
       to,
       subject,
       html,

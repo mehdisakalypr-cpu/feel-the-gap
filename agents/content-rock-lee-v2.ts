@@ -63,7 +63,7 @@ export async function generateProductCountryVideos(
         }
       } catch (e: any) {
         const msg = e?.message || ''
-        if (/quota|403|not configured/i.test(msg)) {
+        if (/quota|403|not configured|exhausted|all keys/i.test(msg)) {
           console.warn(`[rock-lee-v2] stopping: ${msg.slice(0, 80)}`)
           // Sort de toutes les boucles, on renvoie ce qu'on a
           return await finalize(all, queriesRan, productName, countryName)

@@ -69,13 +69,13 @@ export function PasswordField({
           disabled={disabled}
           minLength={minLength}
           autoFocus={autoFocus}
-          className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 pr-10 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-neutral-400 focus:outline-none"
+          className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 pr-12 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-neutral-400 focus:outline-none"
           spellCheck={false}
         />
         <button
           type="button"
           onClick={() => setShown(s => !s)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-neutral-400 hover:text-neutral-100 focus:text-neutral-100 focus:outline-none"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full border border-black/15 bg-white text-black shadow hover:bg-amber-100 aria-pressed:bg-amber-300 disabled:opacity-50"
           aria-label={shown ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           aria-pressed={shown}
           tabIndex={-1}

@@ -20,10 +20,13 @@ import { splitFullName } from './role-classifier'
 import type { LvPersonInsert, LvContactInsert, ConnectorOptions, SyncResult } from '../types'
 
 const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql'
-const WIKIDATA_BATCH = 20
-const SLEEP_MS = 5000
+// Wikidata SPARQL endpoint is rate-limited and degrades on big batches.
+// Run du 27/04 a vu des timeouts systématiques sur batches >1900. Réduit à 10
+// par requête + sleep allongé, batch DB inchangé.
+const WIKIDATA_BATCH = 10
+const SLEEP_MS = 8000
 const BATCH_SIZE = 100
-const MAX_RETRY = 2
+const MAX_RETRY = 3
 const UA = 'feel-the-gap-leadsvault/1.0 (https://gapup.io; mehdi.sakalypr@gmail.com)'
 
 function sleep(ms: number): Promise<void> {
@@ -240,7 +243,7 @@ export async function runPersonsWikidata(opts: ConnectorOptions = {}): Promise<S
           role_seniority: seniority,
           decision_maker_score: score,
           linkedin_url: linkedinUrl || undefined,
-          primary_source: 'opencorporates',
+          primary_source: 'wikidata',
         })
 
         if (linkedinUrl) {
@@ -249,7 +252,7 @@ export async function runPersonsWikidata(opts: ConnectorOptions = {}): Promise<S
             contact_type: 'linkedin',
             contact_value: linkedinUrl,
             verify_status: 'unverified',
-            primary_source: 'opencorporates',
+            primary_source: 'wikidata',
           })
         }
       }

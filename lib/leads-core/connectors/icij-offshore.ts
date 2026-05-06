@@ -146,8 +146,7 @@ export async function runIcijOffshoreIngest(opts: ConnectorOptions = {}): Promis
     // Sentinel company for ICIJ officers (offshore context, no specific company match)
     let sentinelCompanyId: string | null = null
     {
-      const { data: existing } = await sb
-        .from('lv_companies')
+      const { data: existing } = await (sb.from as any)('lv_companies')
         .select('id')
         .eq('primary_source', 'opencorporates')
         .eq('crn', '__icij_offshore_sentinel__')
@@ -155,8 +154,7 @@ export async function runIcijOffshoreIngest(opts: ConnectorOptions = {}): Promis
       if (existing) {
         sentinelCompanyId = (existing as { id: string }).id
       } else if (!opts.dryRun) {
-        const { data: ins } = await sb
-          .from('lv_companies')
+        const { data: ins } = await (sb.from as any)('lv_companies')
           .insert({
             crn: '__icij_offshore_sentinel__',
             legal_name: 'ICIJ Offshore Leaks — Aggregate',
@@ -190,7 +188,7 @@ export async function runIcijOffshoreIngest(opts: ConnectorOptions = {}): Promis
     const flush = async (): Promise<void> => {
       if (!batch.length) return
       if (!opts.dryRun) {
-        const { error } = await sb.from('lv_persons').insert(batch)
+        const { error } = await (sb.from as any)('lv_persons').insert(batch)
         if (error && !error.message.includes('duplicate')) {
           console.error('[icij] insert error', error.message)
           result.rows_skipped += batch.length

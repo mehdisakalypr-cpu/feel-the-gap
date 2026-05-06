@@ -208,6 +208,8 @@ export default function HomePage() {
         <Link href="/pricing" className="hover:text-gray-400">{t('home.footer_pricing')}</Link>
         {' · '}
         <a href="mailto:hello@feelthegap.com" className="hover:text-gray-400">{t('home.footer_contact')}</a>
+        {' · '}
+        <a href="https://hub.gapup.io" target="_blank" rel="noopener" className="hover:text-gray-400">All gapup.io tools →</a>
       </footer>
     </div>
   )

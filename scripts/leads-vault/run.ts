@@ -20,11 +20,13 @@ import {
   runHandelsregisterIngest,
   runMercantilEsIngest,
   runRegistroimpreseItIngest,
+  runGleifIngest,
   runOpenCorporatesIngest,
   runEoriValidate,
   runOsmIngest,
   runCommonCrawlIngest,
   runMailscoutVerify,
+  runNeverBounceVerify,
   runProjectSync,
   runPersonsUkCh,
   runPersonsFrInpi,
@@ -47,11 +49,33 @@ import {
   runDirectoriesEu,
   runGmapsGosomEnrich,
   runSchemaJsonLdCrawl,
+  runZefixChIngest,
+  runKrsPlIngest,
+  runKboBeIngest,
+  runRnpcPtIngest,
+  runCroIeIngest,
+  runKvkNlIngest,
+  runCvrDkIngest,
+  runBolagsverketSeIngest,
+  runOnrcRoIngest,
+  runOrsrSkIngest,
+  runRfbBrIngest,
+  runAfricaTldsIngest,
+  runMcaInIngest,
+  runAsiaEmergingIngest,
+  runExploriumEnrich,
+  runApifyGmaps,
+  runApifyLinkedinCompany,
 } from '../../lib/leads-core'
 
-function parseArgs(argv: string[]): { command: string; opts: Record<string, string | boolean> } {
+type OptValue = string | boolean
+type Opts = Record<string, OptValue>
+type Ctx = { limit: number | undefined; dryRun: boolean; project: string | undefined; opts: Opts }
+type Handler = (ctx: Ctx) => Promise<unknown>
+
+function parseArgs(argv: string[]): { command: string; opts: Opts } {
   const command = argv[2] ?? 'help'
-  const opts: Record<string, string | boolean> = {}
+  const opts: Opts = {}
   for (const arg of argv.slice(3)) {
     if (arg.startsWith('--')) {
       const [k, v] = arg.slice(2).split('=')
@@ -61,228 +85,193 @@ function parseArgs(argv: string[]): { command: string; opts: Record<string, stri
   return { command, opts }
 }
 
+function getString(opts: Opts, key: string): string | undefined {
+  const v = opts[key]
+  return typeof v === 'string' ? v : undefined
+}
+
+function getNumber(opts: Opts, key: string): number | undefined {
+  const v = opts[key]
+  return typeof v === 'string' ? Number(v) : undefined
+}
+
+function getCsv(opts: Opts, key: string): string[] | undefined {
+  const v = getString(opts, key)
+  return v ? v.split(',') : undefined
+}
+
+/** Wraps a connector call with the standard `{ limit, dryRun }` signature and prints JSON. */
+function basic(fn: (o: { limit?: number; dryRun?: boolean }) => Promise<unknown>): Handler {
+  return async ({ limit, dryRun }) => fn({ limit, dryRun })
+}
+
+const handlers: Record<string, Handler> = {
+  sirene: basic(runSireneIngest),
+  'companies-house': basic(runCompaniesHouseIngest),
+  ch: basic(runCompaniesHouseIngest),
+  osm: basic(runOsmIngest),
+  'common-crawl': async ({ limit, dryRun, opts }) =>
+    runCommonCrawlIngest({ limit, dryRun, tlds: getCsv(opts, 'tlds'), crawl: getString(opts, 'crawl') }),
+  cc: async ({ limit, dryRun, opts }) =>
+    runCommonCrawlIngest({ limit, dryRun, tlds: getCsv(opts, 'tlds'), crawl: getString(opts, 'crawl') }),
+  handelsregister: basic(runHandelsregisterIngest),
+  hreg: basic(runHandelsregisterIngest),
+  mercantil: basic(runMercantilEsIngest),
+  'mercantil-es': basic(runMercantilEsIngest),
+  registroimprese: basic(runRegistroimpreseItIngest),
+  'ri-it': basic(runRegistroimpreseItIngest),
+  gleif: async ({ limit, dryRun, opts }) =>
+    runGleifIngest({ limit, dryRun, countries: getCsv(opts, 'countries'), maxPagesPerCountry: getNumber(opts, 'max-pages') }),
+  opencorporates: async ({ limit, dryRun, opts }) =>
+    runOpenCorporatesIngest({ limit, dryRun, jurisdictions: getCsv(opts, 'jurisdictions') } as any),
+  oc: async ({ limit, dryRun, opts }) =>
+    runOpenCorporatesIngest({ limit, dryRun, jurisdictions: getCsv(opts, 'jurisdictions') } as any),
+  eori: basic(runEoriValidate),
+  verify: async ({ limit }) => runMailscoutVerify({ limit }),
+  'verify-neverbounce': async ({ limit, opts }) =>
+    runNeverBounceVerify({
+      limit,
+      reverifyStatuses: getCsv(opts, 'statuses') ?? ['valid'],
+      personBoundOnly: opts?.['all'] ? false : true,
+    }),
+  neverbounce: async ({ limit, opts }) =>
+    runNeverBounceVerify({
+      limit,
+      reverifyStatuses: getCsv(opts, 'statuses') ?? ['valid'],
+      personBoundOnly: opts?.['all'] ? false : true,
+    }),
+  sync: async ({ limit, project, opts }) =>
+    runProjectSync({ project, limit, country: getString(opts, 'country') }),
+  'persons-uk': basic(runPersonsUkCh),
+  'persons-uk-ch': basic(runPersonsUkCh),
+  'persons-fr': basic(runPersonsFrInpi),
+  'persons-fr-inpi': basic(runPersonsFrInpi),
+  'persons-no': basic(runPersonsNoBrreg),
+  'persons-no-brreg': basic(runPersonsNoBrreg),
+  'persons-fi': basic(runPersonsFiPrh),
+  'persons-fi-prh': basic(runPersonsFiPrh),
+  'persons-cz': basic(runPersonsCzAres),
+  'persons-cz-ares': basic(runPersonsCzAres),
+  'persons-ee': basic(runPersonsEeAriregister),
+  'persons-ee-ariregister': basic(runPersonsEeAriregister),
+  'persons-github': basic(runPersonsGithub),
+  github: basic(runPersonsGithub),
+  'persons-wikidata': basic(runPersonsWikidata),
+  wikidata: basic(runPersonsWikidata),
+  'persons-sec': basic(runPersonsSecEdgar),
+  'sec-edgar': basic(runPersonsSecEdgar),
+  'domain-search': basic(runDomainSearch),
+  openownership: basic(runOpenOwnershipIngest),
+  oo: basic(runOpenOwnershipIngest),
+  opensanctions: basic(runOpenSanctionsIngest),
+  peps: basic(runOpenSanctionsIngest),
+  icij: basic(runIcijOffshoreIngest),
+  'icij-offshore': basic(runIcijOffshoreIngest),
+  'persons-linkedin': basic(runPersonsLinkedinSerp),
+  linkedin: basic(runPersonsLinkedinSerp),
+  'email-permutator': async ({ limit, dryRun, opts }) =>
+    runEmailPermutator({ limit, dryRun, maxSmtpProbes: getNumber(opts, 'max-probes') }),
+  permutator: async ({ limit, dryRun, opts }) =>
+    runEmailPermutator({ limit, dryRun, maxSmtpProbes: getNumber(opts, 'max-probes') }),
+  'hibp-check': basic(runHibpCheck),
+  hibp: basic(runHibpCheck),
+  'phone-numverify': basic(runPhoneNumverify),
+  'phone-validate': basic(runPhoneNumverify),
+  numverify: basic(runPhoneNumverify),
+  'cc-mailto': async ({ limit, dryRun, opts }) =>
+    runCommonCrawlMailto({ limit, dryRun, crawl: getString(opts, 'crawl'), patterns: getCsv(opts, 'patterns') }),
+  'directories-eu': async ({ limit, dryRun, opts }) =>
+    runDirectoriesEu({ limit, dryRun, enableKompass: !!opts['enable-kompass'] }),
+  'dir-eu': async ({ limit, dryRun, opts }) =>
+    runDirectoriesEu({ limit, dryRun, enableKompass: !!opts['enable-kompass'] }),
+  'gmaps-gosom': basic(runGmapsGosomEnrich),
+  gmaps: basic(runGmapsGosomEnrich),
+  'schema-crawl': basic(runSchemaJsonLdCrawl),
+  jsonld: basic(runSchemaJsonLdCrawl),
+  'zefix-ch': async ({ limit, dryRun, opts }) =>
+    runZefixChIngest({ limit, dryRun, cantons: getCsv(opts, 'cantons') }),
+  zefix: async ({ limit, dryRun, opts }) =>
+    runZefixChIngest({ limit, dryRun, cantons: getCsv(opts, 'cantons') }),
+  'krs-pl': async ({ limit, dryRun, opts }) =>
+    runKrsPlIngest({ limit, dryRun, start: getNumber(opts, 'start') }),
+  pl: async ({ limit, dryRun, opts }) =>
+    runKrsPlIngest({ limit, dryRun, start: getNumber(opts, 'start') }),
+  'kbo-be': basic(runKboBeIngest),
+  be: basic(runKboBeIngest),
+  'rnpc-pt': basic(runRnpcPtIngest),
+  pt: basic(runRnpcPtIngest),
+  'cro-ie': basic(runCroIeIngest),
+  ie: basic(runCroIeIngest),
+  'kvk-nl': basic(runKvkNlIngest),
+  nl: basic(runKvkNlIngest),
+  'cvr-dk': basic(runCvrDkIngest),
+  dk: basic(runCvrDkIngest),
+  'bolagsverket-se': basic(runBolagsverketSeIngest),
+  se: basic(runBolagsverketSeIngest),
+  'onrc-ro': basic(runOnrcRoIngest),
+  ro: basic(runOnrcRoIngest),
+  'orsr-sk': basic(runOrsrSkIngest),
+  sk: basic(runOrsrSkIngest),
+  'rfb-br': async ({ limit, dryRun, opts }) =>
+    runRfbBrIngest({ limit, dryRun, uf: getString(opts, 'uf') }),
+  br: async ({ limit, dryRun, opts }) =>
+    runRfbBrIngest({ limit, dryRun, uf: getString(opts, 'uf') }),
+  africa: async ({ limit, dryRun, opts }) =>
+    runAfricaTldsIngest({ limit, dryRun, mode: getString(opts, 'mode') as any }),
+  'mca-in': basic(runMcaInIngest),
+  in: basic(runMcaInIngest),
+  'asia-emerging': async ({ limit, dryRun, opts }) =>
+    runAsiaEmergingIngest({ limit, dryRun, country: getString(opts, 'country') }),
+  id: async ({ limit, dryRun }) =>
+    runAsiaEmergingIngest({ limit, dryRun, country: 'IDN' }),
+  vn: async ({ limit, dryRun }) =>
+    runAsiaEmergingIngest({ limit, dryRun, country: 'VNM' }),
+  ph: async ({ limit, dryRun }) =>
+    runAsiaEmergingIngest({ limit, dryRun, country: 'PHL' }),
+  explorium: basic(runExploriumEnrich),
+  exp: basic(runExploriumEnrich),
+  'apify-gmaps': async ({ limit, dryRun, opts }) =>
+    runApifyGmaps({ limit, dryRun, searches: getCsv(opts, 'searches'), location: getString(opts, 'location') }),
+  'apify-linkedin': async ({ limit, dryRun, opts }) =>
+    runApifyLinkedinCompany({ limit, dryRun, domains: getCsv(opts, 'domains') }),
+  /** Special: chains sirene → companies-house → osm → verify → sync. dryRun is intentionally NOT forwarded. */
+  all: async ({ limit }) => {
+    console.log('▶ Sirene...')
+    console.log(JSON.stringify(await runSireneIngest({ limit }), null, 2))
+    console.log('▶ Companies House...')
+    console.log(JSON.stringify(await runCompaniesHouseIngest({ limit }), null, 2))
+    console.log('▶ OSM...')
+    console.log(JSON.stringify(await runOsmIngest({ limit }), null, 2))
+    console.log('▶ Verify...')
+    console.log(JSON.stringify(await runMailscoutVerify({ limit }), null, 2))
+    console.log('▶ Sync...')
+    console.log(JSON.stringify(await runProjectSync({ limit }), null, 2))
+    return undefined
+  },
+}
+
+const COMMAND_LIST =
+  'sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, zefix-ch, krs-pl, kbo-be, rnpc-pt, cro-ie, kvk-nl, cvr-dk, bolagsverket-se, onrc-ro, orsr-sk, rfb-br, africa, mca-in, asia-emerging, all'
+
 async function main(): Promise<void> {
   const { command, opts } = parseArgs(process.argv)
   const limit = opts.limit ? Number(opts.limit) : undefined
   const dryRun = !!opts['dry-run']
-  const project = typeof opts.project === 'string' ? opts.project : undefined
+  const project = getString(opts, 'project')
 
   console.log(`▶ leads-vault: ${command} ${JSON.stringify({ limit, dryRun, project })}`)
 
-  switch (command) {
-    case 'sirene': {
-      const r = await runSireneIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'companies-house':
-    case 'ch': {
-      const r = await runCompaniesHouseIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'osm': {
-      const r = await runOsmIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'common-crawl':
-    case 'cc': {
-      const tlds = typeof opts.tlds === 'string' ? (opts.tlds as string).split(',') : undefined
-      const crawl = typeof opts.crawl === 'string' ? (opts.crawl as string) : undefined
-      const r = await runCommonCrawlIngest({ limit, dryRun, tlds, crawl })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'handelsregister':
-    case 'hreg': {
-      const r = await runHandelsregisterIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'mercantil':
-    case 'mercantil-es': {
-      const r = await runMercantilEsIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'registroimprese':
-    case 'ri-it': {
-      const r = await runRegistroimpreseItIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'opencorporates':
-    case 'oc': {
-      const jurisdictions = typeof opts.jurisdictions === 'string' ? (opts.jurisdictions as string).split(',') : undefined
-      const r = await runOpenCorporatesIngest({ limit, dryRun, jurisdictions } as any)
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'eori': {
-      const r = await runEoriValidate({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'verify': {
-      const r = await runMailscoutVerify({ limit })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'sync': {
-      const country = typeof opts.country === 'string' ? (opts.country as string) : undefined
-      const r = await runProjectSync({ project, limit, country })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-uk':
-    case 'persons-uk-ch': {
-      const r = await runPersonsUkCh({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-fr':
-    case 'persons-fr-inpi': {
-      const r = await runPersonsFrInpi({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-no':
-    case 'persons-no-brreg': {
-      const r = await runPersonsNoBrreg({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-fi':
-    case 'persons-fi-prh': {
-      const r = await runPersonsFiPrh({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-cz':
-    case 'persons-cz-ares': {
-      const r = await runPersonsCzAres({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-ee':
-    case 'persons-ee-ariregister': {
-      const r = await runPersonsEeAriregister({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-github':
-    case 'github': {
-      const r = await runPersonsGithub({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-wikidata':
-    case 'wikidata': {
-      const r = await runPersonsWikidata({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-sec':
-    case 'sec-edgar': {
-      const r = await runPersonsSecEdgar({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'domain-search': {
-      const r = await runDomainSearch({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'openownership':
-    case 'oo': {
-      const r = await runOpenOwnershipIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'opensanctions':
-    case 'peps': {
-      const r = await runOpenSanctionsIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'icij':
-    case 'icij-offshore': {
-      const r = await runIcijOffshoreIngest({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'persons-linkedin':
-    case 'linkedin': {
-      const r = await runPersonsLinkedinSerp({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'email-permutator':
-    case 'permutator': {
-      const maxSmtpProbes = opts['max-probes'] ? Number(opts['max-probes']) : undefined
-      const r = await runEmailPermutator({ limit, dryRun, maxSmtpProbes })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'hibp-check':
-    case 'hibp': {
-      const r = await runHibpCheck({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'phone-numverify':
-    case 'phone-validate':
-    case 'numverify': {
-      const r = await runPhoneNumverify({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'cc-mailto': {
-      const crawl = typeof opts.crawl === 'string' ? (opts.crawl as string) : undefined
-      const patterns = typeof opts.patterns === 'string' ? (opts.patterns as string).split(',') : undefined
-      const r = await runCommonCrawlMailto({ limit, dryRun, crawl, patterns })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'directories-eu':
-    case 'dir-eu': {
-      const enableKompass = !!opts['enable-kompass']
-      const r = await runDirectoriesEu({ limit, dryRun, enableKompass })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'gmaps-gosom':
-    case 'gmaps': {
-      const r = await runGmapsGosomEnrich({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'schema-crawl':
-    case 'jsonld': {
-      const r = await runSchemaJsonLdCrawl({ limit, dryRun })
-      console.log(JSON.stringify(r, null, 2))
-      break
-    }
-    case 'all': {
-      console.log('▶ Sirene...')
-      console.log(JSON.stringify(await runSireneIngest({ limit }), null, 2))
-      console.log('▶ Companies House...')
-      console.log(JSON.stringify(await runCompaniesHouseIngest({ limit }), null, 2))
-      console.log('▶ OSM...')
-      console.log(JSON.stringify(await runOsmIngest({ limit }), null, 2))
-      console.log('▶ Verify...')
-      console.log(JSON.stringify(await runMailscoutVerify({ limit }), null, 2))
-      console.log('▶ Sync...')
-      console.log(JSON.stringify(await runProjectSync({ limit }), null, 2))
-      break
-    }
-    default:
-      console.log(`Unknown command: ${command}`)
-      console.log(
-        'Available: sirene, companies-house, handelsregister, mercantil, registroimprese, opencorporates, eori, osm, common-crawl, cc-mailto, verify, hibp-check, sync, persons-uk, persons-fr, persons-no, persons-fi, persons-cz, persons-ee, persons-github, persons-wikidata, persons-sec, persons-linkedin, domain-search, openownership, opensanctions, icij, email-permutator, phone-numverify, directories-eu, gmaps-gosom, schema-crawl, all',
-      )
-      process.exit(1)
+  const handler = handlers[command]
+  if (!handler) {
+    console.log(`Unknown command: ${command}`)
+    console.log(`Available: ${COMMAND_LIST}`)
+    process.exit(1)
+  }
+
+  const result = await handler({ limit, dryRun, project, opts })
+  // `all` prints incrementally and returns undefined; skip the final dump in that case.
+  if (result !== undefined) {
+    console.log(JSON.stringify(result, null, 2))
   }
 }
 

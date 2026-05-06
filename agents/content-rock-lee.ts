@@ -60,8 +60,10 @@ export async function generateYoutubeVideos(
       }
     } catch (e: any) {
       const msg = e?.message || ''
-      // quota exhausted or key missing → stop gracefully, return what we have
-      if (/quota|403|not configured/i.test(msg)) {
+      // quota exhausted, key missing, or all keys depleted → stop gracefully, return what we have.
+      // Le pattern "all keys exhausted" venait de youtube-api.ts et n'était pas matché auparavant,
+      // donc Rock Lee retentait pour chaque template = wall-time gaspillé en pure perte.
+      if (/quota|403|not configured|exhausted|all keys/i.test(msg)) {
         console.warn(`[rock-lee] stopping: ${msg.slice(0, 80)}`)
         break
       }

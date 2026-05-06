@@ -142,6 +142,10 @@ async function fetchCompany(siren: string): Promise<InpiCompany | null> {
     return fetchCompany(siren)
   }
   if (res.status === 429) {
+    const body = await res.text().catch(() => '')
+    if (body.includes('quota_exceeded') || body.includes('QUOTA_SERVICE')) {
+      throw new Error('INPI_QUOTA_EXHAUSTED')
+    }
     await new Promise((r) => setTimeout(r, 10_000))
     return fetchCompany(siren)
   }
@@ -187,7 +191,7 @@ function pouvoirToPerson(p: InpiPouvoir, companyId: string): LvPersonInsert | nu
     role: roleLabel,
     role_seniority: seniority,
     decision_maker_score: score,
-    primary_source: 'opencorporates' as const, // reuse source enum slot for INPI RNE
+    primary_source: 'inpi' as const,
   }
 }
 
@@ -211,48 +215,32 @@ function entrepreneurToPerson(
     role: 'Entrepreneur individuel',
     role_seniority: 'c-level',
     decision_maker_score: 100,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'inpi' as const,
   }
 }
 
 export async function runPersonsFrInpi(opts: ConnectorOptions = {}): Promise<SyncResult> {
   const t0 = Date.now()
   const totalLimit = opts.limit ?? 500
-  const PAGE_SIZE = 1000
   const client = vaultClient()
 
   type Row = { id: string; siren: string }
-  // Skip pre-RNE SIREN (< 300000000) — those are pre-1973 entities radiated, INPI returns 404
-  let lastSiren: string | null = '299999999'
-  const list: Row[] = []
-  while (list.length < totalLimit) {
-    const remain = Math.min(PAGE_SIZE, totalLimit - list.length)
-    let q = client
-      .from('lv_companies')
-      .select('id, siren')
-      .eq('country_iso', 'FRA')
-      .not('siren', 'is', null)
-      .gte('siren', '300000000')
-      .order('siren', { ascending: true })
-      .limit(remain)
-    if (lastSiren) q = q.gt('siren', lastSiren)
-    const { data: page, error } = await q
-    if (error) {
-      return {
-        rows_processed: 0,
-        rows_inserted: 0,
-        rows_updated: 0,
-        rows_skipped: 0,
-        duration_ms: Date.now() - t0,
-        error: error.message,
-      }
+  // Priority cursor: domain-bearing companies first, exclude already-covered by INPI.
+  // RPC: gapup_leads.lv_pick_fr_companies_for_dirigeants(p_limit)
+  const { data: picked, error: rpcErr } = await client.rpc('lv_pick_fr_companies_for_dirigeants', {
+    p_limit: totalLimit,
+  })
+  if (rpcErr) {
+    return {
+      rows_processed: 0,
+      rows_inserted: 0,
+      rows_updated: 0,
+      rows_skipped: 0,
+      duration_ms: Date.now() - t0,
+      error: rpcErr.message,
     }
-    const rows = (page ?? []) as Row[]
-    if (rows.length === 0) break
-    list.push(...rows)
-    lastSiren = rows[rows.length - 1].siren
-    if (rows.length < remain) break
   }
+  const list: Row[] = (picked ?? []) as Row[]
 
   let processed = 0
   let inserted = 0
@@ -282,7 +270,12 @@ export async function runPersonsFrInpi(opts: ConnectorOptions = {}): Promise<Syn
         if (ent) batch.push(ent)
       }
     } catch (e) {
-      console.error(`[persons-fr-inpi] ${row.siren}:`, (e as Error).message)
+      const msg = (e as Error).message
+      console.error(`[persons-fr-inpi] ${row.siren}:`, msg)
+      if (msg === 'INPI_QUOTA_EXHAUSTED') {
+        console.error('[persons-fr-inpi] quota exhausted — bailing out, will retry next cycle after reset')
+        break
+      }
     }
 
     if (batch.length >= BATCH_SIZE) {

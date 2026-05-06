@@ -260,30 +260,30 @@ async function upsertContacts(sb: any, batch: ExtractedContact[]): Promise<{ ins
       contacts.push({
         company_id: cid,
         primary_source: 'common_crawl',
-        source_id: `cc-mailto:${item.domain}#${item.email}`,
         contact_type: 'email',
         contact_value: item.email,
-        verify_status: 'extracted',
-        metadata: { source_url: item.source_url },
+        verify_status: 'unverified',
+        is_personal: false,
       })
     }
     if (item.phone) {
       contacts.push({
         company_id: cid,
         primary_source: 'common_crawl',
-        source_id: `cc-tel:${item.domain}#${item.phone}`,
         contact_type: 'phone',
         contact_value: item.phone,
-        verify_status: 'extracted',
-        metadata: { source_url: item.source_url },
+        verify_status: 'unverified',
+        is_personal: false,
       })
     }
   }
 
   if (contacts.length === 0) return { inserted: 0, errors: 0 }
 
+  // lv_contacts unique index = (contact_value, contact_type) — pas de source_id ni metadata
+  // dans le schéma actuel. Run du 27/04 produisait 1368 errors silencieux à cause de ça.
   const { error } = await (sb.from as any)('lv_contacts')
-    .upsert(contacts, { onConflict: 'source_id', ignoreDuplicates: true })
+    .upsert(contacts, { onConflict: 'contact_value,contact_type', ignoreDuplicates: true })
   if (error) {
     if (process.env.LEADS_VAULT_DEBUG === '1') {
       console.error('[cc-mailto] upsert error:', error.message)

@@ -35,7 +35,7 @@ type Body = {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-const FROM = process.env.RESET_FROM_EMAIL || 'Feel The Gap <onboarding@resend.dev>'
+const FROM = process.env.RESET_FROM_EMAIL || process.env.EMAIL_FROM || 'Feel The Gap <noreply@gapup.io>'
 
 function sb() {
   return createClient(

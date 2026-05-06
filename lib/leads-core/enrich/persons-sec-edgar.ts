@@ -263,7 +263,7 @@ export async function runPersonsSecEdgar(opts: ConnectorOptions = {}): Promise<S
           role: p.title ?? 'Section 16 Officer/Director',
           role_seniority: seniority,
           decision_maker_score: score,
-          primary_source: 'opencorporates',
+          primary_source: 'sec_edgar',
         })
       }
     } catch (e) {

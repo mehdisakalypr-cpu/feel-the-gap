@@ -354,7 +354,7 @@ export async function runPersonsLinkedinSerp(opts: ConnectorOptions = {}): Promi
         role_seniority: seniority,
         decision_maker_score: score,
         linkedin_url: linkedinUrl,
-        primary_source: 'phantombuster',
+        primary_source: 'linkedin_serp',
       })
 
       contactBatch.push({
@@ -362,7 +362,7 @@ export async function runPersonsLinkedinSerp(opts: ConnectorOptions = {}): Promi
         contact_type: 'linkedin',
         contact_value: linkedinUrl,
         verify_status: 'unverified',
-        primary_source: 'phantombuster',
+        primary_source: 'linkedin_serp',
       })
 
       companyHits++

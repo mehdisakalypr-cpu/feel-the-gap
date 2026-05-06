@@ -20,6 +20,11 @@ import { logSync } from '../log'
 import { splitFullName } from './role-classifier'
 import type { LvCompanyInsert, LvPersonInsert, ConnectorOptions, SyncResult } from '../types'
 
+// 2026-04 : per-ICO GET marche toujours sur `-v-be` (HTTP 200).
+// Le GET search paginé (?pocet&start) y est 404 — l'API exige désormais
+// POST `/vyhledat` avec critères de recherche. Tant que searchSubjekty()
+// n'est pas migré en POST, ce connecteur ne peut qu'enrichir des companies
+// CZE déjà présentes en DB, pas en seeder de nouvelles.
 const ARES_BASE = 'https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty'
 const CACHE_DIR = '/root/leads-vault/cache/ares'
 const SLEEP_MS = 200
@@ -143,7 +148,7 @@ function subjektToCompany(s: AresSubjekt | AresDetail): LvCompanyInsert | null {
     address: s.sidlo?.textovaAdresa ?? null,
     founded_year: foundedYear && !isNaN(foundedYear) ? foundedYear : null,
     status: 'active',
-    primary_source: 'opencorporates' as const,
+    primary_source: 'ares' as const,
   }
 }
 
@@ -166,7 +171,7 @@ function osobaToPerson(osoba: AresOsoba, companyId: string, funkce: string | und
     role: mapped.label,
     role_seniority: mapped.seniority,
     decision_maker_score: mapped.score,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'ares' as const,
   }
 }
 

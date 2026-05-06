@@ -135,7 +135,7 @@ function summaryToCompany(s: PrhCompanySummary): LvCompanyInsert | null {
     country_iso: 'FIN',
     founded_year: foundedYear && !isNaN(foundedYear) ? foundedYear : null,
     status: 'active',
-    primary_source: 'opencorporates' as const,
+    primary_source: 'prh' as const,
   }
 }
 
@@ -166,7 +166,7 @@ function personToPerson(p: PrhPerson, companyId: string): LvPersonInsert | null 
     role: mapped.label,
     role_seniority: mapped.seniority,
     decision_maker_score: mapped.score,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'prh' as const,
   }
 }
 

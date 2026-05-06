@@ -22,6 +22,9 @@ const STATIC_PATHS: { path: string; changeFrequency: MetadataRoute.Sitemap[numbe
   { path: '/formation',    changeFrequency: 'weekly',  priority: 0.5 },
   { path: '/tools',        changeFrequency: 'monthly', priority: 0.7 },
   { path: '/tools/eori',   changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/companies',    changeFrequency: 'daily',   priority: 0.9 },
+  { path: '/companies/remove', changeFrequency: 'yearly', priority: 0.2 },
+  { path: '/trade-shows',  changeFrequency: 'weekly',  priority: 0.8 },
 ]
 
 const COUNTRIES_ISO3 = [

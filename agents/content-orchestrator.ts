@@ -20,6 +20,7 @@ import { generateProductionMethods } from './content-shikamaru'
 import { generateBusinessPlans } from './content-itachi'
 import { generatePotentialClients } from './content-hancock'
 import { generateYoutubeVideos } from './content-rock-lee'
+import { pgClaimNextContentJob, pgUpdateJob, pgHealthy } from '../lib/pg-pool'
 
 loadEnv()
 
@@ -149,7 +150,12 @@ async function markReadyIfComplete(sb: any, opp_id: string, country_iso: string,
 
 /** Dispatch single job. */
 async function runJob(sb: any, job: Job): Promise<AgentResult> {
-  const ctx = await loadContext(sb, job.opp_id, job.country_iso)
+  let ctx: Awaited<ReturnType<typeof loadContext>>
+  try {
+    ctx = await loadContext(sb, job.opp_id, job.country_iso)
+  } catch (e: any) {
+    return { ok: false, cost_eur: 0, err: `loadContext: ${e?.message || String(e)}`, quotaHit: false }
+  }
   const subtypes: Array<'production_methods'|'business_plans'|'potential_clients'|'youtube_videos'> =
     job.job_type === 'full'
       ? ['production_methods','business_plans','potential_clients','youtube_videos']
@@ -201,7 +207,10 @@ async function runJob(sb: any, job: Job): Promise<AgentResult> {
 async function main() {
   const { maxJobs, concurrency } = parseArgs()
   const sb = db()
-  console.log(`▶ content-orchestrator (Shisui): maxJobs=${maxJobs} concurrency=${concurrency}`)
+  // pg-direct path : si DATABASE_URL set + pool healthy, on bypasse PostgREST
+  // pour claim + update job status. Survit aux pannes PostgREST/Auth/Storage.
+  const usePgDirect = await pgHealthy()
+  console.log(`▶ content-orchestrator (Shisui): maxJobs=${maxJobs} concurrency=${concurrency} pg-direct=${usePgDirect}`)
 
   // Shared counters across workers
   const state = { processed: 0, globalQuotaHit: false, done: 0, retried: 0, failed: 0 }
@@ -211,9 +220,20 @@ async function main() {
   // safely grab disjoint jobs from the queue.
   async function worker(wid: number) {
     while (state.processed < maxJobs && !state.globalQuotaHit) {
-      const { data: claimed, error } = await sb.rpc('claim_next_content_job')
-      if (error) { console.error(`[w${wid}] claim error:`, error.message); return }
-      const job = claimed as Job | null
+      let claimed: Job | null = null
+      try {
+        if (usePgDirect) {
+          claimed = await pgClaimNextContentJob() as Job | null
+        } else {
+          const { data, error } = await sb.rpc('claim_next_content_job')
+          if (error) throw new Error(error.message)
+          claimed = data as Job | null
+        }
+      } catch (e: any) {
+        console.error(`[w${wid}] claim error:`, e?.message || String(e))
+        return
+      }
+      const job = claimed
       if (!job || !job.id) return  // queue empty → exit worker
 
       const slot = ++state.processed
@@ -224,12 +244,23 @@ async function main() {
       const elapsed = ((Date.now() - start) / 1000).toFixed(1)
 
       const shouldRetry = !res.ok && job.attempts < job.max_attempts
-      await sb.from('ftg_content_jobs').update({
+      const updates = {
         status: shouldRetry ? 'pending' : (res.ok ? 'done' : 'failed'),
         finished_at: shouldRetry ? null : new Date().toISOString(),
         last_error: res.err || null,
         cost_eur: res.cost_eur,
-      }).eq('id', job.id)
+      }
+      try {
+        if (usePgDirect) {
+          await pgUpdateJob(job.id, updates)
+        } else {
+          await sb.from('ftg_content_jobs').update(updates).eq('id', job.id)
+        }
+      } catch (e: any) {
+        // Last-resort fallback to keep the job from being stuck in 'running'
+        console.error(`[w${wid}] update error (will retry via PostgREST):`, e?.message || String(e))
+        await sb.from('ftg_content_jobs').update(updates).eq('id', job.id)
+      }
 
       if (res.ok) state.done++
       else if (shouldRetry) state.retried++

@@ -115,7 +115,7 @@ function enhetToCompany(e: BrregEnhet): LvCompanyInsert | null {
     employees_estimate: typeof e.antallAnsatte === 'number' ? e.antallAnsatte : null,
     status: 'active',
     nace_code: e.naeringskode1?.kode ?? null,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'brreg' as const,
   }
 }
 
@@ -140,7 +140,7 @@ function rolleToPersons(r: BrregRolle, companyId: string): LvPersonInsert | null
     role: mapped.label,
     role_seniority: mapped.seniority,
     decision_maker_score: mapped.score,
-    primary_source: 'opencorporates' as const,
+    primary_source: 'brreg' as const,
   }
 }
 

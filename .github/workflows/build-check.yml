@@ -1,0 +1,59 @@
+name: build-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install deps
+        run: npm ci
+      - name: Verify imports vs package.json
+        run: node scripts/check-imports.js
+      - name: Next.js build (catches Module not found, type fails, etc.)
+        if: ${{ hashFiles('package.json') != '' }}
+        env:
+          # Supabase
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://stub.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub.stub' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://stub.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub.stub' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub.stub' }}
+          # Auth
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET || 'stubstubstubstubstubstubstubstub' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'stubstubstubstubstubstubstubstub' }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+          # App URLs
+          APP_URL: ${{ secrets.APP_URL || 'http://localhost:3000' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+          # AI providers
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-stub' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-stub' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'gsk-stub' }}
+          # Email
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 're_stub' }}
+          RESEND_FROM: ${{ secrets.RESEND_FROM || 'noreply@stub.io' }}
+          # Stripe
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY || 'sk_test_stub' }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET || 'whsec_stub' }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_stub' }}
+          # Cron / internal
+          CRON_SECRET: ${{ secrets.CRON_SECRET || 'stubcronsecret' }}
+          # Telegram
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || 'stub:stub' }}
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
+            npm run build --silent
+          else
+            echo "✓ no 'build' script in package.json — skipping (lib-only repo)"
+          fi

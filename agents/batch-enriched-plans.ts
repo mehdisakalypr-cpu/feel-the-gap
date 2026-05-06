@@ -133,6 +133,23 @@ async function main() {
     }
 
     try {
+      // Lookup the matching opportunity FIRST. Without an opportunity_id, the BP
+      // becomes orphan (the bug that produced 21k orphan BPs in 04/2026).
+      // Match by (country_iso, product_id ILIKE '%slug%' OR product_id ILIKE '%name%').
+      const { data: opps, error: oppErr } = await admin
+        .from('opportunities')
+        .select('id, product_id, opportunity_score')
+        .eq('country_iso', iso)
+        .or(`product_id.ilike.%${product.slug}%,product_id.ilike.%${product.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}%`)
+        .order('opportunity_score', { ascending: false })
+        .limit(1);
+      if (oppErr || !opps || opps.length === 0) {
+        console.warn(`  ⊘ no opportunity found for ${iso}/${product.slug} — skip (would create orphan)`);
+        skipped++;
+        continue;
+      }
+      const opportunityId = opps[0].id;
+
       const plan = await buildEnrichedPlan({
         countryIso: iso,
         productSlug: product.slug,
@@ -141,6 +158,7 @@ async function main() {
       });
 
       const { error } = await admin.from('business_plans').insert({
+        opportunity_id: opportunityId,
         type: 'enriched_3_scenarios',
         title,
         tier_required: 'strategy',
@@ -153,7 +171,7 @@ async function main() {
       } else {
         inserted++;
         console.log(
-          `  ✓ inserted — capex≈${plan.scenarios?.mechanized?.capex_eur ?? '?'}€, recommended=${plan.scenarios_comparison?.recommended_scenario ?? '?'}`,
+          `  ✓ inserted (opp=${opportunityId.slice(0,8)}..) — capex≈${plan.scenarios?.mechanized?.capex_eur ?? '?'}€, recommended=${plan.scenarios_comparison?.recommended_scenario ?? '?'}`,
         );
       }
     } catch (err) {

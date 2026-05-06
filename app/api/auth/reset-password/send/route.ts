@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
-const FROM = process.env.RESET_FROM_EMAIL || 'Feel The Gap <onboarding@resend.dev>'
+const FROM = process.env.RESET_FROM_EMAIL || process.env.EMAIL_FROM || 'Feel The Gap <noreply@gapup.io>'
 
 function sha256(s: string): string {
   return createHash('sha256').update(s).digest('hex')

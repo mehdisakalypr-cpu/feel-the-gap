@@ -289,9 +289,9 @@
   },
   "home": {
     "badge": "SaaS平台 · 全球进出口数据",
-    "hero_title": "发现在哪里销售",
-    "hero_title_accent": "抢占先机",
-    "hero_desc": "Feel The Gap 分析全球贸易流向，识别供不应求的市场。AI驱动、真实数据、可执行商业计划。",
+    "hero_title": "发现市场",
+    "hero_title_accent": "机会",
+    "hero_desc": "我们全程陪伴您把握每一个机会。",
     "cta_register": "免费开始 →",
     "cta_register_full": "注册并免费开始 →",
     "cta_signin": "已注册？登录",

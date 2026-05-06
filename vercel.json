@@ -49,6 +49,10 @@
       "schedule": "0 11 * * *"
     },
     {
+      "path": "/api/cron/demo-enrichment",
+      "schedule": "30 9 * * *"
+    },
+    {
       "path": "/api/cron/webhooks-dispatch",
       "schedule": "0 10 * * *"
     },
@@ -75,6 +79,14 @@
     {
       "path": "/api/cron/stale-refresh",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/trade-pulse-weekly",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/launch-bonus-followup",
+      "schedule": "0 9 * * *"
     }
   ]
 }
